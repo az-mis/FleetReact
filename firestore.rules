@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && myRole() == 'super_admin';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myRole() in ['admin', 'super_admin'];
+    }
+
+    // users/{uid} — profile + role. This is the source of truth for authorization.
+    match /users/{uid} {
+      // Anyone signed in can read their own profile; admins can read anyone's
+      // (needed to list drivers/admins in the dashboard).
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Only super admins can create/delete accounts and manage admin roles.
+      // Regular admins may create/update driver profiles only.
+      allow create: if isSuperAdmin()
+        || (isAdmin() && request.resource.data.role == 'driver');
+
+      allow update: if isSuperAdmin()
+        || (isAdmin() && resource.data.role == 'driver' && request.resource.data.role == 'driver');
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // vehicles/{id} — admins and super admins manage; only super admins may
+    // change plateNumber on an existing vehicle.
+    match /vehicles/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        && (isSuperAdmin() || request.resource.data.plateNumber == resource.data.plateNumber);
+      allow delete: if isAdmin();
+    }
+  }
+}
