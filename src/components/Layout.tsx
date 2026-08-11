@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { LayoutDashboard, LogOut, Menu, X, Truck, Users, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, X, Truck, Users, ShieldCheck, UserCog } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 
 function useBreakpoint() {
@@ -34,6 +34,7 @@ export default function Layout() {
     { to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
     { to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
     { to: "/vehicles", icon: Truck, label: "Vehicles", show: isAdmin },
+    { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: isAdmin },
   ].filter((i) => i.show);
 
   async function handleLogout() {

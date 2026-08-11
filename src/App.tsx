@@ -6,6 +6,7 @@ import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
+import VehicleAssigning from "./pages/VehicleAssigning";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import Unauthorized from "./pages/Unauthorized";
@@ -39,6 +40,17 @@ function App() {
               element={
                 <ProtectedRoute allow={["admin", "super_admin"]}>
                   <Vehicles />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Vehicle Assigning: admin + super_admin only — assigns a permanent
+                driver to each vehicle */}
+            <Route
+              path="vehicle-assigning"
+              element={
+                <ProtectedRoute allow={["admin", "super_admin"]}>
+                  <VehicleAssigning />
                 </ProtectedRoute>
               }
             />

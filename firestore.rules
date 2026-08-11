@@ -38,7 +38,9 @@ service cloud.firestore {
     }
 
     // vehicles/{id} — admins and super admins manage; only super admins may
-    // change plateNumber on an existing vehicle.
+    // change plateNumber on an existing vehicle. Admins may also set
+    // assignedDriverId/assignedDriverName (Vehicle Assigning) freely, since
+    // that's just a regular field update covered by the same rule below.
     match /vehicles/{id} {
       allow read: if isAdmin();
       allow create: if isAdmin();

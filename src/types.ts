@@ -43,6 +43,14 @@ export interface Vehicle {
   odometer: number;
   vehicleType?: string | null;
   fuelType?: string | null;
+  // Permanent driver assignment (Vehicle Assigning feature). A vehicle has at
+  // most one permanently assigned driver, and a driver is assigned to at most
+  // one vehicle at a time. This is the default driver for the vehicle — future
+  // work will let an admin/super_admin override the driver on a per-request
+  // basis (e.g. when the assigned driver is unavailable) without changing
+  // this permanent assignment.
+  assignedDriverId?: string | null;
+  assignedDriverName?: string | null;
   createdAt?: any;
   updatedAt?: any;
 }
