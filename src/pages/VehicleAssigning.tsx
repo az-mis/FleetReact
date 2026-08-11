@@ -12,6 +12,7 @@ import {
 import { db } from "../firebase";
 import { AppUser, Vehicle } from "../types";
 import StatCard from "../components/StatCard";
+import PageHeader from "../components/PageHeader";
 import { Search, UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck } from "lucide-react";
 
 export default function VehicleAssigning() {
@@ -92,38 +93,29 @@ export default function VehicleAssigning() {
 
   return (
     <div className="fade-in">
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: "18px", fontWeight: 700 }}>Vehicle Assigning</h2>
-          <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-            Assign each vehicle to one driver permanently.
-          </p>
-        </div>
-        <div style={{ position: "relative", flex: "0 1 260px", minWidth: "180px" }}>
-          <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-          <input
-            placeholder="Search plate, brand, driver..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: "8px 10px 8px 32px",
-              borderRadius: "8px",
-              border: "1px solid var(--border)",
-              fontSize: "13px",
-              width: "100%",
-            }}
-          />
-        </div>
-      </div>
+      <PageHeader
+        icon={UserCog}
+        title="Vehicle Assigning"
+        subtitle="Assign each vehicle to one driver permanently."
+        actions={
+          <div style={{ position: "relative", flex: "0 1 260px", minWidth: "180px" }}>
+            <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
+            <input
+              placeholder="Search plate, brand, driver..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                padding: "8px 10px 8px 32px",
+                borderRadius: "8px",
+                border: "none",
+                fontSize: "13px",
+                width: "100%",
+                background: "rgba(255,255,255,0.92)",
+              }}
+            />
+          </div>
+        }
+      />
 
       <div
         style={{

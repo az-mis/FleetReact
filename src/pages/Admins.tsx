@@ -16,6 +16,7 @@ import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useAuth } from "../contexts/AuthContext";
 import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
+import PageHeader from "../components/PageHeader";
 import { Plus, Pencil, Trash2, Search, ShieldCheck } from "lucide-react";
 
 const emptyForm = { name: "", email: "", password: "", role: "admin" as UserRole };
@@ -101,55 +102,48 @@ export default function Admins() {
 
   return (
     <div className="fade-in">
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: "18px", fontWeight: 700 }}>Admins</h2>
-          <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>{admins.length} accounts • Super Admin only</p>
-        </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <div style={{ position: "relative" }}>
-            <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-            <input
-              placeholder="Search name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+      <PageHeader
+        icon={ShieldCheck}
+        title="Admins"
+        subtitle={`${admins.length} accounts • Super Admin only`}
+        actions={
+          <>
+            <div style={{ position: "relative" }}>
+              <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
+              <input
+                placeholder="Search name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  padding: "8px 10px 8px 32px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontSize: "13px",
+                  width: "220px",
+                  background: "rgba(255,255,255,0.92)",
+                }}
+              />
+            </div>
+            <button
+              onClick={openCreate}
               style={{
-                padding: "8px 10px 8px 32px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#fff",
+                color: "var(--primary)",
+                border: "none",
                 borderRadius: "8px",
-                border: "1px solid var(--border)",
+                padding: "8px 14px",
                 fontSize: "13px",
-                width: "220px",
+                fontWeight: 700,
               }}
-            />
-          </div>
-          <button
-            onClick={openCreate}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "var(--primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "8px 14px",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            <Plus size={16} /> Add Admin
-          </button>
-        </div>
-      </div>
+            >
+              <Plus size={16} /> Add Admin
+            </button>
+          </>
+        }
+      />
 
       <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
         <table style={{ fontSize: "13px" }}>

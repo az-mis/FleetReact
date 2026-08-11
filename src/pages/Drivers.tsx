@@ -15,7 +15,8 @@ import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
-import { Plus, Pencil, Trash2, Search, Users } from "lucide-react";
+import PageHeader from "../components/PageHeader";
+import { Plus, Pencil, Trash2, Search, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
 
 const emptyForm = {
   name: "",
@@ -29,6 +30,10 @@ const emptyForm = {
 export default function Drivers() {
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"list" | "grid">(() => {
+    if (typeof window === "undefined") return "list";
+    return (localStorage.getItem("drivers:view") as "list" | "grid") || "list";
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -42,6 +47,10 @@ export default function Drivers() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("drivers:view", view);
+  }, [view]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -119,101 +128,165 @@ export default function Drivers() {
 
   return (
     <div className="fade-in">
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: "18px", fontWeight: 700 }}>Drivers</h2>
-          <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>{drivers.length} on record</p>
-        </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <div style={{ position: "relative" }}>
-            <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-            <input
-              placeholder="Search name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+      <PageHeader
+        icon={Users}
+        title="Drivers"
+        subtitle={`${drivers.length} on record`}
+        actions={
+          <>
+            <div style={{ position: "relative" }}>
+              <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
+              <input
+                placeholder="Search name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  padding: "8px 10px 8px 32px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontSize: "13px",
+                  width: "220px",
+                  background: "rgba(255,255,255,0.92)",
+                }}
+              />
+            </div>
+            <div
               style={{
-                padding: "8px 10px 8px 32px",
+                display: "flex",
+                alignItems: "center",
                 borderRadius: "8px",
-                border: "1px solid var(--border)",
-                fontSize: "13px",
-                width: "220px",
+                padding: "3px",
+                background: "rgba(255,255,255,0.16)",
+                gap: "2px",
               }}
-            />
-          </div>
-          <button
-            onClick={openCreate}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "var(--primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "8px 14px",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            <Plus size={16} /> Add Driver
-          </button>
-        </div>
-      </div>
+            >
+              <button
+                onClick={() => setView("list")}
+                title="List view"
+                aria-pressed={view === "list"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: view === "list" ? "#fff" : "transparent",
+                  color: view === "list" ? "var(--primary)" : "#fff",
+                  boxShadow: view === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                }}
+              >
+                <List size={15} /> List
+              </button>
+              <button
+                onClick={() => setView("grid")}
+                title="Grid view"
+                aria-pressed={view === "grid"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: view === "grid" ? "#fff" : "transparent",
+                  color: view === "grid" ? "var(--primary)" : "#fff",
+                  boxShadow: view === "grid" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                }}
+              >
+                <LayoutGrid size={15} /> Grid
+              </button>
+            </div>
+            <button
+              onClick={openCreate}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#fff",
+                color: "var(--primary)",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 14px",
+                fontSize: "13px",
+                fontWeight: 700,
+              }}
+            >
+              <Plus size={16} /> Add Driver
+            </button>
+          </>
+        }
+      />
 
-      <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
-        <table style={{ fontSize: "13px" }}>
-          <thead>
-            <tr style={{ background: "#f7fafc", textAlign: "left" }}>
-              {["Name", "Email", "Address", "License Expiry", ""].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
-                  {h}
-                </th>
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            padding: "40px",
+            textAlign: "center",
+            color: "var(--text-muted)",
+          }}
+        >
+          <Users size={22} style={{ marginBottom: 6 }} />
+          <div>No drivers found.</div>
+        </div>
+      ) : view === "list" ? (
+        <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
+          <table style={{ fontSize: "13px" }}>
+            <thead>
+              <tr style={{ background: "#f7fafc", textAlign: "left" }}>
+                {["Name", "Email", "Address", "License Expiry", ""].map((h) => (
+                  <th key={h} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((d) => (
+                <tr key={d.id} style={{ borderTop: "1px solid var(--border)" }}>
+                  <td style={{ padding: "10px 14px", fontWeight: 600 }}>{d.name}</td>
+                  <td style={{ padding: "10px 14px" }}>{d.email}</td>
+                  <td style={{ padding: "10px 14px" }}>{d.address || "—"}</td>
+                  <td style={{ padding: "10px 14px" }}>{d.licenseExpirationDate || "—"}</td>
+                  <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => openEdit(d)}
+                      style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(d)}
+                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} style={{ padding: "28px", textAlign: "center", color: "var(--text-muted)" }}>
-                  <Users size={22} style={{ marginBottom: 6 }} />
-                  <div>No drivers found.</div>
-                </td>
-              </tr>
-            )}
-            {filtered.map((d) => (
-              <tr key={d.id} style={{ borderTop: "1px solid var(--border)" }}>
-                <td style={{ padding: "10px 14px", fontWeight: 600 }}>{d.name}</td>
-                <td style={{ padding: "10px 14px" }}>{d.email}</td>
-                <td style={{ padding: "10px 14px" }}>{d.address || "—"}</td>
-                <td style={{ padding: "10px 14px" }}>{d.licenseExpirationDate || "—"}</td>
-                <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button
-                    onClick={() => openEdit(d)}
-                    style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(d)}
-                    style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: "14px",
+          }}
+        >
+          {filtered.map((d) => (
+            <DriverCard key={d.id} driver={d} onEdit={() => openEdit(d)} onDelete={() => handleDelete(d)} />
+          ))}
+        </div>
+      )}
 
       {modalOpen && (
         <Modal title={editing ? "Edit Driver" : "Add Driver"} onClose={() => setModalOpen(false)}>
@@ -295,6 +368,93 @@ export default function Drivers() {
           </form>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function DriverCard({
+  driver,
+  onEdit,
+  onDelete,
+}: {
+  driver: AppUser;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const initial = (driver.name || driver.email || "?")[0]?.toUpperCase();
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: "14px",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 16px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            background: "var(--primary)",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "15px",
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {initial}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {driver.name}
+          </div>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Driver</div>
+        </div>
+        <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
+          <button
+            onClick={onEdit}
+            style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            onClick={onDelete}
+            style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12.5px", color: "var(--text-muted)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Mail size={13} style={{ flexShrink: 0 }} /> {driver.email}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <MapPin size={13} style={{ flexShrink: 0 }} /> {driver.address || "No address on file"}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <BadgeCheck size={13} style={{ flexShrink: 0 }} />
+          {driver.licenseExpirationDate ? `License exp: ${driver.licenseExpirationDate}` : "No license expiry on file"}
+        </span>
+      </div>
     </div>
   );
 }
