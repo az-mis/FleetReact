@@ -31,9 +31,9 @@ export default function Layout() {
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard", show: true },
-    { to: "/vehicles", icon: Truck, label: "Vehicles", show: isAdmin },
-    { to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
     { to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
+    { to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
+    { to: "/vehicles", icon: Truck, label: "Vehicles", show: isAdmin },
   ].filter((i) => i.show);
 
   async function handleLogout() {
