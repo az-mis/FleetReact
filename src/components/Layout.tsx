@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { LayoutDashboard, LogOut, Menu, X, Truck, Users, ShieldCheck, UserCog, AlertTriangle } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
+  Truck,
+  Users,
+  ShieldCheck,
+  UserCog,
+  AlertTriangle,
+  ChevronDown,
+  ClipboardList,
+} from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
 
@@ -32,13 +44,54 @@ export default function Layout() {
     if (isDesktop) setSidebarOpen(true);
   }, [isTablet, isDesktop]);
 
-  const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard", show: true },
-    { to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
-    { to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
-    { to: "/vehicles", icon: Truck, label: "Vehicles", show: isAdmin },
-    { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: isAdmin },
-  ].filter((i) => i.show);
+  const location = useLocation();
+
+  // Flat items stay top-level; "group" items render as an expandable dropdown
+  // whose children are real routes. The same structure drives both the
+  // desktop sidebar and the mobile slide-out drawer (see NavList below).
+  const navStructure: NavItem[] = [
+    { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
+    { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
+    { type: "link", to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
+    {
+      type: "group",
+      label: "Vehicles",
+      icon: Truck,
+      show: isAdmin,
+      children: [
+        { to: "/vehicles", icon: Truck, label: "Vehicle Information", show: true },
+        { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: true },
+        { to: "/vehicle-requests", icon: ClipboardList, label: "Vehicle Requests", show: true },
+      ],
+    },
+  ];
+
+  const isChildActive = (children: { to: string }[]) =>
+    children.some((c) => location.pathname === c.to || location.pathname.startsWith(c.to + "/"));
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    navStructure.forEach((item) => {
+      if (item.type === "group") initial[item.label] = isChildActive(item.children);
+    });
+    return initial;
+  });
+
+  // The group's open/closed state always mirrors whether the current route
+  // is one of its children — collapsing automatically the moment navigation
+  // leaves the group. Manual toggling below (clicking the group header) only
+  // stays in effect until the next navigation, at which point this recompute
+  // takes over again.
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      navStructure.forEach((item) => {
+        if (item.type === "group") next[item.label] = isChildActive(item.children);
+      });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -55,13 +108,15 @@ export default function Layout() {
 
   const initial = (profile?.name || currentUser?.email || "?")[0]?.toUpperCase();
 
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   if (isMobile) {
     return (
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <header
           style={{
             background: "linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 100%)",
-            padding: "0 16px",
+            padding: "0 12px",
             height: "56px",
             display: "flex",
             alignItems: "center",
@@ -72,6 +127,13 @@ export default function Layout() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
           }}
         >
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open menu"
+            style={{ background: "none", border: "none", color: "#fff", padding: "8px" }}
+          >
+            <Menu size={22} />
+          </button>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Mgmt</div>
           <div
             style={{
@@ -90,63 +152,101 @@ export default function Layout() {
             {initial}
           </div>
         </header>
-        <main style={{ flex: 1, padding: "14px", overflow: "auto", paddingBottom: "80px" }}>
+
+        <main style={{ flex: 1, padding: "14px", overflow: "auto" }}>
           <Outlet />
         </main>
-        <nav
+
+        {mobileNavOpen && (
+          <div
+            onClick={() => setMobileNavOpen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 199 }}
+          />
+        )}
+
+        <aside
           style={{
             position: "fixed",
-            bottom: 0,
+            top: 0,
             left: 0,
-            right: 0,
-            height: "56px",
-            background: "#fff",
-            borderTop: "1px solid var(--border)",
+            height: "100vh",
+            width: "78%",
+            maxWidth: "300px",
+            background: "linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%)",
+            color: "#fff",
             display: "flex",
-            zIndex: 100,
+            flexDirection: "column",
+            zIndex: 200,
+            transform: mobileNavOpen ? "translateX(0)" : "translateX(-105%)",
+            transition: "transform 0.25s ease",
+            boxShadow: "3px 0 15px rgba(0,0,0,0.25)",
           }}
         >
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              style={({ isActive }) => ({
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "3px",
-                color: isActive ? "var(--primary)" : "var(--text-muted)",
-                fontSize: "10px",
-                textDecoration: "none",
-              })}
-            >
-              <Icon size={20} />
-              <span>{label}</span>
-            </NavLink>
-          ))}
-          <button
-            onClick={() => setConfirmLogoutOpen(true)}
+          <div
             style={{
-              flex: 1,
+              padding: "18px 16px",
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "3px",
-              background: "none",
-              border: "none",
-              color: "var(--danger)",
-              fontSize: "10px",
-              fontWeight: 600,
+              justifyContent: "space-between",
             }}
           >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </nav>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "13px" }}>Fleet Management</div>
+              <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
+            </div>
+            <button
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close menu"
+              style={{ background: "none", border: "none", color: "#fff", padding: "6px" }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
+            <NavList
+              navStructure={navStructure}
+              openGroups={openGroups}
+              setOpenGroups={setOpenGroups}
+              isChildActive={isChildActive}
+              showLabels
+              onNavigate={() => setMobileNavOpen(false)}
+            />
+          </nav>
+
+          <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <div style={{ padding: "8px 12px", marginBottom: "8px" }}>
+              <div style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {profile?.name || currentUser?.email}
+              </div>
+              {role && <div style={{ fontSize: "10px", opacity: 0.75, marginTop: 2 }}>{USER_ROLE_LABEL[role]}</div>}
+            </div>
+            <button
+              onClick={() => {
+                setMobileNavOpen(false);
+                setConfirmLogoutOpen(true);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: "10px",
+                background: "var(--danger)",
+                border: "none",
+                color: "#fff",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              <LogOut size={18} style={{ flexShrink: 0 }} />
+              Logout
+            </button>
+          </div>
+        </aside>
+
         {confirmLogoutOpen && (
           <LogoutConfirmModal
             loggingOut={loggingOut}
@@ -196,32 +296,15 @@ export default function Layout() {
           )}
         </div>
 
-        <nav style={{ flex: 1, padding: "12px 8px" }}>
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              onClick={() => isTablet && setSidebarOpen(false)}
-              style={({ isActive }) => ({
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "10px 12px",
-                borderRadius: "10px",
-                marginBottom: "4px",
-                background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
-                fontWeight: isActive ? 600 : 400,
-                fontSize: "14px",
-                borderLeft: isActive ? "3px solid var(--secondary)" : "3px solid transparent",
-                textDecoration: "none",
-              })}
-            >
-              <Icon size={18} style={{ flexShrink: 0 }} />
-              {sidebarOpen && <span style={{ whiteSpace: "nowrap" }}>{label}</span>}
-            </NavLink>
-          ))}
+        <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
+          <NavList
+            navStructure={navStructure}
+            openGroups={openGroups}
+            setOpenGroups={setOpenGroups}
+            isChildActive={isChildActive}
+            showLabels={sidebarOpen}
+            onNavigate={() => isTablet && setSidebarOpen(false)}
+          />
         </nav>
 
         <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
@@ -334,6 +417,151 @@ export default function Layout() {
         />
       )}
     </div>
+  );
+}
+
+type NavItem =
+  | { type: "link"; to: string; icon: any; label: string; show: boolean; end?: boolean }
+  | {
+      type: "group";
+      label: string;
+      icon: any;
+      show: boolean;
+      children: Array<{ to: string; icon: any; label: string; show: boolean }>;
+    };
+
+// Renders the nav links/groups. Shared by the desktop sidebar (where
+// showLabels toggles with the collapse button) and the mobile drawer (where
+// showLabels is always true, and onNavigate closes the drawer after a tap).
+function NavList({
+  navStructure,
+  openGroups,
+  setOpenGroups,
+  isChildActive,
+  showLabels,
+  onNavigate,
+}: {
+  navStructure: NavItem[];
+  openGroups: Record<string, boolean>;
+  setOpenGroups: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  isChildActive: (children: { to: string }[]) => boolean;
+  showLabels: boolean;
+  onNavigate: () => void;
+}) {
+  return (
+    <>
+      {navStructure.map((item) => {
+        if (!item.show) return null;
+
+        if (item.type === "link") {
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={onNavigate}
+              style={({ isActive }) => ({
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "10px",
+                marginBottom: "4px",
+                background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
+                color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
+                fontWeight: isActive ? 600 : 400,
+                fontSize: "14px",
+                borderLeft: isActive ? "3px solid var(--secondary)" : "3px solid transparent",
+                textDecoration: "none",
+              })}
+            >
+              <item.icon size={18} style={{ flexShrink: 0 }} />
+              {showLabels && <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>}
+            </NavLink>
+          );
+        }
+
+        // Group (dropdown)
+        const visibleChildren = item.children.filter((c) => c.show);
+        if (visibleChildren.length === 0) return null;
+        const active = isChildActive(visibleChildren);
+        const open = !!openGroups[item.label];
+
+        return (
+          <div key={item.label} style={{ marginBottom: "4px" }}>
+            <button
+              onClick={() => setOpenGroups((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: "10px",
+                background: active ? "rgba(255,255,255,0.1)" : "transparent",
+                color: active ? "#fff" : "rgba(255,255,255,0.75)",
+                fontWeight: active ? 600 : 400,
+                fontSize: "14px",
+                border: "none",
+                borderLeft: active ? "3px solid var(--secondary)" : "3px solid transparent",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <item.icon size={18} style={{ flexShrink: 0 }} />
+              {showLabels && (
+                <>
+                  <span style={{ whiteSpace: "nowrap", flex: 1 }}>{item.label}</span>
+                  <ChevronDown
+                    size={15}
+                    style={{
+                      flexShrink: 0,
+                      transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                    }}
+                  />
+                </>
+              )}
+            </button>
+
+            {showLabels && open && (
+              <div
+                style={{
+                  marginTop: "2px",
+                  marginLeft: "14px",
+                  paddingLeft: "16px",
+                  borderLeft: "1px solid rgba(255,255,255,0.15)",
+                }}
+              >
+                {visibleChildren.map((child) => (
+                  <NavLink
+                    key={child.to}
+                    to={child.to}
+                    onClick={onNavigate}
+                    style={({ isActive }) => ({
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      marginTop: "2px",
+                      background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
+                      color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
+                      fontWeight: isActive ? 600 : 400,
+                      fontSize: "13px",
+                      textDecoration: "none",
+                    })}
+                  >
+                    <child.icon size={15} style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: "nowrap" }}>{child.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }
 

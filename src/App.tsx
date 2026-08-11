@@ -7,6 +7,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
 import VehicleAssigning from "./pages/VehicleAssigning";
+import VehicleRequests from "./pages/VehicleRequests";
+import RequestVehicle from "./pages/RequestVehicle";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import Unauthorized from "./pages/Unauthorized";
@@ -23,6 +25,11 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* Public, unauthenticated form — the QR code staff scan to
+              request a vehicle. Lives outside the protected Layout entirely
+              since requesters have no accounts. */}
+          <Route path="/request-vehicle" element={<RequestVehicle />} />
 
           <Route
             path="/"
@@ -51,6 +58,17 @@ function App() {
               element={
                 <ProtectedRoute allow={["admin", "super_admin"]}>
                   <VehicleAssigning />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Vehicle Requests: admin + super_admin only — review/confirm
+                requests submitted through the public QR-code form */}
+            <Route
+              path="vehicle-requests"
+              element={
+                <ProtectedRoute allow={["admin", "super_admin"]}>
+                  <VehicleRequests />
                 </ProtectedRoute>
               }
             />

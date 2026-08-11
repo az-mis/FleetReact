@@ -54,3 +54,40 @@ export interface Vehicle {
   createdAt?: any;
   updatedAt?: any;
 }
+
+/* ───────────────────────── Vehicle Requests ───────────────────────── */
+
+// Staff have no accounts, so a request is submitted anonymously (e.g. via a
+// QR code that opens the public request form) and only becomes tied to a
+// driver/vehicle/admin once an admin reviews and confirms it.
+export type VehicleRequestStatus = "pending" | "approved" | "declined";
+
+export interface VehicleRequest {
+  id: string;
+  requesterName: string;
+  requesterOffice?: string | null;
+  requesterContact?: string | null;
+  vehicleId: string;
+  vehiclePlateNumber: string;
+  // The vehicle's permanent driver at the time of the request (from Vehicle
+  // Assigning). Kept as a snapshot so it doesn't silently change if the
+  // permanent assignment is edited after the request was submitted.
+  defaultDriverId?: string | null;
+  defaultDriverName?: string | null;
+  // Set by the admin at confirmation time — equals defaultDriverId unless the
+  // default driver is unavailable and a substitute is chosen. This is a
+  // one-off override; it never modifies the vehicle's permanent assignment.
+  confirmedDriverId?: string | null;
+  confirmedDriverName?: string | null;
+  purpose: string;
+  destination: string;
+  travelDate: string; // yyyy-mm-dd
+  passengers?: string | null;
+  status: VehicleRequestStatus;
+  declineReason?: string | null;
+  approvedBy?: string | null;
+  approvedByName?: string | null;
+  approvedAt?: any;
+  createdAt?: any;
+  updatedAt?: any;
+}

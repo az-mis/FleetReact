@@ -42,10 +42,46 @@ service cloud.firestore {
     // assignedDriverId/assignedDriverName (Vehicle Assigning) freely, since
     // that's just a regular field update covered by the same rule below.
     match /vehicles/{id} {
-      allow read: if isAdmin();
+      // Public read: the QR-code vehicle request form is unauthenticated and
+      // needs to list vehicles + their assigned driver. Nothing here is
+      // sensitive (no personal driver contact info lives on this doc).
+      allow read: if true;
       allow create: if isAdmin();
       allow update: if isAdmin()
         && (isSuperAdmin() || request.resource.data.plateNumber == resource.data.plateNumber);
+      allow delete: if isAdmin();
+    }
+
+    // vehicleRequests/{id} — staff have no accounts, so a request is
+    // submitted anonymously (typically via a QR code -> public form) with no
+    // sign-in required. To keep this safe with an open create rule:
+    //   - only the specific fields below may be set, nothing else
+    //   - status must always start as "pending" on create (never
+    //     self-approved) and admin-only fields (confirmedDriverId,
+    //     approvedBy, etc.) must be absent on create
+    //   - only admins/super admins may read the list or update a request
+    //     (e.g. to approve/decline), since it may contain contact info
+    function requestCreateFields() {
+      return request.resource.data.keys().hasOnly([
+        'requesterName', 'requesterOffice', 'requesterContact',
+        'vehicleId', 'vehiclePlateNumber',
+        'defaultDriverId', 'defaultDriverName',
+        'purpose', 'destination', 'travelDate', 'passengers',
+        'status', 'createdAt', 'updatedAt'
+      ]);
+    }
+
+    match /vehicleRequests/{id} {
+      allow read: if isAdmin();
+      allow create: if requestCreateFields()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requesterName is string
+        && request.resource.data.requesterName.size() > 0
+        && request.resource.data.vehicleId is string
+        && request.resource.data.purpose is string
+        && request.resource.data.destination is string
+        && request.resource.data.travelDate is string;
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
   }

@@ -143,7 +143,7 @@ export default function Vehicles() {
     <div className="fade-in">
       <PageHeader
         icon={Truck}
-        title="Vehicles"
+        title="Vehicle Information"
         subtitle={`${vehicles.length} registered`}
         actions={
           <>
