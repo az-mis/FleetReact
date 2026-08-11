@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { LayoutDashboard, LogOut, Menu, X, Truck, Users, ShieldCheck, UserCog } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, X, Truck, Users, ShieldCheck, UserCog, AlertTriangle } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
+import Modal from "./Modal";
 
 function useBreakpoint() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
@@ -23,6 +24,8 @@ export default function Layout() {
   const navigate = useNavigate();
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (isTablet) setSidebarOpen(false);
@@ -38,11 +41,15 @@ export default function Layout() {
   ].filter((i) => i.show);
 
   async function handleLogout() {
+    setLoggingOut(true);
     try {
       await logout();
       navigate("/login");
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoggingOut(false);
+      setConfirmLogoutOpen(false);
     }
   }
 
@@ -121,7 +128,7 @@ export default function Layout() {
             </NavLink>
           ))}
           <button
-            onClick={handleLogout}
+            onClick={() => setConfirmLogoutOpen(true)}
             style={{
               flex: 1,
               display: "flex",
@@ -131,14 +138,22 @@ export default function Layout() {
               gap: "3px",
               background: "none",
               border: "none",
-              color: "var(--text-muted)",
+              color: "var(--danger)",
               fontSize: "10px",
+              fontWeight: 600,
             }}
           >
             <LogOut size={20} />
             <span>Logout</span>
           </button>
         </nav>
+        {confirmLogoutOpen && (
+          <LogoutConfirmModal
+            loggingOut={loggingOut}
+            onCancel={() => setConfirmLogoutOpen(false)}
+            onConfirm={handleLogout}
+          />
+        )}
       </div>
     );
   }
@@ -228,7 +243,7 @@ export default function Layout() {
             </div>
           )}
           <button
-            onClick={handleLogout}
+            onClick={() => setConfirmLogoutOpen(true)}
             style={{
               display: "flex",
               alignItems: "center",
@@ -236,10 +251,11 @@ export default function Layout() {
               width: "100%",
               padding: "10px 12px",
               borderRadius: "10px",
-              background: "rgba(255,255,255,0.1)",
+              background: "var(--danger)",
               border: "none",
-              color: "rgba(255,255,255,0.85)",
+              color: "#fff",
               fontSize: "14px",
+              fontWeight: 600,
             }}
           >
             <LogOut size={18} style={{ flexShrink: 0 }} />
@@ -309,6 +325,86 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {confirmLogoutOpen && (
+        <LogoutConfirmModal
+          loggingOut={loggingOut}
+          onCancel={() => setConfirmLogoutOpen(false)}
+          onConfirm={handleLogout}
+        />
+      )}
     </div>
+  );
+}
+
+function LogoutConfirmModal({
+  loggingOut,
+  onCancel,
+  onConfirm,
+}: {
+  loggingOut: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal title="Log out?" onClose={onCancel}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "10px",
+              background: "#fff5f5",
+              color: "var(--danger)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={20} />
+          </div>
+          <p style={{ fontSize: "13.5px", color: "#4a5568", lineHeight: 1.5, marginTop: "6px" }}>
+            You'll be signed out and returned to the login screen. Any unsaved changes on this
+            page will be lost.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button
+            onClick={onCancel}
+            disabled={loggingOut}
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: "8px",
+              border: "1px solid var(--border)",
+              background: "#fff",
+              color: "#2d3748",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loggingOut}
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: "8px",
+              border: "none",
+              background: "var(--danger)",
+              color: "#fff",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            {loggingOut ? "Logging out..." : "Log Out"}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }

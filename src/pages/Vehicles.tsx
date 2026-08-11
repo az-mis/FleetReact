@@ -22,7 +22,7 @@ const emptyForm = {
   engineNumber: "",
   brand: "",
   model: "",
-  year: new Date().getFullYear(),
+  year: "" as number | "",
   color: "",
   odometer: 0,
   vehicleType: "",
@@ -88,6 +88,11 @@ export default function Vehicles() {
 
     if (!/^[A-Za-z0-9\- ]+$/.test(form.plateNumber.trim())) {
       setError("Plate number may only contain letters, numbers, dashes, and spaces.");
+      return;
+    }
+
+    if (form.year === "" || Number(form.year) < 1900 || Number(form.year) > new Date().getFullYear() + 1) {
+      setError("Please enter a valid year.");
       return;
     }
 
@@ -285,8 +290,9 @@ export default function Vehicles() {
                   required
                   min={1900}
                   max={new Date().getFullYear() + 1}
+                  placeholder={String(new Date().getFullYear())}
                   value={form.year}
-                  onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, year: e.target.value === "" ? "" : Number(e.target.value) })}
                   style={inputStyle}
                 />
               </Field>
