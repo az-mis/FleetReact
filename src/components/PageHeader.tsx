@@ -14,6 +14,7 @@ export default function PageHeader({
 }) {
   return (
     <div
+      className="page-header"
       style={{
         position: "relative",
         borderRadius: "20px",
@@ -95,7 +96,7 @@ export default function PageHeader({
       </div>
 
       {actions && (
-        <div style={{ position: "relative", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <div className="page-header-actions" style={{ position: "relative", display: "flex", gap: "8px", flexWrap: "wrap" }}>
           {actions}
         </div>
       )}

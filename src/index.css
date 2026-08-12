@@ -76,3 +76,49 @@ table {
 .spin {
   animation: spin 0.8s linear infinite;
 }
+
+/* PageHeader: keep title and actions on their own full-width rows once
+   space gets tight, so the search box never gets clipped or squeezed. */
+@media (max-width: 640px) {
+  .page-header {
+    padding: 16px !important;
+  }
+  .page-header-actions {
+    width: 100%;
+    flex: 1 1 100% !important;
+  }
+  .header-search-wrap {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    order: -1; /* search bar leads, other actions (toggles, add buttons) fall below it */
+  }
+}
+
+/* Search box scales smoothly with viewport width instead of jumping
+   between a couple of fixed pixel sizes (220px on desktop, 100% on
+   mobile) — clamp() keeps it comfortably readable from small phones
+   up through wide desktop monitors. */
+.header-search-wrap {
+  width: clamp(200px, 26vw, 320px) !important;
+}
+
+@keyframes toastDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastShrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

@@ -16,9 +16,9 @@ import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
+import HeaderSearchInput from "../components/HeaderSearchInput";
 import {
   ClipboardList,
-  Search,
   Truck,
   Clock,
   CheckCircle2,
@@ -155,20 +155,11 @@ export default function VehicleRequests() {
         title="Vehicle Requests"
         subtitle="Review and confirm staff requests submitted via QR code."
         actions={
-          <div style={{ position: "relative", flex: "0 1 260px", minWidth: "180px" }}>
-            <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-            <input
-              placeholder="Search requester, plate, destination..."
+          <div className="header-search-wrap">
+            <HeaderSearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                padding: "8px 10px 8px 32px",
-                borderRadius: "8px",
-                border: "none",
-                fontSize: "13px",
-                width: "100%",
-                background: "rgba(255,255,255,0.92)",
-              }}
+              onChange={setSearch}
+              placeholder="Search requester, plate, destination..."
             />
           </div>
         }

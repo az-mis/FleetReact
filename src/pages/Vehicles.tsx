@@ -16,7 +16,8 @@ import { useToast } from "../contexts/ToastContext";
 import { Vehicle } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import { Plus, Pencil, Trash2, Search, Truck, List, LayoutGrid, Gauge, Palette, Fuel } from "lucide-react";
+import HeaderSearchInput from "../components/HeaderSearchInput";
+import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel } from "lucide-react";
 
 const emptyForm = {
   plateNumber: "",
@@ -157,20 +158,11 @@ export default function Vehicles() {
         subtitle={`${vehicles.length} registered`}
         actions={
           <>
-            <div style={{ position: "relative" }}>
-              <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-              <input
-                placeholder="Search plate, brand, model..."
+            <div className="header-search-wrap">
+              <HeaderSearchInput
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  padding: "8px 10px 8px 32px",
-                  borderRadius: "8px",
-                  border: "none",
-                  fontSize: "13px",
-                  width: "220px",
-                  background: "rgba(255,255,255,0.92)",
-                }}
+                onChange={setSearch}
+                placeholder="Search plate, brand, model..."
               />
             </div>
             <div

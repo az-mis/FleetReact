@@ -134,13 +134,13 @@ export default function Layout() {
           >
             <Menu size={22} />
           </button>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Mgmt</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Management</div>
           <div
             style={{
               width: 32,
               height: 32,
               borderRadius: "50%",
-              background: "var(--secondary)",
+              background: "var(--primary)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -380,7 +380,7 @@ export default function Layout() {
           </button>
 
           <div style={{ display: "flex", alignItems: "center", flexDirection: "column" }}>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management Dashboard</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management System</h1>
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
               Vehicles, drivers, and admin accounts.
             </p>

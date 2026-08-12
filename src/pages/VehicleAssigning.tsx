@@ -14,7 +14,9 @@ import { useToast } from "../contexts/ToastContext";
 import { AppUser, Vehicle } from "../types";
 import StatCard from "../components/StatCard";
 import PageHeader from "../components/PageHeader";
-import { Search, UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck } from "lucide-react";
+import HeaderSearchInput from "../components/HeaderSearchInput";
+import DriverSelect from "../components/DriverSelect";
+import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck } from "lucide-react";
 
 export default function VehicleAssigning() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -106,20 +108,11 @@ export default function VehicleAssigning() {
         title="Vehicle Assigning"
         subtitle="Assign each vehicle to one driver permanently."
         actions={
-          <div style={{ position: "relative", flex: "0 1 260px", minWidth: "180px" }}>
-            <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-            <input
-              placeholder="Search plate, brand, driver..."
+          <div className="header-search-wrap">
+            <HeaderSearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                padding: "8px 10px 8px 32px",
-                borderRadius: "8px",
-                border: "none",
-                fontSize: "13px",
-                width: "100%",
-                background: "rgba(255,255,255,0.92)",
-              }}
+              onChange={setSearch}
+              placeholder="Search plate, brand, driver..."
             />
           </div>
         }
@@ -191,9 +184,10 @@ export default function VehicleAssigning() {
         </div>
       ) : (
         <div
+          className="vehicle-assign-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
             gap: "14px",
           }}
         >
@@ -235,7 +229,6 @@ function VehicleAssignCard({
         borderRadius: "14px",
         border: "1px solid var(--border)",
         boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
       }}
@@ -244,6 +237,8 @@ function VehicleAssignCard({
         style={{
           padding: "14px 16px",
           borderBottom: "1px solid var(--border)",
+          borderTopLeftRadius: "14px",
+          borderTopRightRadius: "14px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -291,36 +286,23 @@ function VehicleAssignCard({
       </div>
 
       <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)" }}>
             PERMANENT DRIVER
           </span>
-          <select
+          <DriverSelect
             value={vehicle.assignedDriverId || ""}
             disabled={saving}
-            onChange={(e) => onAssign(e.target.value)}
-            style={{
-              padding: "8px 10px",
-              borderRadius: "8px",
-              border: "1px solid var(--border)",
-              fontSize: "13px",
-              width: "100%",
-              background: saving ? "#f7fafc" : "#fff",
-            }}
-          >
-            <option value="">— Unassigned —</option>
-            {drivers
+            onChange={(driverId) => onAssign(driverId)}
+            placeholder="— Unassigned —"
+            options={drivers
               .filter((d) => {
                 const takenBy = assignedElsewhere.get(d.id);
                 return !takenBy || takenBy === vehicle.id;
               })
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-          </select>
-        </label>
+              .map((d) => ({ value: d.id, label: d.name }))}
+          />
+        </div>
 
         {saving ? (
           <div style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>Saving...</div>

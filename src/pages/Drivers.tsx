@@ -19,7 +19,8 @@ import { useToast } from "../contexts/ToastContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
-import { Plus, Pencil, Trash2, Search, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
+import HeaderSearchInput from "../components/HeaderSearchInput";
 
 const emptyForm = {
   name: "",
@@ -163,20 +164,11 @@ export default function Drivers() {
         subtitle={`${drivers.length} on record`}
         actions={
           <>
-            <div style={{ position: "relative" }}>
-              <Search size={15} style={{ position: "absolute", left: 10, top: 9, color: "var(--text-muted)" }} />
-              <input
-                placeholder="Search name or email..."
+            <div className="header-search-wrap">
+              <HeaderSearchInput
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  padding: "8px 10px 8px 32px",
-                  borderRadius: "8px",
-                  border: "none",
-                  fontSize: "13px",
-                  width: "220px",
-                  background: "rgba(255,255,255,0.92)",
-                }}
+                onChange={setSearch}
+                placeholder="Search name or email..."
               />
             </div>
             <div
