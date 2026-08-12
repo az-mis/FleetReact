@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { useToast } from "../contexts/ToastContext";
 import { AppUser, Vehicle } from "../types";
 import StatCard from "../components/StatCard";
 import PageHeader from "../components/PageHeader";
@@ -21,6 +22,7 @@ export default function VehicleAssigning() {
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const q = query(collection(db, "vehicles"), orderBy("createdAt", "desc"));
@@ -84,8 +86,14 @@ export default function VehicleAssigning() {
         assignedDriverName: driver ? driver.name : null,
         updatedAt: serverTimestamp(),
       });
+      showSuccess(
+        driver
+          ? `${driver.name} assigned to ${vehicle.plateNumber}.`
+          : `Driver unassigned from ${vehicle.plateNumber}.`
+      );
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
+      showError(err.message || `Couldn't update the driver for ${vehicle.plateNumber}.`);
     } finally {
       setSavingId(null);
     }

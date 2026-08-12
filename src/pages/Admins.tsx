@@ -14,6 +14,7 @@ import {
 import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
@@ -30,6 +31,7 @@ export default function Admins() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "in", ["admin", "super_admin"]), orderBy("createdAt", "desc"));
@@ -70,6 +72,7 @@ export default function Admins() {
           role: form.role,
           updatedAt: serverTimestamp(),
         });
+        showSuccess(`${form.name} updated.`);
       } else {
         if (form.password.length < 8) {
           throw new Error("Password must be at least 8 characters.");
@@ -82,10 +85,12 @@ export default function Admins() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        showSuccess(`${form.name} added as ${USER_ROLE_LABEL[form.role]}.`);
       }
       setModalOpen(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
+      showError(err.message || "Something went wrong while saving the account.");
     } finally {
       setSaving(false);
     }
@@ -97,7 +102,12 @@ export default function Admins() {
       return;
     }
     if (!confirm(`Delete ${USER_ROLE_LABEL[a.role]} ${a.name}? This removes their profile record.`)) return;
-    await deleteDoc(doc(db, "users", a.id));
+    try {
+      await deleteDoc(doc(db, "users", a.id));
+      showSuccess(`${a.name} deleted.`);
+    } catch (err: any) {
+      showError(err.message || `Couldn't delete ${a.name}.`);
+    }
   }
 
   return (

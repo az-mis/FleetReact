@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { Vehicle } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
@@ -32,6 +33,7 @@ const emptyForm = {
 
 export default function Vehicles() {
   const { isSuperAdmin } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"list" | "grid">(() => {
@@ -123,12 +125,15 @@ export default function Vehicles() {
           payload.plateNumber = editing.plateNumber;
         }
         await updateDoc(doc(db, "vehicles", editing.id), payload);
+        showSuccess(`${payload.plateNumber} updated.`);
       } else {
         await addDoc(collection(db, "vehicles"), { ...payload, createdAt: serverTimestamp() });
+        showSuccess(`${payload.plateNumber} registered.`);
       }
       setModalOpen(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
+      showError(err.message || "Something went wrong while saving the vehicle.");
     } finally {
       setSaving(false);
     }
@@ -136,7 +141,12 @@ export default function Vehicles() {
 
   async function handleDelete(v: Vehicle) {
     if (!confirm(`Delete vehicle ${v.plateNumber}? This cannot be undone.`)) return;
-    await deleteDoc(doc(db, "vehicles", v.id));
+    try {
+      await deleteDoc(doc(db, "vehicles", v.id));
+      showSuccess(`${v.plateNumber} deleted.`);
+    } catch (err: any) {
+      showError(err.message || `Couldn't delete ${v.plateNumber}.`);
+    }
   }
 
   return (

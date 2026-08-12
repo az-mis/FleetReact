@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -10,9 +11,11 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
+import { useToast } from "../contexts/ToastContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
@@ -39,6 +42,7 @@ export default function Drivers() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "driver"), orderBy("createdAt", "desc"));
@@ -92,6 +96,23 @@ export default function Drivers() {
           licenseExpirationDate: form.licenseExpirationDate || null,
           updatedAt: serverTimestamp(),
         });
+        // vehicles.assignedDriverName is a denormalized copy of the driver's
+        // name (set once in Vehicle Assigning), so it doesn't update on its
+        // own when the driver is renamed here. Cascade the new name to any
+        // vehicle(s) currently assigned to this driver so Vehicle Requests /
+        // the public request form don't keep showing the old name.
+        if (form.name !== editing.name) {
+          const assignedVehicles = await getDocs(
+            query(collection(db, "vehicles"), where("assignedDriverId", "==", editing.id))
+          );
+          if (!assignedVehicles.empty) {
+            const batch = writeBatch(db);
+            assignedVehicles.docs.forEach((v) => {
+              batch.update(v.ref, { assignedDriverName: form.name, updatedAt: serverTimestamp() });
+            });
+            await batch.commit();
+          }
+        }
         // Note: email/password changes for an existing Firebase Auth user
         // require the Admin SDK (a backend/Cloud Function) since the client
         // SDK can only change credentials for the currently signed-in user.
@@ -110,10 +131,13 @@ export default function Drivers() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        showSuccess(`${form.name} added as a driver.`);
       }
+      if (editing) showSuccess(`${form.name} updated.`);
       setModalOpen(false);
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
+      showError(err.message || "Something went wrong while saving the driver.");
     } finally {
       setSaving(false);
     }
@@ -123,7 +147,12 @@ export default function Drivers() {
     if (!confirm(`Delete driver ${d.name}? This removes their profile record.`)) return;
     // Deleting the matching Firebase Auth account also requires the Admin
     // SDK; wire this up to a Cloud Function if you need full account removal.
-    await deleteDoc(doc(db, "users", d.id));
+    try {
+      await deleteDoc(doc(db, "users", d.id));
+      showSuccess(`${d.name} deleted.`);
+    } catch (err: any) {
+      showError(err.message || `Couldn't delete ${d.name}.`);
+    }
   }
 
   return (

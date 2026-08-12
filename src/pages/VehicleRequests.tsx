@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { AppUser, Vehicle, VehicleRequest, VehicleRequestStatus } from "../types";
 import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
 import PageHeader from "../components/PageHeader";
@@ -40,6 +41,7 @@ const STATUS_COLOR: Record<VehicleRequestStatus, string> = {
 
 export default function VehicleRequests() {
   const { profile, currentUser } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [requests, setRequests] = useState<VehicleRequest[]>([]);
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -112,28 +114,38 @@ export default function VehicleRequests() {
   }
 
   async function handleDecline(request: VehicleRequest, reason: string) {
-    await updateDoc(doc(db, "vehicleRequests", request.id), {
-      status: "declined",
-      declineReason: reason || null,
-      approvedBy: currentUser?.uid || null,
-      approvedByName: profile?.name || null,
-      approvedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    setReviewing(null);
+    try {
+      await updateDoc(doc(db, "vehicleRequests", request.id), {
+        status: "declined",
+        declineReason: reason || null,
+        approvedBy: currentUser?.uid || null,
+        approvedByName: profile?.name || null,
+        approvedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      showSuccess(`Request from ${request.requesterName} declined.`);
+      setReviewing(null);
+    } catch (err: any) {
+      showError(err.message || "Couldn't decline this request.");
+    }
   }
 
   async function handleApprove(request: VehicleRequest, driverId: string, driverName: string) {
-    await updateDoc(doc(db, "vehicleRequests", request.id), {
-      status: "approved",
-      confirmedDriverId: driverId || null,
-      confirmedDriverName: driverName || null,
-      approvedBy: currentUser?.uid || null,
-      approvedByName: profile?.name || null,
-      approvedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    setReviewing(null);
+    try {
+      await updateDoc(doc(db, "vehicleRequests", request.id), {
+        status: "approved",
+        confirmedDriverId: driverId || null,
+        confirmedDriverName: driverName || null,
+        approvedBy: currentUser?.uid || null,
+        approvedByName: profile?.name || null,
+        approvedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      showSuccess(`Request from ${request.requesterName} approved.`);
+      setReviewing(null);
+    } catch (err: any) {
+      showError(err.message || "Couldn't approve this request.");
+    }
   }
 
   return (
