@@ -304,6 +304,7 @@ export default function Layout() {
             isChildActive={isChildActive}
             showLabels={sidebarOpen}
             onNavigate={() => isTablet && setSidebarOpen(false)}
+            onCollapsedGroupClick={() => setSidebarOpen(true)}
           />
         </nav>
 
@@ -440,6 +441,7 @@ function NavList({
   isChildActive,
   showLabels,
   onNavigate,
+  onCollapsedGroupClick,
 }: {
   navStructure: NavItem[];
   openGroups: Record<string, boolean>;
@@ -447,6 +449,7 @@ function NavList({
   isChildActive: (children: { to: string }[]) => boolean;
   showLabels: boolean;
   onNavigate: () => void;
+  onCollapsedGroupClick?: () => void;
 }) {
   return (
     <>
@@ -490,7 +493,17 @@ function NavList({
         return (
           <div key={item.label} style={{ marginBottom: "4px" }}>
             <button
-              onClick={() => setOpenGroups((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
+              onClick={() => {
+                // Sidebar is icon-only (collapsed) — expand it and open this
+                // group in one click, instead of leaving the click a no-op
+                // that silently toggles state nobody can see.
+                if (!showLabels) {
+                  onCollapsedGroupClick?.();
+                  setOpenGroups((prev) => ({ ...prev, [item.label]: true }));
+                  return;
+                }
+                setOpenGroups((prev) => ({ ...prev, [item.label]: !prev[item.label] }));
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",

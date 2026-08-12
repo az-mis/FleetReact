@@ -11,6 +11,7 @@ import VehicleAssigning from "./pages/VehicleAssigning";
 import VehicleRequests from "./pages/VehicleRequests";
 import RequestVehicle from "./pages/RequestVehicle";
 import CheckStatus from "./pages/CheckStatus";
+import TripTicket from "./pages/TripTicket";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import Unauthorized from "./pages/Unauthorized";
@@ -38,6 +39,10 @@ function App() {
               after submitting to see if their request was approved/declined.
               No auth, since requesters have no accounts. */}
           <Route path="/check-status" element={<CheckStatus />} />
+
+          {/* Public printable trip ticket — only renders once a request is
+              approved; the requester reaches it from the status page. */}
+          <Route path="/trip-ticket/:id" element={<TripTicket />} />
 
           <Route
             path="/"

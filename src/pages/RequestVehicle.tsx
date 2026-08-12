@@ -27,6 +27,7 @@ const emptyForm = {
   travelDate: "",
   travelDateEnd: "",
   passengers: "",
+  previousTripTicketDate: "",
 };
 
 export default function RequestVehicle() {
@@ -82,6 +83,7 @@ export default function RequestVehicle() {
         travelDate: form.travelDate,
         travelDateEnd: form.travelDateEnd || null,
         passengers: form.passengers.trim() || null,
+        previousTripTicketDate: form.previousTripTicketDate || null,
         status: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -221,7 +223,7 @@ export default function RequestVehicle() {
             value={form.requesterName}
             onChange={(e) => setForm({ ...form, requesterName: e.target.value })}
             style={inputStyle}
-            placeholder="Juan Dela Cruz"
+            placeholder="Input your name"
           />
         </Field>
 
@@ -231,7 +233,7 @@ export default function RequestVehicle() {
               value={form.requesterOffice}
               onChange={(e) => setForm({ ...form, requesterOffice: e.target.value })}
               style={inputStyle}
-              placeholder="e.g. APCO"
+              placeholder="Please input"
             />
           </Field>
           <Field label="Contact No." icon={Phone}>
@@ -286,7 +288,7 @@ export default function RequestVehicle() {
             value={form.destination}
             onChange={(e) => setForm({ ...form, destination: e.target.value })}
             style={inputStyle}
-            placeholder="e.g. Pinamalayan and Socorro, Oriental Mindoro"
+            placeholder="Input your destination"
           />
         </Field>
 
@@ -340,6 +342,19 @@ export default function RequestVehicle() {
             placeholder="Names of other passengers, if any"
           />
         </Field>
+
+        <Field label="Previous Trip Ticket Date (optional)" icon={CalendarDays}>
+          <input
+            type="date"
+            value={form.previousTripTicketDate}
+            onChange={(e) => setForm({ ...form, previousTripTicketDate: e.target.value })}
+            style={inputStyle}
+          />
+        </Field>
+        <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "-8px" }}>
+          If you've used a Driver's Trip Ticket before, enter its date here. Leave blank if this
+          is your first request.
+        </p>
 
         <button
           type="submit"

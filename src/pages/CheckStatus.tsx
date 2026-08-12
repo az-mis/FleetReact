@@ -14,6 +14,7 @@ import {
   MapPin,
   CalendarDays,
   User,
+  Printer,
 } from "lucide-react";
 
 type LookupState = "idle" | "loading" | "not_found" | "found" | "error";
@@ -215,6 +216,28 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
         <DetailRow icon={MapPin} label="Destination" value={request.destination} />
         <DetailRow icon={CalendarDays} label="Travel date" value={formatTravelDateRange(request.travelDate, request.travelDateEnd)} />
       </div>
+
+      {request.status === "approved" && (
+        <Link
+          to={`/trip-ticket/${request.id}`}
+          style={{
+            marginTop: "16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "7px",
+            padding: "11px 16px",
+            borderRadius: "8px",
+            background: "var(--primary)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: "13.5px",
+            textDecoration: "none",
+          }}
+        >
+          <Printer size={15} /> Download / Print Trip Ticket
+        </Link>
+      )}
 
       {request.status === "pending" && (
         <p style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.5 }}>

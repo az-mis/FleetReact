@@ -84,6 +84,9 @@ export interface VehicleRequest {
   travelDate: string; // yyyy-mm-dd — start date (single-day trips use only this)
   travelDateEnd?: string | null; // yyyy-mm-dd — end date, only set for multi-day trips
   passengers?: string | null;
+  // Date of the requester's previous Driver's Trip Ticket, if any — carried
+  // over onto the printed trip ticket (Appendix A, item 7).
+  previousTripTicketDate?: string | null;
   status: VehicleRequestStatus;
   declineReason?: string | null;
   approvedBy?: string | null;

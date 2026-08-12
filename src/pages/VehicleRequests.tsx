@@ -380,6 +380,9 @@ function ReviewModal({
         <InfoRow icon={CalendarDays} label="Travel Date" value={formatTravelDateRange(request.travelDate, request.travelDateEnd)} />
         <InfoRow icon={FileText} label="Purpose" value={request.purpose} />
         {request.passengers && <InfoRow icon={Users} label="Passengers" value={request.passengers} />}
+        {request.previousTripTicketDate && (
+          <InfoRow icon={CalendarDays} label="Previous Trip Ticket Date" value={request.previousTripTicketDate} />
+        )}
 
         {!isPending && (
           <div
