@@ -11,6 +11,7 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { AppUser, Vehicle, VehicleRequest, VehicleRequestStatus } from "../types";
+import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
@@ -73,6 +74,7 @@ export default function VehicleRequests() {
 
   const counts = useMemo(
     () => ({
+      total: requests.length,
       pending: requests.filter((r) => r.status === "pending").length,
       approved: requests.filter((r) => r.status === "approved").length,
       declined: requests.filter((r) => r.status === "declined").length,
@@ -94,14 +96,16 @@ export default function VehicleRequests() {
     return list;
   }, [requests, statusFilter, search]);
 
-  // Drivers already committed to an *approved* request on the same travel
-  // date are flagged as busy — a basic conflict check for substitution.
-  function busyDriverIds(travelDate: string, excludeRequestId: string) {
+  // Drivers already committed to an *approved* request whose date range
+  // overlaps this one are flagged as busy — a basic conflict check for
+  // substitution. Uses range overlap (not exact-date match) so multi-day
+  // trips are caught too.
+  function busyDriverIds(travelDate: string, travelDateEnd: string | null | undefined, excludeRequestId: string) {
     const set = new Set<string>();
     requests.forEach((r) => {
       if (r.id === excludeRequestId) return;
       if (r.status !== "approved") return;
-      if (r.travelDate !== travelDate) return;
+      if (!dateRangesOverlap(travelDate, travelDateEnd, r.travelDate, r.travelDateEnd)) return;
       if (r.confirmedDriverId) set.add(r.confirmedDriverId);
     });
     return set;
@@ -166,6 +170,7 @@ export default function VehicleRequests() {
           marginBottom: "18px",
         }}
       >
+        <StatCard icon={ClipboardList} label="Total Requests" value={counts.total} color="#4a5568" />
         <StatCard icon={Clock} label="Pending" value={counts.pending} color="var(--warning)" />
         <StatCard icon={CheckCircle2} label="Approved" value={counts.approved} color="var(--primary)" />
         <StatCard icon={XCircle} label="Declined" value={counts.declined} color="var(--danger)" />
@@ -219,7 +224,7 @@ export default function VehicleRequests() {
         <ReviewModal
           request={reviewing}
           drivers={drivers}
-          busyDriverIds={busyDriverIds(reviewing.travelDate, reviewing.id)}
+          busyDriverIds={busyDriverIds(reviewing.travelDate, reviewing.travelDateEnd, reviewing.id)}
           onClose={() => setReviewing(null)}
           onApprove={handleApprove}
           onDecline={handleDecline}
@@ -279,7 +284,7 @@ function RequestRow({ request, onReview }: { request: VehicleRequest; onReview: 
           </span>
         </div>
         <div style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-          {request.vehiclePlateNumber} · {request.destination} · {request.travelDate || "—"}
+          {request.vehiclePlateNumber} · {request.destination} · {formatTravelDateRange(request.travelDate, request.travelDateEnd)}
         </div>
       </div>
 
@@ -369,7 +374,7 @@ function ReviewModal({
         {request.requesterContact && <InfoRow icon={Phone} label="Contact" value={request.requesterContact} />}
         <InfoRow icon={Truck} label="Vehicle" value={request.vehiclePlateNumber} />
         <InfoRow icon={MapPin} label="Destination" value={request.destination} />
-        <InfoRow icon={CalendarDays} label="Travel Date" value={request.travelDate || "—"} />
+        <InfoRow icon={CalendarDays} label="Travel Date" value={formatTravelDateRange(request.travelDate, request.travelDateEnd)} />
         <InfoRow icon={FileText} label="Purpose" value={request.purpose} />
         {request.passengers && <InfoRow icon={Users} label="Passengers" value={request.passengers} />}
 

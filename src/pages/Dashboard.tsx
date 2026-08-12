@@ -3,7 +3,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import StatCard from "../components/StatCard";
-import { Truck, Users, ShieldCheck, UserCircle, Sparkles } from "lucide-react";
+import { Truck, Users, ShieldCheck, UserCircle, Sparkles, ClipboardList } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 
 export default function Dashboard() {
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [vehicleCount, setVehicleCount] = useState(0);
   const [driverCount, setDriverCount] = useState(0);
   const [adminCount, setAdminCount] = useState(0);
+  const [requestCount, setRequestCount] = useState(0);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -34,6 +35,14 @@ export default function Dashboard() {
     if (!isAdmin) return;
     const unsub = onSnapshot(collection(db, "vehicles"), (snap) =>
       setVehicleCount(snap.size),
+    );
+    return unsub;
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsub = onSnapshot(collection(db, "vehicleRequests"), (snap) =>
+      setRequestCount(snap.size),
     );
     return unsub;
   }, [isAdmin]);
@@ -188,6 +197,12 @@ export default function Dashboard() {
               label="Registered Vehicles"
               value={vehicleCount}
               color="var(--primary)"
+            />
+            <StatCard
+              icon={ClipboardList}
+              label="Total Requests"
+              value={requestCount}
+              color="#4a5568"
             />
           </div>
         </>

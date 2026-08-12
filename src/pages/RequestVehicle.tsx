@@ -1,8 +1,21 @@
 import React, { useEffect, useState, FormEvent } from "react";
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { Link } from "react-router-dom";
 import { db } from "../firebase";
 import { Vehicle } from "../types";
-import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users } from "lucide-react";
+import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users, Search, Copy } from "lucide-react";
+
+// Chars chosen to avoid visual confusion when staff read this off a phone
+// screen or write it down (no 0/O, 1/I/L).
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+
+function generateReferenceCode(): string {
+  let code = "";
+  for (let i = 0; i < 7; i++) {
+    code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  }
+  return code;
+}
 
 const emptyForm = {
   requesterName: "",
@@ -12,6 +25,7 @@ const emptyForm = {
   purpose: "",
   destination: "",
   travelDate: "",
+  travelDateEnd: "",
   passengers: "",
 };
 
@@ -21,6 +35,8 @@ export default function RequestVehicle() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [referenceCode, setReferenceCode] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "vehicles"), orderBy("plateNumber"));
@@ -41,9 +57,19 @@ export default function RequestVehicle() {
       return;
     }
 
+    if (form.travelDateEnd && form.travelDateEnd < form.travelDate) {
+      setError("The return date can't be before the start date.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "vehicleRequests"), {
+      // The reference code IS the document ID (not just a field). That way
+      // the status-check page can look up a request with a single-document
+      // getDoc() — which Firestore rules can allow publicly without opening
+      // up the whole collection to listing/enumeration.
+      const code = generateReferenceCode();
+      await setDoc(doc(db, "vehicleRequests", code), {
         requesterName: form.requesterName.trim(),
         requesterOffice: form.requesterOffice.trim() || null,
         requesterContact: form.requesterContact.trim() || null,
@@ -54,11 +80,13 @@ export default function RequestVehicle() {
         purpose: form.purpose.trim(),
         destination: form.destination.trim(),
         travelDate: form.travelDate,
+        travelDateEnd: form.travelDateEnd || null,
         passengers: form.passengers.trim() || null,
         status: "pending",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      setReferenceCode(code);
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
@@ -89,27 +117,90 @@ export default function RequestVehicle() {
           <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#1a202c", marginBottom: "6px" }}>
             Request submitted
           </h2>
-          <p style={{ fontSize: "13.5px", color: "var(--text-muted)", lineHeight: 1.5, marginBottom: "20px" }}>
-            Your vehicle request has been sent for approval. An admin will confirm the vehicle and
-            driver — please check with your office for confirmation before your travel date.
+          <p style={{ fontSize: "13.5px", color: "var(--text-muted)", lineHeight: 1.5, marginBottom: "18px" }}>
+            Your vehicle request has been sent for approval. Save your reference code below to
+            check whether it's been approved or declined.
           </p>
-          <button
-            onClick={() => {
-              setForm(emptyForm);
-              setSubmitted(false);
-            }}
+
+          <div
             style={{
-              padding: "10px 18px",
-              borderRadius: "8px",
-              border: "none",
-              background: "var(--primary)",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "13.5px",
+              background: "#f7fafc",
+              border: "1px dashed var(--border)",
+              borderRadius: "10px",
+              padding: "14px",
+              marginBottom: "20px",
             }}
           >
-            Submit another request
-          </button>
+            <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px" }}>
+              YOUR REFERENCE CODE
+            </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+              <span style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "3px", color: "#1a202c" }}>
+                {referenceCode}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(referenceCode);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                title="Copy code"
+                style={{
+                  border: "1px solid var(--border)",
+                  background: "#fff",
+                  borderRadius: "6px",
+                  padding: "6px",
+                  display: "flex",
+                  cursor: "pointer",
+                }}
+              >
+                <Copy size={14} />
+              </button>
+            </div>
+            {copied && (
+              <div style={{ fontSize: "11px", color: "var(--primary)", marginTop: "6px" }}>Copied!</div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <Link
+              to={`/check-status?code=${referenceCode}`}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "8px",
+                border: "none",
+                background: "var(--primary)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "13.5px",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+              }}
+            >
+              <Search size={14} /> Check status now
+            </Link>
+            <button
+              onClick={() => {
+                setForm(emptyForm);
+                setSubmitted(false);
+              }}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "8px",
+                border: "1px solid var(--border)",
+                background: "#fff",
+                color: "#2d3748",
+                fontWeight: 600,
+                fontSize: "13.5px",
+              }}
+            >
+              Submit another request
+            </button>
+          </div>
         </div>
       </PageShell>
     );
@@ -199,15 +290,37 @@ export default function RequestVehicle() {
           />
         </Field>
 
-        <Field label="Date of Travel" icon={CalendarDays} required>
-          <input
-            required
-            type="date"
-            value={form.travelDate}
-            onChange={(e) => setForm({ ...form, travelDate: e.target.value })}
-            style={inputStyle}
-          />
-        </Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <Field label="Travel Date (From)" icon={CalendarDays} required>
+            <input
+              required
+              type="date"
+              value={form.travelDate}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  travelDate: e.target.value,
+                  // Keep "To" from silently pre-dating a newly picked "From"
+                  travelDateEnd:
+                    form.travelDateEnd && form.travelDateEnd < e.target.value ? "" : form.travelDateEnd,
+                })
+              }
+              style={inputStyle}
+            />
+          </Field>
+          <Field label="Travel Date (To, optional)" icon={CalendarDays}>
+            <input
+              type="date"
+              value={form.travelDateEnd}
+              min={form.travelDate || undefined}
+              onChange={(e) => setForm({ ...form, travelDateEnd: e.target.value })}
+              style={inputStyle}
+            />
+          </Field>
+        </div>
+        <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "-8px" }}>
+          Leave "To" blank for a same-day trip. Fill it in only if travel spans more than one day.
+        </p>
 
         <Field label="Purpose" icon={FileText} required>
           <textarea
@@ -266,8 +379,13 @@ function PageShell({ children }: { children: React.ReactNode }) {
           <Truck size={22} />
           <h1 style={{ fontSize: "19px", fontWeight: 700 }}>Vehicle Request</h1>
         </div>
-        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginBottom: "20px" }}>
+        <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", marginBottom: "6px" }}>
           Fill this out to request a government vehicle for official travel.
+        </p>
+        <p style={{ fontSize: "12.5px", marginBottom: "20px" }}>
+          <Link to="/check-status" style={{ color: "#fff", textDecoration: "underline" }}>
+            Already submitted a request? Check its status →
+          </Link>
         </p>
         <div
           style={{

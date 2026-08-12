@@ -81,7 +81,8 @@ export interface VehicleRequest {
   confirmedDriverName?: string | null;
   purpose: string;
   destination: string;
-  travelDate: string; // yyyy-mm-dd
+  travelDate: string; // yyyy-mm-dd — start date (single-day trips use only this)
+  travelDateEnd?: string | null; // yyyy-mm-dd — end date, only set for multi-day trips
   passengers?: string | null;
   status: VehicleRequestStatus;
   declineReason?: string | null;

@@ -9,6 +9,7 @@ import Vehicles from "./pages/Vehicles";
 import VehicleAssigning from "./pages/VehicleAssigning";
 import VehicleRequests from "./pages/VehicleRequests";
 import RequestVehicle from "./pages/RequestVehicle";
+import CheckStatus from "./pages/CheckStatus";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import Unauthorized from "./pages/Unauthorized";
@@ -30,6 +31,11 @@ function App() {
               request a vehicle. Lives outside the protected Layout entirely
               since requesters have no accounts. */}
           <Route path="/request-vehicle" element={<RequestVehicle />} />
+
+          {/* Public status lookup — staff enter the reference code they got
+              after submitting to see if their request was approved/declined.
+              No auth, since requesters have no accounts. */}
+          <Route path="/check-status" element={<CheckStatus />} />
 
           <Route
             path="/"

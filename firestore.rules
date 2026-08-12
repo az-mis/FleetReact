@@ -1,42 +1,32 @@
 rules_version = '2';
-
 // Deploy with: firebase deploy --only firestore:rules
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isSignedIn() {
       return request.auth != null;
     }
-
     function myRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
-
     function isSuperAdmin() {
       return isSignedIn() && myRole() == 'super_admin';
     }
-
     function isAdmin() {
       return isSignedIn() && myRole() in ['admin', 'super_admin'];
     }
-
     // users/{uid} — profile + role. This is the source of truth for authorization.
     match /users/{uid} {
       // Anyone signed in can read their own profile; admins can read anyone's
       // (needed to list drivers/admins in the dashboard).
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-
       // Only super admins can create/delete accounts and manage admin roles.
       // Regular admins may create/update driver profiles only.
       allow create: if isSuperAdmin()
         || (isAdmin() && request.resource.data.role == 'driver');
-
       allow update: if isSuperAdmin()
         || (isAdmin() && resource.data.role == 'driver' && request.resource.data.role == 'driver');
-
       allow delete: if isSuperAdmin();
     }
-
     // vehicles/{id} — admins and super admins manage; only super admins may
     // change plateNumber on an existing vehicle. Admins may also set
     // assignedDriverId/assignedDriverName (Vehicle Assigning) freely, since
@@ -51,7 +41,6 @@ service cloud.firestore {
         && (isSuperAdmin() || request.resource.data.plateNumber == resource.data.plateNumber);
       allow delete: if isAdmin();
     }
-
     // vehicleRequests/{id} — staff have no accounts, so a request is
     // submitted anonymously (typically via a QR code -> public form) with no
     // sign-in required. To keep this safe with an open create rule:
@@ -66,13 +55,32 @@ service cloud.firestore {
         'requesterName', 'requesterOffice', 'requesterContact',
         'vehicleId', 'vehiclePlateNumber',
         'defaultDriverId', 'defaultDriverName',
-        'purpose', 'destination', 'travelDate', 'passengers',
+        'purpose', 'destination', 'travelDate', 'travelDateEnd', 'passengers',
         'status', 'createdAt', 'updatedAt'
       ]);
     }
-
+    // The vehicle doc being referenced by this request — used to verify the
+    // client-supplied "snapshot" fields (vehiclePlateNumber, defaultDriverId,
+    // defaultDriverName) actually match reality rather than being spoofed by
+    // an anonymous submitter, since /vehicleRequests has no auth on create.
+    function referencedVehicle() {
+      return get(/databases/$(database)/documents/vehicles/$(request.resource.data.vehicleId)).data;
+    }
+    // null and "" are both treated as "no driver assigned" — the client
+    // sends null when a vehicle has no assignedDriverId/Name.
+    function matchesOrBothEmpty(sent, real) {
+      return sent == real || ((sent == null || sent == '') && (real == null || real == ''));
+    }
     match /vehicleRequests/{id} {
-      allow read: if isAdmin();
+      // "get" (fetching one specific doc by its exact ID) is public — the
+      // status-check page needs this so anonymous requesters can look up
+      // their own request using the reference code they were given, which
+      // *is* the document ID. This does not expose other people's requests:
+      // without already knowing the exact ~28-billion-combination code,
+      // there's nothing to guess. "list" (querying/browsing the whole
+      // collection) stays admin-only, so the collection can't be enumerated.
+      allow get: if true;
+      allow list: if isAdmin();
       allow create: if requestCreateFields()
         && request.resource.data.status == 'pending'
         && request.resource.data.requesterName is string
@@ -80,7 +88,12 @@ service cloud.firestore {
         && request.resource.data.vehicleId is string
         && request.resource.data.purpose is string
         && request.resource.data.destination is string
-        && request.resource.data.travelDate is string;
+        && request.resource.data.travelDate is string
+        // vehiclePlateNumber/defaultDriverId/defaultDriverName must be an
+        // honest snapshot of the referenced vehicle doc, not client-chosen
+        && request.resource.data.vehiclePlateNumber == referencedVehicle().plateNumber
+        && matchesOrBothEmpty(request.resource.data.defaultDriverId, referencedVehicle().assignedDriverId)
+        && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
