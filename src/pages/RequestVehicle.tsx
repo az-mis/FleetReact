@@ -3,6 +3,8 @@ import { doc, setDoc, collection, onSnapshot, orderBy, query, serverTimestamp } 
 import { Link } from "react-router-dom";
 import { db } from "../firebase";
 import { Vehicle } from "../types";
+import { OFFICES } from "../data/offices";
+import SearchableSelect from "../components/SearchableSelect";
 import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users, Search, Copy } from "lucide-react";
 
 // Chars chosen to avoid visual confusion when staff read this off a phone
@@ -17,16 +19,31 @@ function generateReferenceCode(): string {
   return code;
 }
 
+// MIMAROPA region provinces + the Quezon City satellite office — used for the
+// "Location / Room / Building" field on the request form. Kept as a plain
+// list for now; the plan is to eventually filter available offices by which
+// one is picked here, but that mapping doesn't exist yet.
+const LOCATIONS = [
+  "Oriental Mindoro",
+  "Occidental Mindoro",
+  "Marinduque",
+  "Palawan",
+  "Romblon",
+  "Quezon City Satellite Office",
+];
+
 const emptyForm = {
   requesterName: "",
+  location: "",
   requesterOffice: "",
   requesterContact: "",
+  requesterIsPassenger: false,
   vehicleId: "",
   purpose: "",
   destination: "",
   travelDate: "",
   travelDateEnd: "",
-  passengers: "",
+  passengers: [""] as string[],
   previousTripTicketDate: "",
 };
 
@@ -53,6 +70,10 @@ export default function RequestVehicle() {
     e.preventDefault();
     setError("");
 
+    if (!form.location) {
+      setError("Please select a location.");
+      return;
+    }
     if (!form.vehicleId) {
       setError("Please select a vehicle.");
       return;
@@ -72,8 +93,10 @@ export default function RequestVehicle() {
       const code = generateReferenceCode();
       await setDoc(doc(db, "vehicleRequests", code), {
         requesterName: form.requesterName.trim(),
+        location: form.location,
         requesterOffice: form.requesterOffice.trim() || null,
         requesterContact: form.requesterContact.trim() || null,
+        requesterIsPassenger: form.requesterIsPassenger,
         vehicleId: selectedVehicle!.id,
         vehiclePlateNumber: selectedVehicle!.plateNumber,
         defaultDriverId: selectedVehicle!.assignedDriverId || null,
@@ -82,7 +105,9 @@ export default function RequestVehicle() {
         destination: form.destination.trim(),
         travelDate: form.travelDate,
         travelDateEnd: form.travelDateEnd || null,
-        passengers: form.passengers.trim() || null,
+        passengers: form.passengers.map((p) => p.trim()).filter(Boolean).length
+          ? form.passengers.map((p) => p.trim()).filter(Boolean)
+          : null,
         previousTripTicketDate: form.previousTripTicketDate || null,
         status: "pending",
         createdAt: serverTimestamp(),
@@ -227,24 +252,60 @@ export default function RequestVehicle() {
           />
         </Field>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-          <Field label="Office / Section" icon={Building2}>
-            <input
-              value={form.requesterOffice}
-              onChange={(e) => setForm({ ...form, requesterOffice: e.target.value })}
-              style={inputStyle}
-              placeholder="Please input"
-            />
-          </Field>
-          <Field label="Contact No." icon={Phone}>
-            <input
-              value={form.requesterContact}
-              onChange={(e) => setForm({ ...form, requesterContact: e.target.value })}
-              style={inputStyle}
-              placeholder="09XX-XXX-XXXX"
-            />
-          </Field>
-        </div>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "12.5px",
+            color: "#374151",
+            marginTop: "-6px",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={form.requesterIsPassenger}
+            onChange={(e) => setForm({ ...form, requesterIsPassenger: e.target.checked })}
+            style={{ width: "15px", height: "15px", cursor: "pointer" }}
+          />
+          I'm also riding along on this trip (not just requesting it)
+        </label>
+
+        <Field label="Location / Room / Building" icon={MapPin} required>
+          <select
+            required
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+            style={inputStyle}
+          >
+            <option value="">— Select Location —</option>
+            {LOCATIONS.map((loc) => (
+              <option key={loc} value={loc}>
+                {loc}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Office / Section" icon={Building2}>
+          <SearchableSelect
+            value={form.requesterOffice}
+            options={OFFICES.map((o) => ({ value: o.label, label: o.label }))}
+            onChange={(v) => setForm({ ...form, requesterOffice: v })}
+            placeholder="— Select your office —"
+            searchPlaceholder="Search office..."
+          />
+        </Field>
+
+        <Field label="Contact No." icon={Phone}>
+          <input
+            value={form.requesterContact}
+            onChange={(e) => setForm({ ...form, requesterContact: e.target.value })}
+            style={inputStyle}
+            placeholder="09XX-XXX-XXXX"
+          />
+        </Field>
 
         <Field label="Vehicle Needed" icon={Truck} required>
           <select
@@ -292,7 +353,7 @@ export default function RequestVehicle() {
           />
         </Field>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="rv-date-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
           <Field label="Travel Date (From)" icon={CalendarDays} required>
             <input
               required
@@ -335,12 +396,60 @@ export default function RequestVehicle() {
         </Field>
 
         <Field label="Passengers (optional)" icon={Users}>
-          <input
-            value={form.passengers}
-            onChange={(e) => setForm({ ...form, passengers: e.target.value })}
-            style={inputStyle}
-            placeholder="Names of other passengers, if any"
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {form.passengers.map((name, i) => (
+              <div key={i} style={{ display: "flex", gap: "8px" }}>
+                <input
+                  value={name}
+                  onChange={(e) => {
+                    const next = [...form.passengers];
+                    next[i] = e.target.value;
+                    setForm({ ...form, passengers: next });
+                  }}
+                  style={inputStyle}
+                  placeholder={`Passenger ${i + 1} name`}
+                />
+                {form.passengers.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, passengers: form.passengers.filter((_, j) => j !== i) })}
+                    aria-label="Remove passenger"
+                    style={{
+                      flexShrink: 0,
+                      width: "38px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border)",
+                      background: "#fff",
+                      color: "var(--text-muted)",
+                      fontSize: "16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, passengers: [...form.passengers, ""] })}
+            style={{
+              marginTop: "8px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              fontSize: "12.5px",
+              fontWeight: 600,
+              color: "var(--primary)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            + Add another passenger
+          </button>
         </Field>
 
         <Field label="Previous Trip Ticket Date (optional)" icon={CalendarDays}>
@@ -389,7 +498,12 @@ function PageShell({ children }: { children: React.ReactNode }) {
         padding: "32px 16px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: "480px" }}>
+      <div style={{ width: "100%", maxWidth: "520px" }}>
+        <style>{`
+          @media (max-width: 380px) {
+            .rv-date-grid { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", color: "#fff" }}>
           <Truck size={22} />
           <h1 style={{ fontSize: "19px", fontWeight: 700 }}>Vehicle Request</h1>
@@ -429,22 +543,27 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+    // A plain <div>, not <label> — this wrapper has no htmlFor, so it isn't a real
+    // accessible label anyway, and a <label> here causes a real bug: clicking a
+    // non-form-control element inside it (like an option row in a custom dropdown)
+    // makes the browser forward a synthetic click to the field's control, which
+    // re-toggles dropdowns like SearchableSelect right after they close.
+    <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
       <span
         style={{
           display: "flex",
           alignItems: "center",
           gap: "6px",
           fontSize: "12px",
-          fontWeight: 600,
-          color: "var(--text-muted)",
+          fontWeight: 700,
+          color: "#374151",
         }}
       >
         <Icon size={13} />
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
-    </label>
+    </div>
   );
 }
 

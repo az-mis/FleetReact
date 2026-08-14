@@ -373,13 +373,19 @@ function ReviewModal({
     <Modal title={isPending ? "Review Request" : "Request Details"} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         <InfoRow icon={User} label="Requester" value={request.requesterName} />
+        {request.location && <InfoRow icon={MapPin} label="Location" value={request.location} />}
+        {request.requesterIsPassenger && (
+          <InfoRow icon={Users} label="Riding along" value="Yes — requester is also a passenger" />
+        )}
         {request.requesterOffice && <InfoRow icon={Building2} label="Office" value={request.requesterOffice} />}
         {request.requesterContact && <InfoRow icon={Phone} label="Contact" value={request.requesterContact} />}
         <InfoRow icon={Truck} label="Vehicle" value={request.vehiclePlateNumber} />
         <InfoRow icon={MapPin} label="Destination" value={request.destination} />
         <InfoRow icon={CalendarDays} label="Travel Date" value={formatTravelDateRange(request.travelDate, request.travelDateEnd)} />
         <InfoRow icon={FileText} label="Purpose" value={request.purpose} />
-        {request.passengers && <InfoRow icon={Users} label="Passengers" value={request.passengers} />}
+        {request.passengers && request.passengers.length > 0 && (
+          <InfoRow icon={Users} label="Passengers" value={request.passengers.join(", ")} />
+        )}
         {request.previousTripTicketDate && (
           <InfoRow icon={CalendarDays} label="Previous Trip Ticket Date" value={request.previousTripTicketDate} />
         )}

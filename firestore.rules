@@ -52,7 +52,7 @@ service cloud.firestore {
     //     (e.g. to approve/decline), since it may contain contact info
     function requestCreateFields() {
       return request.resource.data.keys().hasOnly([
-        'requesterName', 'requesterOffice', 'requesterContact',
+        'requesterName', 'location', 'requesterOffice', 'requesterContact', 'requesterIsPassenger',
         'vehicleId', 'vehiclePlateNumber',
         'defaultDriverId', 'defaultDriverName',
         'purpose', 'destination', 'travelDate', 'travelDateEnd', 'passengers',

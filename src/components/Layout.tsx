@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -31,10 +33,28 @@ function useBreakpoint() {
   };
 }
 
+// Live count of pending vehicle requests, for the sidebar notification badge.
+// Admin-only (matches the Firestore rule restricting `list` on this
+// collection), so it's skipped entirely for non-admins.
+function usePendingRequestsCount(enabled: boolean) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!enabled) {
+      setCount(0);
+      return;
+    }
+    const q = query(collection(db, "vehicleRequests"), where("status", "==", "pending"));
+    const unsub = onSnapshot(q, (snap) => setCount(snap.size), () => setCount(0));
+    return unsub;
+  }, [enabled]);
+  return count;
+}
+
 export default function Layout() {
   const { currentUser, profile, role, isAdmin, isSuperAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
+  const pendingRequestsCount = usePendingRequestsCount(isAdmin);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -58,10 +78,11 @@ export default function Layout() {
       label: "Vehicles",
       icon: Truck,
       show: isAdmin,
+      badge: pendingRequestsCount,
       children: [
         { to: "/vehicles", icon: Truck, label: "Vehicle Information", show: true },
         { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: true },
-        { to: "/vehicle-requests", icon: ClipboardList, label: "Vehicle Requests", show: true },
+        { to: "/vehicle-requests", icon: ClipboardList, label: "Vehicle Requests", show: true, badge: pendingRequestsCount },
       ],
     },
   ];
@@ -130,9 +151,10 @@ export default function Layout() {
           <button
             onClick={() => setMobileNavOpen(true)}
             aria-label="Open menu"
-            style={{ background: "none", border: "none", color: "#fff", padding: "8px" }}
+            style={{ position: "relative", background: "none", border: "none", color: "#fff", padding: "8px" }}
           >
             <Menu size={22} />
+            <Badge count={pendingRequestsCount} dot />
           </button>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Management</div>
           <div
@@ -421,14 +443,59 @@ export default function Layout() {
   );
 }
 
+// Small pill/dot notification badge. `dot` renders a minimal dot (used over
+// a collapsed icon where there's no room for a number); otherwise it renders
+// the count, capped at "9+" so it never stretches the layout.
+function Badge({ count, dot }: { count: number; dot?: boolean }) {
+  if (!count) return null;
+  if (dot) {
+    return (
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          right: 2,
+          width: 9,
+          height: 9,
+          borderRadius: "50%",
+          background: "var(--danger, #e53e3e)",
+          border: "1.5px solid var(--primary-dark, #14532d)",
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      style={{
+        flexShrink: 0,
+        minWidth: 18,
+        height: 18,
+        padding: "0 5px",
+        borderRadius: "9px",
+        background: "var(--danger, #e53e3e)",
+        color: "#fff",
+        fontSize: "10.5px",
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1,
+      }}
+    >
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
 type NavItem =
-  | { type: "link"; to: string; icon: any; label: string; show: boolean; end?: boolean }
+  | { type: "link"; to: string; icon: any; label: string; show: boolean; end?: boolean; badge?: number }
   | {
       type: "group";
       label: string;
       icon: any;
       show: boolean;
-      children: Array<{ to: string; icon: any; label: string; show: boolean }>;
+      badge?: number;
+      children: Array<{ to: string; icon: any; label: string; show: boolean; badge?: number }>;
     };
 
 // Renders the nav links/groups. Shared by the desktop sidebar (where
@@ -478,8 +545,16 @@ function NavList({
                 textDecoration: "none",
               })}
             >
-              <item.icon size={18} style={{ flexShrink: 0 }} />
-              {showLabels && <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>}
+              <span style={{ position: "relative", flexShrink: 0, display: "flex" }}>
+                <item.icon size={18} />
+                {!showLabels && <Badge count={item.badge || 0} dot />}
+              </span>
+              {showLabels && (
+                <>
+                  <span style={{ whiteSpace: "nowrap", flex: 1 }}>{item.label}</span>
+                  <Badge count={item.badge || 0} />
+                </>
+              )}
             </NavLink>
           );
         }
@@ -521,10 +596,14 @@ function NavList({
                 textAlign: "left",
               }}
             >
-              <item.icon size={18} style={{ flexShrink: 0 }} />
+              <span style={{ position: "relative", flexShrink: 0, display: "flex" }}>
+                <item.icon size={18} />
+                {!showLabels && <Badge count={item.badge || 0} dot />}
+              </span>
               {showLabels && (
                 <>
                   <span style={{ whiteSpace: "nowrap", flex: 1 }}>{item.label}</span>
+                  <Badge count={item.badge || 0} />
                   <ChevronDown
                     size={15}
                     style={{
@@ -566,7 +645,8 @@ function NavList({
                     })}
                   >
                     <child.icon size={15} style={{ flexShrink: 0 }} />
-                    <span style={{ whiteSpace: "nowrap" }}>{child.label}</span>
+                    <span style={{ whiteSpace: "nowrap", flex: 1 }}>{child.label}</span>
+                    <Badge count={child.badge || 0} />
                   </NavLink>
                 ))}
               </div>

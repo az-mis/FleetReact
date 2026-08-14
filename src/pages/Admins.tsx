@@ -18,10 +18,12 @@ import { useToast } from "../contexts/ToastContext";
 import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
+import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import { compressImageToDataURL } from "../lib/imageCompress";
 
-const emptyForm = { name: "", email: "", password: "", role: "admin" as UserRole };
+const emptyForm = { name: "", email: "", password: "", role: "admin" as UserRole, photoURL: null as string | null };
 
 export default function Admins() {
   const { currentUser } = useAuth();
@@ -31,6 +33,7 @@ export default function Admins() {
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const [saving, setSaving] = useState(false);
   const { showSuccess, showError } = useToast();
 
@@ -52,14 +55,30 @@ export default function Admins() {
     setEditing(null);
     setForm(emptyForm);
     setError("");
+    setPhotoError("");
     setModalOpen(true);
   }
 
   function openEdit(a: AppUser) {
     setEditing(a);
-    setForm({ name: a.name, email: a.email, password: "", role: a.role });
+    setForm({ name: a.name, email: a.email, password: "", role: a.role, photoURL: a.photoURL || null });
     setError("");
+    setPhotoError("");
     setModalOpen(true);
+  }
+
+  async function handlePhotoSelect(file: File) {
+    setPhotoError("");
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+    try {
+      const dataUrl = await compressImageToDataURL(file);
+      setForm((f) => ({ ...f, photoURL: dataUrl }));
+    } catch (err: any) {
+      setPhotoError(err.message || "Couldn't process that image.");
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -71,6 +90,7 @@ export default function Admins() {
         await updateDoc(doc(db, "users", editing.id), {
           name: form.name,
           role: form.role,
+          photoURL: form.photoURL || null,
           updatedAt: serverTimestamp(),
         });
         showSuccess(`${form.name} updated.`);
@@ -83,6 +103,7 @@ export default function Admins() {
           name: form.name,
           email: form.email,
           role: form.role,
+          photoURL: form.photoURL || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -170,7 +191,12 @@ export default function Admins() {
             {filtered.map((a) => (
               <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ padding: "10px 14px", fontWeight: 600 }}>
-                  {a.name} {a.id === currentUser?.uid && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(you)</span>}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Avatar name={a.name} photoURL={a.photoURL} size={30} />
+                    <span>
+                      {a.name} {a.id === currentUser?.uid && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(you)</span>}
+                    </span>
+                  </div>
                 </td>
                 <td style={{ padding: "10px 14px" }}>{a.email}</td>
                 <td style={{ padding: "10px 14px" }}>
@@ -215,6 +241,15 @@ export default function Admins() {
                 {error}
               </div>
             )}
+
+            <AvatarPicker
+              inputId="admin-photo-input"
+              name={form.name}
+              photoURL={form.photoURL}
+              onSelect={handlePhotoSelect}
+              onRemove={() => setForm((f) => ({ ...f, photoURL: null }))}
+              error={photoError}
+            />
 
             <Field label="Full Name" required>
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />

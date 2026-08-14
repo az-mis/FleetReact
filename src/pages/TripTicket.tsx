@@ -26,6 +26,13 @@ function durationLabel(request: VehicleRequest): string {
   return `${start} to ${longDate(request.travelDateEnd)}`;
 }
 
+/** Names to print as authorized passenger(s) — the requester only appears here if they said
+ *  they're actually riding along; otherwise the ticket lists just the named passengers. */
+function passengerNames(request: VehicleRequest): string[] {
+  const names = request.requesterIsPassenger ? [request.requesterName] : [];
+  return [...names, ...(request.passengers || [])].filter(Boolean);
+}
+
 export default function TripTicket() {
   const { id } = useParams<{ id: string }>();
   const [state, setState] = useState<LoadState>("loading");
@@ -147,7 +154,7 @@ export default function TripTicket() {
           body { background: #fff !important; }
           .ticket-sheet { margin: 0 !important; box-shadow: none !important; }
         }
-        @page { size: A4; margin: 10mm; }
+        @page { size: A4; margin: 8mm; }
       `}</style>
 
       {/* The ticket itself */}
@@ -159,8 +166,8 @@ export default function TripTicket() {
           margin: "24px auto",
           background: "#fff",
           fontFamily: "Calibri, 'Segoe UI', Arial, Helvetica, sans-serif",
-          fontSize: "12.5px",
-          lineHeight: 1.3,
+          fontSize: "12px",
+          lineHeight: 1.22,
           color: "#1a1a1a",
           boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
           boxSizing: "border-box",
@@ -174,18 +181,18 @@ export default function TripTicket() {
           style={{ width: "100%", display: "block" }}
         />
 
-        <div style={{ padding: "3mm 12mm 5mm" }}>
+        <div style={{ padding: "2mm 12mm 3mm" }}>
         <div style={{ textAlign: "right", fontSize: "11px", marginTop: "0" }}>Appendix A</div>
 
-        <h1 style={{ textAlign: "center", fontSize: "18px", fontWeight: 700, letterSpacing: "0.75px", margin: "4px 0" }}>
+        <h1 style={{ textAlign: "center", fontSize: "17px", fontWeight: 700, letterSpacing: "0.75px", margin: "3px 0" }}>
           DRIVER'S TRIP TICKET
         </h1>
 
-        <div style={{ textAlign: "right", fontSize: "12.5px", marginBottom: "6px" }}>
+        <div style={{ textAlign: "right", fontSize: "12px", marginBottom: "4px" }}>
           <div>
             No. <U w={90}>{request.id}</U>
           </div>
-          <div style={{ marginTop: "3px" }}>
+          <div style={{ marginTop: "2px" }}>
             <U w={160}>
               {new Date(
                 request.approvedAt?.toDate ? request.approvedAt.toDate() : Date.now()
@@ -194,53 +201,53 @@ export default function TripTicket() {
           </div>
         </div>
 
-        <p style={{ fontSize: "12.5px", fontWeight: 700, marginBottom: "4px" }}>
+        <p style={{ fontSize: "12px", fontWeight: 700, marginBottom: "3px" }}>
           A. To be filled by the Administrative Official Authorizing Official Travel:
         </p>
 
-        <div style={{ lineHeight: 1.15 }}>
+        <div style={{ lineHeight: 1.1 }}>
           <TicketRow n={1} label="Name of Driver of the vehicle" value={driverName} />
           <TicketRow n={2} label="Government car to be used, Plate No." value={plateLabel} />
-          <TicketRow n={3} label="Name of authorized passenger" value={[request.requesterName, request.passengers].filter(Boolean).join(", ")} />
+          <TicketRow n={3} label="Name of authorized passenger" value={passengerNames(request).join(", ")} />
           <TicketRow n={4} label="Duration or Date of travel" value={durationLabel(request)} />
           <TicketRow n={5} label="Place or places to be visited" value={request.destination} />
-          <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "3px" }}>
+          <div style={{ display: "flex", fontSize: "12px", marginBottom: "2px" }}>
             <div style={{ width: "20px", flexShrink: 0 }}>6</div>
             <div style={{ width: "220px", flexShrink: 0 }}>Purpose :</div>
-            <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "16px", whiteSpace: "pre-wrap" }}>
+            <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "14px", whiteSpace: "pre-wrap" }}>
               {request.purpose}
             </div>
           </div>
           <TicketRow n={7} label="Previous date of Travel Trip Ticket" value={longDate(request.previousTripTicketDate)} />
         </div>
 
-        <div style={{ marginTop: "8px", fontSize: "12.5px" }}>
+        <div style={{ marginTop: "5px", fontSize: "12px" }}>
           <div style={{ textAlign: "center" }}>Approved by:</div>
-          <div style={{ width: "260px", marginLeft: "auto", marginTop: "4px" }}>
-            <div style={{ minHeight: "26px" }} />
-            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "2px" }}>ARJAY D. BURGOS</div>
-            <div style={{ fontSize: "10.5px", textAlign: "center" }}>OIC - APCO-Oriental Mindoro</div>
+          <div style={{ width: "260px", marginLeft: "auto", marginTop: "3px" }}>
+            <div style={{ minHeight: "20px" }} />
+            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>ARJAY D. BURGOS</div>
+            <div style={{ fontSize: "10px", textAlign: "center" }}>OIC - APCO-Oriental Mindoro</div>
           </div>
 
-          <div style={{ width: "260px", marginLeft: "auto", marginTop: "10px" }}>
-            <div style={{ minHeight: "26px" }} />
-            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "2px" }}>EDGARDO F. LEIDO, Jr.</div>
-            <div style={{ fontSize: "10.5px", textAlign: "center" }}>GSS Regional Office Calapan City</div>
+          <div style={{ width: "260px", marginLeft: "auto", marginTop: "6px" }}>
+            <div style={{ minHeight: "20px" }} />
+            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>EDGARDO F. LEIDO, Jr.</div>
+            <div style={{ fontSize: "10px", textAlign: "center" }}>GSS Regional Office Calapan City</div>
           </div>
         </div>
 
-        <p style={{ fontSize: "12.5px", fontWeight: 700, margin: "10px 0 4px" }}>
+        <p style={{ fontSize: "12px", fontWeight: 700, margin: "6px 0 3px" }}>
           B. To be filled by the Driver:
         </p>
 
-        <div style={{ lineHeight: 1.15 }}>
+        <div style={{ lineHeight: 1.1 }}>
           <DriverRow n={1} label="Time of departure for Office/Garage" suffix="a.m./p.m." />
           <DriverRow n={2} label="Time of arrival at (per No. 4 above)" suffix="a.m./p.m." />
           <DriverRow n={3} label="Time of departure from (per No. 4)" suffix="a.m./p.m." />
           <DriverRow n={4} label="Time of arrival back to Office/Garage" suffix="a.m./p.m." />
           <DriverRow n={5} label="Approximate distance travelled (to and from)" suffix="kms." />
 
-          <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "2px" }}>
+          <div style={{ display: "flex", fontSize: "12px", marginBottom: "1px" }}>
             <div style={{ width: "20px", flexShrink: 0 }}>6</div>
             <div style={{ flex: 1 }}>Gasoline issued, purchase and consumed:</div>
           </div>
@@ -255,7 +262,7 @@ export default function TripTicket() {
           <DriverRow n={8} label="Lub oil issued" suffix="liters" />
           <DriverRow n={9} label="Grease issued" suffix="liters" />
 
-          <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "2px" }}>
+          <div style={{ display: "flex", fontSize: "12px", marginBottom: "1px" }}>
             <div style={{ width: "20px", flexShrink: 0 }}>10</div>
             <div style={{ flex: 1 }}>Speedometer readings, if any:</div>
           </div>
@@ -266,28 +273,28 @@ export default function TripTicket() {
           <DriverRow n={11} label="Remarks" suffix="" />
         </div>
 
-        <p style={{ fontSize: "10px", marginTop: "6px", marginBottom: "0" }}>
+        <p style={{ fontSize: "9.5px", marginTop: "4px", marginBottom: "0" }}>
           I hereby certify to the correctness of the above statement of record of travel.
         </p>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "10px" }}>
-          <div style={{ fontSize: "10px", maxWidth: "260px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "6px" }}>
+          <div style={{ fontSize: "9.5px", maxWidth: "260px" }}>
             I hereby certify that I used this car on official business as stated above.
           </div>
           <div style={{ textAlign: "center", width: "220px" }}>
-            <div style={{ fontWeight: 700, fontSize: "12.5px" }}>{driverName}</div>
+            <div style={{ fontWeight: 700, fontSize: "12px" }}>{driverName}</div>
             <div style={{ borderTop: "1px solid #333", marginTop: "2px" }} />
-            <div style={{ fontSize: "10px" }}>Driver</div>
+            <div style={{ fontSize: "9.5px" }}>Driver</div>
           </div>
         </div>
 
-        <div style={{ marginTop: "8px", textAlign: "center" }}>
-          <div>{[request.requesterName, request.passengers].filter(Boolean).join(", ")}</div>
+        <div style={{ marginTop: "5px", textAlign: "center" }}>
+          <div>{passengerNames(request).join(", ")}</div>
           <div style={{ borderTop: "1px solid #333", marginTop: "2px" }} />
-          <div style={{ fontSize: "10px", marginTop: "2px" }}>Name of Passengers</div>
+          <div style={{ fontSize: "9.5px", marginTop: "1px" }}>Name of Passengers</div>
         </div>
 
-        <div style={{ fontSize: "10.5px", color: "#333", marginTop: "4px", lineHeight: 1.25 }}>
+        <div style={{ fontSize: "10px", color: "#333", marginTop: "3px", lineHeight: 1.2 }}>
           <div>Doc. No.: DAMIMAROPA-F083-2023</div>
           <div>Rev. No.: 0</div>
           <div>Issued Date: 10/23/23</div>
@@ -301,7 +308,7 @@ export default function TripTicket() {
 /** A single numbered "label ......... value" row, matching the paper form. */
 function TicketRow({ n, label, value }: { n: number; label: string; value: string }) {
   return (
-    <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "3px" }}>
+    <div style={{ display: "flex", fontSize: "12px", marginBottom: "2px" }}>
       <div style={{ width: "20px", flexShrink: 0 }}>{n}</div>
       <div style={{ width: "220px", flexShrink: 0 }}>{label}</div>
       <div style={{ flex: 1, borderBottom: "1px solid #333", paddingBottom: "1px" }}>{value}</div>
@@ -312,11 +319,11 @@ function TicketRow({ n, label, value }: { n: number; label: string; value: strin
 /** A numbered "label ___________ suffix" row for Section B, left blank for the driver to fill in by hand. */
 function DriverRow({ n, label, suffix }: { n: number; label: string; suffix: string }) {
   return (
-    <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "3px", alignItems: "flex-end" }}>
+    <div style={{ display: "flex", fontSize: "12px", marginBottom: "2px", alignItems: "flex-end" }}>
       <div style={{ width: "20px", flexShrink: 0 }}>{n}</div>
       <div style={{ width: "260px", flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "12px" }} />
-      {suffix && <div style={{ flexShrink: 0, marginLeft: "6px", fontSize: "10.5px" }}>{suffix}</div>}
+      <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "10px" }} />
+      {suffix && <div style={{ flexShrink: 0, marginLeft: "6px", fontSize: "10px" }}>{suffix}</div>}
     </div>
   );
 }
@@ -324,10 +331,10 @@ function DriverRow({ n, label, suffix }: { n: number; label: string; suffix: str
 /** An indented sub-row (a., b., c. ...) used under Section B's gasoline/speedometer items. */
 function SubRow({ label, suffix, bold }: { label: string; suffix: string; bold?: boolean }) {
   return (
-    <div style={{ display: "flex", fontSize: "12.5px", marginBottom: "3px", alignItems: "flex-end", paddingLeft: "20px" }}>
+    <div style={{ display: "flex", fontSize: "12px", marginBottom: "2px", alignItems: "flex-end", paddingLeft: "20px" }}>
       <div style={{ width: "260px", flexShrink: 0, fontWeight: bold ? 700 : 400 }}>{label}</div>
-      <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "12px" }} />
-      {suffix && <div style={{ flexShrink: 0, marginLeft: "6px", fontSize: "10.5px" }}>{suffix}</div>}
+      <div style={{ flex: 1, borderBottom: "1px solid #333", minHeight: "10px" }} />
+      {suffix && <div style={{ flexShrink: 0, marginLeft: "6px", fontSize: "10px" }}>{suffix}</div>}
     </div>
   );
 }

@@ -20,6 +20,11 @@ export interface AppUser {
   name: string;
   email: string;
   role: UserRole;
+  // Small (~150px) compressed JPEG stored inline as a data URL — no Firebase
+  // Storage dependency (this project intentionally stays on the Firestore
+  // free tier only), and a thumbnail this size comfortably fits Firestore's
+  // 1 MiB document limit.
+  photoURL?: string | null;
   birthDate?: string | null; // yyyy-mm-dd, drivers only
   address?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
@@ -65,6 +70,9 @@ export type VehicleRequestStatus = "pending" | "approved" | "declined";
 export interface VehicleRequest {
   id: string;
   requesterName: string;
+  // One of the MIMAROPA-region locations in src/data — see LOCATIONS in
+  // RequestVehicle.tsx. Plain string for now; not yet tied to `OFFICES`.
+  location?: string | null;
   requesterOffice?: string | null;
   requesterContact?: string | null;
   vehicleId: string;
@@ -83,7 +91,11 @@ export interface VehicleRequest {
   destination: string;
   travelDate: string; // yyyy-mm-dd — start date (single-day trips use only this)
   travelDateEnd?: string | null; // yyyy-mm-dd — end date, only set for multi-day trips
-  passengers?: string | null;
+  // Whether the requester themself is riding along on the trip (vs. just
+  // submitting the request on someone else's behalf). Drives whether their
+  // name appears as a passenger on the printed trip ticket.
+  requesterIsPassenger?: boolean;
+  passengers?: string[] | null;
   // Date of the requester's previous Driver's Trip Ticket, if any — carried
   // over onto the printed trip ticket (Appendix A, item 7).
   previousTripTicketDate?: string | null;

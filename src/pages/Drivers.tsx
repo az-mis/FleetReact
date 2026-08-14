@@ -19,8 +19,10 @@ import { useToast } from "../contexts/ToastContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
+import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import { compressImageToDataURL } from "../lib/imageCompress";
 
 const emptyForm = {
   name: "",
@@ -29,6 +31,7 @@ const emptyForm = {
   birthDate: "",
   address: "",
   licenseExpirationDate: "",
+  photoURL: null as string | null,
 };
 
 export default function Drivers() {
@@ -42,6 +45,7 @@ export default function Drivers() {
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
+  const [photoError, setPhotoError] = useState("");
   const [saving, setSaving] = useState(false);
   const { showSuccess, showError } = useToast();
 
@@ -67,6 +71,7 @@ export default function Drivers() {
     setEditing(null);
     setForm(emptyForm);
     setError("");
+    setPhotoError("");
     setModalOpen(true);
   }
 
@@ -79,9 +84,25 @@ export default function Drivers() {
       birthDate: d.birthDate || "",
       address: d.address || "",
       licenseExpirationDate: d.licenseExpirationDate || "",
+      photoURL: d.photoURL || null,
     });
     setError("");
+    setPhotoError("");
     setModalOpen(true);
+  }
+
+  async function handlePhotoSelect(file: File) {
+    setPhotoError("");
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+    try {
+      const dataUrl = await compressImageToDataURL(file);
+      setForm((f) => ({ ...f, photoURL: dataUrl }));
+    } catch (err: any) {
+      setPhotoError(err.message || "Couldn't process that image.");
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -95,6 +116,7 @@ export default function Drivers() {
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
+          photoURL: form.photoURL || null,
           updatedAt: serverTimestamp(),
         });
         // vehicles.assignedDriverName is a denormalized copy of the driver's
@@ -129,6 +151,7 @@ export default function Drivers() {
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
+          photoURL: form.photoURL || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -272,7 +295,12 @@ export default function Drivers() {
             <tbody>
               {filtered.map((d) => (
                 <tr key={d.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 14px", fontWeight: 600 }}>{d.name}</td>
+                  <td style={{ padding: "10px 14px", fontWeight: 600 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Avatar name={d.name} photoURL={d.photoURL} size={30} />
+                      <span>{d.name}</span>
+                    </div>
+                  </td>
                   <td style={{ padding: "10px 14px" }}>{d.email}</td>
                   <td style={{ padding: "10px 14px" }}>{d.address || "—"}</td>
                   <td style={{ padding: "10px 14px" }}>{d.licenseExpirationDate || "—"}</td>
@@ -317,6 +345,15 @@ export default function Drivers() {
                 {error}
               </div>
             )}
+
+            <AvatarPicker
+              inputId="driver-photo-input"
+              name={form.name}
+              photoURL={form.photoURL}
+              onSelect={handlePhotoSelect}
+              onRemove={() => setForm((f) => ({ ...f, photoURL: null }))}
+              error={photoError}
+            />
 
             <Field label="Full Name" required>
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
@@ -402,8 +439,6 @@ function DriverCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const initial = (driver.name || driver.email || "?")[0]?.toUpperCase();
-
   return (
     <div
       style={{
@@ -425,23 +460,7 @@ function DriverCard({
           gap: "12px",
         }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            background: "var(--primary)",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "15px",
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          {initial}
-        </div>
+        <Avatar name={driver.name} photoURL={driver.photoURL} size={40} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {driver.name}

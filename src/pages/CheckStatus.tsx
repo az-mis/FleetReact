@@ -68,6 +68,20 @@ export default function CheckStatus() {
       }}
     >
       <div style={{ width: "100%", maxWidth: "480px" }}>
+        <Link
+          to="/request-vehicle"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12.5px",
+            color: "rgba(255,255,255,0.8)",
+            textDecoration: "none",
+            marginBottom: "14px",
+          }}
+        >
+          <ArrowLeft size={13} /> Back to request form
+        </Link>
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px", color: "#fff" }}>
           <Search size={22} />
           <h1 style={{ fontSize: "19px", fontWeight: 700 }}>Check Request Status</h1>
@@ -136,22 +150,6 @@ export default function CheckStatus() {
               Your reference code was shown after you submitted your request.
             </div>
           )}
-
-          <Link
-            to="/request-vehicle"
-            style={{
-              marginTop: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              fontSize: "12.5px",
-              color: "var(--text-muted)",
-              textDecoration: "none",
-            }}
-          >
-            <ArrowLeft size={13} /> Back to request form
-          </Link>
         </div>
       </div>
     </div>
