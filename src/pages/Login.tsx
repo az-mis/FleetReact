@@ -1,11 +1,12 @@
 import React, { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Lock, Mail, Truck } from "lucide-react";
+import { Lock, Mail, Truck, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -93,18 +94,37 @@ export default function Login() {
         <div style={{ position: "relative", margin: "6px 0 24px" }}>
           <Lock size={16} style={{ position: "absolute", left: 12, top: 12, color: "var(--text-muted)" }} />
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{
               width: "100%",
-              padding: "10px 12px 10px 36px",
+              padding: "10px 40px 10px 36px",
               borderRadius: "8px",
               border: "1px solid var(--border)",
               fontSize: "14px",
             }}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            tabIndex={-1}
+            style={{
+              position: "absolute",
+              right: 10,
+              top: 8,
+              padding: "4px",
+              background: "none",
+              border: "none",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              display: "flex",
+            }}
+          >
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
         </div>
 
         <button
