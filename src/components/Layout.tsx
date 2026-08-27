@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
+import { Avatar } from "./Avatar";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 
 function useBreakpoint() {
@@ -176,8 +177,6 @@ export default function Layout() {
     }
   }
 
-  const initial = (profile?.name || currentUser?.email || "?")[0]?.toUpperCase();
-
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   if (isMobile) {
@@ -208,19 +207,13 @@ export default function Layout() {
           <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Management</div>
           <div
             style={{
-              width: 32,
-              height: 32,
               borderRadius: "50%",
-              background: "var(--primary)",
+              boxShadow: "0 0 0 2px rgba(255,255,255,0.85)",
+              flexShrink: 0,
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 700,
             }}
           >
-            {initial}
+            <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={30} />
           </div>
         </header>
 
@@ -459,22 +452,7 @@ export default function Layout() {
             </p>
           </div>
 
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: "13px",
-              fontWeight: 700,
-            }}
-          >
-            {initial}
-          </div>
+          <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
         </header>
 
         <main style={{ flex: 1, padding: isTablet ? "16px" : "24px", overflow: "auto" }}>

@@ -19,7 +19,7 @@ import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
-import { Plus, Pencil, Trash2, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { compressImageToDataURL } from "../lib/imageCompress";
 
@@ -29,6 +29,9 @@ export default function Admins() {
   const { currentUser } = useAuth();
   const [admins, setAdmins] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"list" | "grid">(
+    () => (localStorage.getItem("admins-view") as "list" | "grid") || "list"
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -50,6 +53,11 @@ export default function Admins() {
     if (!s) return admins;
     return admins.filter((a) => [a.name, a.email].some((f) => (f || "").toLowerCase().includes(s)));
   }, [admins, search]);
+
+  function setViewMode(mode: "list" | "grid") {
+    setView(mode);
+    localStorage.setItem("admins-view", mode);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -147,6 +155,7 @@ export default function Admins() {
                 placeholder="Search name or email..."
               />
             </div>
+            <ViewToggle view={view} onChange={setViewMode} />
             <button
               onClick={openCreate}
               style={{
@@ -168,6 +177,116 @@ export default function Admins() {
         }
       />
 
+      {filtered.length === 0 && (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            padding: "28px",
+            textAlign: "center",
+            color: "var(--text-muted)",
+          }}
+        >
+          <ShieldCheck size={22} style={{ marginBottom: 6 }} />
+          <div>No admins found.</div>
+        </div>
+      )}
+
+      {filtered.length > 0 && view === "grid" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+            gap: "14px",
+          }}
+        >
+          {filtered.map((a) => (
+            <div
+              key={a.id}
+              className="fade-in"
+              style={{
+                background: "#fff",
+                borderRadius: "14px",
+                border: "1px solid var(--border)",
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Avatar name={a.name} photoURL={a.photoURL} size={40} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.name} {a.id === currentUser?.uid && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(you)</span>}
+                  </div>
+                  <span
+                    style={{
+                      background: USER_ROLE_COLOR[a.role] + "1a",
+                      color: USER_ROLE_COLOR[a.role],
+                      padding: "2px 8px",
+                      borderRadius: "999px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      display: "inline-block",
+                      marginTop: "3px",
+                    }}
+                  >
+                    {USER_ROLE_LABEL[a.role]}
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "var(--text-muted)" }}>
+                <Mail size={13} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</span>
+              </div>
+              <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                <button
+                  onClick={() => openEdit(a)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "7px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "#fff",
+                    color: "var(--info)",
+                    fontSize: "12.5px",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Pencil size={13} /> Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(a)}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "7px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "#fff",
+                    color: "var(--danger)",
+                    fontSize: "12.5px",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {filtered.length > 0 && view === "list" && (
       <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
         <table style={{ fontSize: "13px" }}>
           <thead>
@@ -180,14 +299,6 @@ export default function Admins() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={4} style={{ padding: "28px", textAlign: "center", color: "var(--text-muted)" }}>
-                  <ShieldCheck size={22} style={{ marginBottom: 6 }} />
-                  <div>No admins found.</div>
-                </td>
-              </tr>
-            )}
             {filtered.map((a) => (
               <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ padding: "10px 14px", fontWeight: 600 }}>
@@ -232,6 +343,7 @@ export default function Admins() {
           </tbody>
         </table>
       </div>
+      )}
 
       {modalOpen && (
         <Modal title={editing ? "Edit Admin" : "Add Admin"} onClose={() => setModalOpen(false)}>
@@ -306,6 +418,45 @@ export default function Admins() {
           </form>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "list" | "grid") => void }) {
+  const btn = (mode: "list" | "grid", Icon: any, label: string) => (
+    <button
+      type="button"
+      onClick={() => onChange(mode)}
+      aria-label={label}
+      aria-pressed={view === mode}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 32,
+        height: 32,
+        borderRadius: "7px",
+        border: "none",
+        background: view === mode ? "#fff" : "transparent",
+        color: view === mode ? "var(--primary)" : "rgba(255,255,255,0.85)",
+        cursor: "pointer",
+      }}
+    >
+      <Icon size={15} />
+    </button>
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: "2px",
+        padding: "2px",
+        borderRadius: "9px",
+        background: "rgba(255,255,255,0.16)",
+      }}
+    >
+      {btn("list", List, "List view")}
+      {btn("grid", LayoutGrid, "Grid view")}
     </div>
   );
 }
