@@ -15,9 +15,12 @@ import {
   AlertTriangle,
   ChevronDown,
   ClipboardList,
+  Settings2,
+  Megaphone,
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 
 function useBreakpoint() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
@@ -51,10 +54,22 @@ function usePendingRequestsCount(enabled: boolean) {
 }
 
 export default function Layout() {
-  const { currentUser, profile, role, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { currentUser, profile, role, isAdmin, isSuperAdmin, isDriver, logout } = useAuth();
+  const { flags } = useFeatureFlags();
   const navigate = useNavigate();
   const { isMobile, isTablet, isDesktop } = useBreakpoint();
   const pendingRequestsCount = usePendingRequestsCount(isAdmin);
+
+  // Super admins are never gated by their own CMS toggles — the toggles only
+  // ever restrict the plain "admin" role.
+  const moduleEnabled = (key: keyof typeof flags.adminModules) =>
+    isSuperAdmin || flags.adminModules[key];
+
+  const showAnnouncementBanner =
+    flags.announcement.enabled &&
+    !!flags.announcement.message.trim() &&
+    ((isDriver && flags.driverModules.showAnnouncement && flags.announcement.audience.includes("driver")) ||
+      (isAdmin && flags.announcement.audience.includes("admin")));
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -72,18 +87,31 @@ export default function Layout() {
   const navStructure: NavItem[] = [
     { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
-    { type: "link", to: "/drivers", icon: Users, label: "Drivers", show: isAdmin },
+    { type: "link", to: "/drivers", icon: Users, label: "Drivers", show: isAdmin && moduleEnabled("drivers") },
     {
       type: "group",
       label: "Vehicles",
       icon: Truck,
-      show: isAdmin,
+      show: isAdmin && (moduleEnabled("vehicles") || moduleEnabled("vehicleAssigning") || moduleEnabled("vehicleRequests")),
       badge: pendingRequestsCount,
       children: [
-        { to: "/vehicles", icon: Truck, label: "Vehicle Information", show: true },
-        { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: true },
-        { to: "/vehicle-requests", icon: ClipboardList, label: "Vehicle Requests", show: true, badge: pendingRequestsCount },
+        { to: "/vehicles", icon: Truck, label: "Vehicle Information", show: moduleEnabled("vehicles") },
+        { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: moduleEnabled("vehicleAssigning") },
+        {
+          to: "/vehicle-requests",
+          icon: ClipboardList,
+          label: "Vehicle Requests",
+          show: moduleEnabled("vehicleRequests"),
+          badge: pendingRequestsCount,
+        },
       ],
+    },
+    {
+      type: "link",
+      to: "/content-settings",
+      icon: Settings2,
+      label: "Content Settings",
+      show: isSuperAdmin,
     },
   ];
 
@@ -176,6 +204,7 @@ export default function Layout() {
         </header>
 
         <main style={{ flex: 1, padding: "14px", overflow: "auto" }}>
+          {showAnnouncementBanner && <AnnouncementBanner message={flags.announcement.message} />}
           <Outlet />
         </main>
 
@@ -428,6 +457,7 @@ export default function Layout() {
         </header>
 
         <main style={{ flex: 1, padding: isTablet ? "16px" : "24px", overflow: "auto" }}>
+          {showAnnouncementBanner && <AnnouncementBanner message={flags.announcement.message} />}
           <Outlet />
         </main>
       </div>
@@ -439,6 +469,32 @@ export default function Layout() {
           onConfirm={handleLogout}
         />
       )}
+    </div>
+  );
+}
+
+// Announcement banner controlled from the super_admin Content Settings
+// (CMS) page. Shown above the page content, per-role, whenever enabled.
+function AnnouncementBanner({ message }: { message: string }) {
+  return (
+    <div
+      className="fade-in"
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "10px",
+        background: "#fffbeb",
+        border: "1px solid #fbd38d",
+        color: "#7b5b0a",
+        borderRadius: "12px",
+        padding: "12px 14px",
+        marginBottom: "16px",
+        fontSize: "13px",
+        lineHeight: 1.5,
+      }}
+    >
+      <Megaphone size={17} style={{ flexShrink: 0, marginTop: "1px" }} />
+      <span style={{ whiteSpace: "pre-wrap" }}>{message}</span>
     </div>
   );
 }

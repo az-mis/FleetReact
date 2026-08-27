@@ -98,5 +98,14 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+    // settings/{id} — CMS-style app configuration, currently just
+    // "featureFlags" (which modules are enabled for admin/driver, and the
+    // announcement banner). Any signed-in user may read it, since the UI
+    // uses it to decide what to render for every role; only a super_admin
+    // may change it.
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
   }
 }

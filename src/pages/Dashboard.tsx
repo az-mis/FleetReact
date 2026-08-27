@@ -2,16 +2,36 @@ import React, { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 import StatCard from "../components/StatCard";
-import { Truck, Users, ShieldCheck, UserCircle, Sparkles, ClipboardList } from "lucide-react";
-import { USER_ROLE_LABEL } from "../types";
+import { Truck, Users, ShieldCheck, UserCircle, Sparkles, ClipboardList, Car } from "lucide-react";
+import { USER_ROLE_LABEL, Vehicle } from "../types";
 
 export default function Dashboard() {
-  const { profile, role, isAdmin, isSuperAdmin } = useAuth();
+  const { currentUser, profile, role, isAdmin, isSuperAdmin, isDriver } = useAuth();
+  const { flags } = useFeatureFlags();
   const [vehicleCount, setVehicleCount] = useState(0);
   const [driverCount, setDriverCount] = useState(0);
   const [adminCount, setAdminCount] = useState(0);
   const [requestCount, setRequestCount] = useState(0);
+  const [assignedVehicle, setAssignedVehicle] = useState<Vehicle | null>(null);
+
+  // Driver-only: the vehicle currently permanently assigned to this driver
+  // (Vehicle Assigning), shown as a card below — gated by the CMS toggle
+  // "My Assigned Vehicle card".
+  useEffect(() => {
+    if (!isDriver || !currentUser || !flags.driverModules.showAssignedVehicle) {
+      setAssignedVehicle(null);
+      return;
+    }
+    const q = query(collection(db, "vehicles"), where("assignedDriverId", "==", currentUser.uid));
+    const unsub = onSnapshot(
+      q,
+      (snap) => setAssignedVehicle(snap.empty ? null : ({ id: snap.docs[0].id, ...(snap.docs[0].data() as any) } as Vehicle)),
+      () => setAssignedVehicle(null)
+    );
+    return unsub;
+  }, [isDriver, currentUser, flags.driverModules.showAssignedVehicle]);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -207,43 +227,87 @@ export default function Dashboard() {
           </div>
         </>
       ) : (
-        <div
-          style={{
-            background: "linear-gradient(180deg, #ffffff, #fafcfb)",
-            border: "1px solid var(--border)",
-            borderRadius: "16px",
-            padding: "26px",
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
+              background: "linear-gradient(180deg, #ffffff, #fafcfb)",
+              border: "1px solid var(--border)",
+              borderRadius: "16px",
+              padding: "26px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              flexShrink: 0,
-              boxShadow: "0 6px 14px -4px rgba(26,107,60,0.5)",
+              gap: "16px",
+              boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
             }}
           >
-            <UserCircle size={30} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "15px", color: "#1a202c" }}>
-              {profile?.name}
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#fff",
+                flexShrink: 0,
+                boxShadow: "0 6px 14px -4px rgba(26,107,60,0.5)",
+              }}
+            >
+              <UserCircle size={30} />
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-              Driver accounts don't have access to vehicle or admin management.
-              Contact an admin for any changes to your profile.
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "15px", color: "#1a202c" }}>
+                {profile?.name}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                Driver accounts don't have access to vehicle or admin management.
+                Contact an admin for any changes to your profile.
+              </div>
             </div>
           </div>
+
+          {flags.driverModules.showAssignedVehicle && assignedVehicle && (
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid var(--border)",
+                borderRadius: "16px",
+                padding: "20px 24px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: "12px",
+                  background: "rgba(26,107,60,0.1)",
+                  color: "var(--primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Car size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  My Assigned Vehicle
+                </div>
+                <div style={{ fontWeight: 700, fontSize: "15px", color: "#1a202c", marginTop: "2px" }}>
+                  {assignedVehicle.brand} {assignedVehicle.model} — {assignedVehicle.plateNumber}
+                </div>
+                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  {assignedVehicle.color} · {assignedVehicle.year}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

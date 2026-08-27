@@ -32,6 +32,64 @@ export interface AppUser {
   updatedAt?: any; // Firestore Timestamp
 }
 
+/* ───────────────────────── Feature Flags (CMS) ───────────────────────── */
+
+// Lets a super_admin turn whole modules on/off for the "admin" and "driver"
+// roles without touching code or Firestore rules. Super admins themselves
+// are never gated by these flags (see FeatureFlagsContext / ProtectedRoute) —
+// this only ever restricts admin/driver, so a super_admin can't accidentally
+// lock themselves out of the very screen used to flip these switches back on.
+export interface AdminModuleFlags {
+  vehicles: boolean; // Vehicle Information page
+  vehicleAssigning: boolean; // Vehicle Assigning page
+  vehicleRequests: boolean; // Vehicle Requests page
+  drivers: boolean; // Drivers management page
+}
+
+export interface DriverModuleFlags {
+  // Drivers currently only see the Dashboard; these gate the two
+  // driver-facing content blocks that live there.
+  showAssignedVehicle: boolean; // "My Assigned Vehicle" card
+  showAnnouncement: boolean; // whether drivers see the announcement banner at all
+}
+
+export interface Announcement {
+  enabled: boolean;
+  message: string;
+  // Which roles the banner is shown to, in addition to `enabled` and the
+  // per-role showAnnouncement flag (for drivers).
+  audience: Array<"admin" | "driver">;
+}
+
+export interface FeatureFlags {
+  adminModules: AdminModuleFlags;
+  driverModules: DriverModuleFlags;
+  announcement: Announcement;
+  updatedAt?: any;
+  updatedByName?: string | null;
+}
+
+export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
+  adminModules: {
+    vehicles: true,
+    vehicleAssigning: true,
+    vehicleRequests: true,
+    drivers: true,
+  },
+  driverModules: {
+    showAssignedVehicle: true,
+    showAnnouncement: true,
+  },
+  announcement: {
+    enabled: false,
+    message: "",
+    audience: ["admin", "driver"],
+  },
+};
+
+// Firestore doc that stores the flags above.
+export const FEATURE_FLAGS_DOC_PATH = ["settings", "featureFlags"] as const;
+
 /* ───────────────────────── Vehicles ───────────────────────── */
 
 // Mirrors Modules/Vehicle/Models/Vehicle.php. Note: no "photo" field —

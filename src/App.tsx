@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -14,6 +15,7 @@ import CheckStatus from "./pages/CheckStatus";
 import TripTicket from "./pages/TripTicket";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
+import ContentSettings from "./pages/ContentSettings";
 import Unauthorized from "./pages/Unauthorized";
 
 function LoginRoute() {
@@ -24,6 +26,7 @@ function LoginRoute() {
 function App() {
   return (
     <AuthProvider>
+      <FeatureFlagsProvider>
       <ToastProvider>
       <Router>
         <Routes>
@@ -58,7 +61,7 @@ function App() {
             <Route
               path="vehicles"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]}>
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicles">
                   <Vehicles />
                 </ProtectedRoute>
               }
@@ -69,7 +72,7 @@ function App() {
             <Route
               path="vehicle-assigning"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]}>
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleAssigning">
                   <VehicleAssigning />
                 </ProtectedRoute>
               }
@@ -80,7 +83,7 @@ function App() {
             <Route
               path="vehicle-requests"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]}>
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleRequests">
                   <VehicleRequests />
                 </ProtectedRoute>
               }
@@ -90,7 +93,7 @@ function App() {
             <Route
               path="drivers"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]}>
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="drivers">
                   <Drivers />
                 </ProtectedRoute>
               }
@@ -105,12 +108,25 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Content Settings (CMS): super_admin only — toggles which
+                modules are enabled for admins and which content shows on
+                the driver dashboard, plus the announcement banner. */}
+            <Route
+              path="content-settings"
+              element={
+                <ProtectedRoute allow={["super_admin"]}>
+                  <ContentSettings />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
       </ToastProvider>
+      </FeatureFlagsProvider>
     </AuthProvider>
   );
 }
