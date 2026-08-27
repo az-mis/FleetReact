@@ -61,7 +61,7 @@ function App() {
             <Route
               path="vehicles"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicles">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicles" adminModuleLabel="Vehicle Information">
                   <Vehicles />
                 </ProtectedRoute>
               }
@@ -72,7 +72,7 @@ function App() {
             <Route
               path="vehicle-assigning"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleAssigning">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleAssigning" adminModuleLabel="Vehicle Assigning">
                   <VehicleAssigning />
                 </ProtectedRoute>
               }
@@ -83,7 +83,7 @@ function App() {
             <Route
               path="vehicle-requests"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleRequests">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleRequests" adminModuleLabel="Vehicle Requests">
                   <VehicleRequests />
                 </ProtectedRoute>
               }
@@ -93,7 +93,7 @@ function App() {
             <Route
               path="drivers"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="drivers">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="drivers" adminModuleLabel="Drivers">
                   <Drivers />
                 </ProtectedRoute>
               }

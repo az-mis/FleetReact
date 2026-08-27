@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Settings2,
   Megaphone,
+  Lock,
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
@@ -87,22 +88,42 @@ export default function Layout() {
   const navStructure: NavItem[] = [
     { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
-    { type: "link", to: "/drivers", icon: Users, label: "Drivers", show: isAdmin && moduleEnabled("drivers") },
+    {
+      type: "link",
+      to: "/drivers",
+      icon: Users,
+      label: "Drivers",
+      show: isAdmin,
+      disabled: isAdmin && !isSuperAdmin && !moduleEnabled("drivers"),
+    },
     {
       type: "group",
       label: "Vehicles",
       icon: Truck,
-      show: isAdmin && (moduleEnabled("vehicles") || moduleEnabled("vehicleAssigning") || moduleEnabled("vehicleRequests")),
+      show: isAdmin,
       badge: pendingRequestsCount,
       children: [
-        { to: "/vehicles", icon: Truck, label: "Vehicle Information", show: moduleEnabled("vehicles") },
-        { to: "/vehicle-assigning", icon: UserCog, label: "Vehicle Assigning", show: moduleEnabled("vehicleAssigning") },
+        {
+          to: "/vehicles",
+          icon: Truck,
+          label: "Vehicle Information",
+          show: true,
+          disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicles"),
+        },
+        {
+          to: "/vehicle-assigning",
+          icon: UserCog,
+          label: "Vehicle Assigning",
+          show: true,
+          disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleAssigning"),
+        },
         {
           to: "/vehicle-requests",
           icon: ClipboardList,
           label: "Vehicle Requests",
-          show: moduleEnabled("vehicleRequests"),
+          show: true,
           badge: pendingRequestsCount,
+          disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleRequests"),
         },
       ],
     },
@@ -544,14 +565,14 @@ function Badge({ count, dot }: { count: number; dot?: boolean }) {
 }
 
 type NavItem =
-  | { type: "link"; to: string; icon: any; label: string; show: boolean; end?: boolean; badge?: number }
+  | { type: "link"; to: string; icon: any; label: string; show: boolean; end?: boolean; badge?: number; disabled?: boolean }
   | {
       type: "group";
       label: string;
       icon: any;
       show: boolean;
       badge?: number;
-      children: Array<{ to: string; icon: any; label: string; show: boolean; badge?: number }>;
+      children: Array<{ to: string; icon: any; label: string; show: boolean; badge?: number; disabled?: boolean }>;
     };
 
 // Renders the nav links/groups. Shared by the desktop sidebar (where
@@ -594,7 +615,7 @@ function NavList({
                 borderRadius: "10px",
                 marginBottom: "4px",
                 background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                color: isActive ? "#fff" : "rgba(255,255,255,0.75)",
+                color: item.disabled ? "rgba(255,255,255,0.4)" : isActive ? "#fff" : "rgba(255,255,255,0.75)",
                 fontWeight: isActive ? 600 : 400,
                 fontSize: "14px",
                 borderLeft: isActive ? "3px solid var(--secondary)" : "3px solid transparent",
@@ -608,7 +629,7 @@ function NavList({
               {showLabels && (
                 <>
                   <span style={{ whiteSpace: "nowrap", flex: 1 }}>{item.label}</span>
-                  <Badge count={item.badge || 0} />
+                  {item.disabled ? <Lock size={13} style={{ flexShrink: 0, opacity: 0.7 }} /> : <Badge count={item.badge || 0} />}
                 </>
               )}
             </NavLink>
@@ -694,7 +715,7 @@ function NavList({
                       borderRadius: "8px",
                       marginTop: "2px",
                       background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                      color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
+                      color: child.disabled ? "rgba(255,255,255,0.4)" : isActive ? "#fff" : "rgba(255,255,255,0.7)",
                       fontWeight: isActive ? 600 : 400,
                       fontSize: "13px",
                       textDecoration: "none",
@@ -702,7 +723,7 @@ function NavList({
                   >
                     <child.icon size={15} style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: "nowrap", flex: 1 }}>{child.label}</span>
-                    <Badge count={child.badge || 0} />
+                    {child.disabled ? <Lock size={12} style={{ flexShrink: 0, opacity: 0.7 }} /> : <Badge count={child.badge || 0} />}
                   </NavLink>
                 ))}
               </div>

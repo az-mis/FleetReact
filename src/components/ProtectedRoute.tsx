@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 import { UserRole } from "../types";
+import ModuleDisabledNotice from "./ModuleDisabledNotice";
 
 interface Props {
   children: ReactNode;
@@ -13,12 +14,16 @@ interface Props {
    * key under `flags.adminModules`. Only applies to the "admin" role — a
    * super_admin can always reach every page (including the CMS screen used
    * to re-enable a module), and drivers never have module routes gated this
-   * way today.
+   * way today. When disabled, the page itself renders a notice instead of
+   * redirecting, so the sidebar link and URL stay intact and the admin
+   * isn't surprised by a link vanishing.
    */
   adminModule?: keyof import("../types").AdminModuleFlags;
+  /** Human-readable name of the module, used in the disabled notice. */
+  adminModuleLabel?: string;
 }
 
-export default function ProtectedRoute({ children, allow, adminModule }: Props) {
+export default function ProtectedRoute({ children, allow, adminModule, adminModuleLabel }: Props) {
   const { currentUser, role } = useAuth();
   const { flags, loading: flagsLoading } = useFeatureFlags();
 
@@ -31,7 +36,7 @@ export default function ProtectedRoute({ children, allow, adminModule }: Props) 
   }
 
   if (adminModule && role === "admin" && !flagsLoading && !flags.adminModules[adminModule]) {
-    return <Navigate to="/unauthorized" replace />;
+    return <ModuleDisabledNotice moduleLabel={adminModuleLabel || "This section"} />;
   }
 
   return <>{children}</>;
