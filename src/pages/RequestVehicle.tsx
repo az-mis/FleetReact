@@ -5,7 +5,7 @@ import { db } from "../firebase";
 import { Vehicle, VehicleAvailability } from "../types";
 import { OFFICES } from "../data/offices";
 import SearchableSelect from "../components/SearchableSelect";
-import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users, Search, Copy } from "lucide-react";
+import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users, Search, Copy, AlertTriangle } from "lucide-react";
 
 // Chars chosen to avoid visual confusion when staff read this off a phone
 // screen or write it down (no 0/O, 1/I/L).
@@ -711,20 +711,20 @@ function VehicleBookingCalendar({
           const key = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const status = bookedDays.get(key);
           const isSelected = selectedDays.has(key);
-          const bg = status === "approved" ? "#c6f6d5" : status === "pending" ? "#feebc8" : "transparent";
-          const color = status === "approved" ? "#22543d" : status === "pending" ? "#7b341e" : "#2d3748";
+          const bg = status === "approved" ? "#48bb78" : status === "pending" ? "#ed8936" : "transparent";
+          const color = status ? "#fff" : "#2d3748";
           return (
             <div
               key={i}
               title={status ? (status === "approved" ? "Approved trip" : "Pending request") : undefined}
               style={{
-                fontSize: "11px",
-                padding: "5px 0",
+                fontSize: "12px",
+                padding: "6px 0",
                 borderRadius: "6px",
                 background: bg,
                 color,
-                fontWeight: status || isSelected ? 700 : 400,
-                boxShadow: isSelected ? "inset 0 0 0 2px var(--primary)" : "none",
+                fontWeight: status || isSelected ? 800 : 400,
+                boxShadow: isSelected ? "inset 0 0 0 2.5px var(--primary)" : "none",
               }}
             >
               {day}
@@ -738,30 +738,34 @@ function VehicleBookingCalendar({
           style={{
             display: "flex",
             alignItems: "flex-start",
-            gap: "6px",
-            marginTop: "10px",
-            background: conflict === "approved" ? "#fff5f5" : "#fffaf0",
-            color: conflict === "approved" ? "var(--danger)" : "#7b341e",
-            border: `1px solid ${conflict === "approved" ? "#feb2b2" : "#fbd38d"}`,
-            borderRadius: "8px",
-            padding: "8px 10px",
-            fontSize: "11.5px",
-            lineHeight: 1.4,
+            gap: "8px",
+            marginTop: "12px",
+            background: conflict === "approved" ? "#fed7d7" : "#feebc8",
+            color: conflict === "approved" ? "#742a2a" : "#7b341e",
+            border: `1.5px solid ${conflict === "approved" ? "#f56565" : "#ed8936"}`,
+            borderRadius: "10px",
+            padding: "10px 12px",
+            fontSize: "13px",
+            fontWeight: 600,
+            lineHeight: 1.45,
           }}
         >
-          {conflict === "approved"
-            ? "Heads up: this vehicle already has an approved trip during your selected date(s)."
-            : "Heads up: this vehicle already has a pending request during your selected date(s)."}
+          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "1px" }} />
+          <span>
+            {conflict === "approved"
+              ? "This vehicle already has an APPROVED trip during your selected date(s). Please choose a different vehicle or date."
+              : "This vehicle already has a PENDING request during your selected date(s) — it may not be available."}
+          </span>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "14px", marginTop: "10px", fontSize: "11px", color: "var(--text-muted)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#c6f6d5", display: "inline-block" }} />
+      <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "12px", color: "#2d3748", fontWeight: 600 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ width: 12, height: 12, borderRadius: 4, background: "#48bb78", display: "inline-block" }} />
           Approved
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#feebc8", display: "inline-block" }} />
+        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ width: 12, height: 12, borderRadius: 4, background: "#ed8936", display: "inline-block" }} />
           Pending
         </span>
       </div>
