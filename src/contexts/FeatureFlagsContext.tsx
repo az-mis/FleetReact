@@ -32,7 +32,8 @@ function mergeFlags(remote: any): FeatureFlags {
     ...remote,
     adminModules: { ...DEFAULT_FEATURE_FLAGS.adminModules, ...(remote?.adminModules || {}) },
     driverModules: { ...DEFAULT_FEATURE_FLAGS.driverModules, ...(remote?.driverModules || {}) },
-    announcement: { ...DEFAULT_FEATURE_FLAGS.announcement, ...(remote?.announcement || {}) },
+    adminAnnouncement: { ...DEFAULT_FEATURE_FLAGS.adminAnnouncement, ...(remote?.adminAnnouncement || {}) },
+    driverAnnouncement: { ...DEFAULT_FEATURE_FLAGS.driverAnnouncement, ...(remote?.driverAnnouncement || {}) },
   };
 }
 
@@ -74,7 +75,8 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
       ...patch,
       adminModules: { ...flags.adminModules, ...(patch.adminModules || {}) },
       driverModules: { ...flags.driverModules, ...(patch.driverModules || {}) },
-      announcement: { ...flags.announcement, ...(patch.announcement || {}) },
+      adminAnnouncement: { ...flags.adminAnnouncement, ...(patch.adminAnnouncement || {}) },
+      driverAnnouncement: { ...flags.driverAnnouncement, ...(patch.driverAnnouncement || {}) },
     });
     await setDoc(
       ref,

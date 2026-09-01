@@ -67,14 +67,11 @@ export default function Layout() {
   const moduleEnabled = (key: keyof typeof flags.adminModules) =>
     isSuperAdmin || flags.adminModules[key];
 
-  const showAnnouncementBanner =
-    flags.announcement.enabled &&
-    !!flags.announcement.message.trim() &&
-    // Super admins always see it — they're the one who set it and should be
-    // able to confirm it's live, regardless of which audience is picked.
-    (isSuperAdmin ||
-      (isDriver && flags.driverModules.showAnnouncement && flags.announcement.audience.includes("driver")) ||
-      (role === "admin" && flags.announcement.audience.includes("admin")));
+  const showAdminAnnouncement =
+    flags.adminAnnouncement.enabled && !!flags.adminAnnouncement.message.trim() && role === "admin";
+
+  const showDriverAnnouncement =
+    flags.driverAnnouncement.enabled && !!flags.driverAnnouncement.message.trim() && isDriver;
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -221,7 +218,8 @@ export default function Layout() {
         </header>
 
         <main style={{ flex: 1, padding: "14px", overflow: "auto" }}>
-          {showAnnouncementBanner && <AnnouncementBanner message={flags.announcement.message} />}
+          {showAdminAnnouncement && <AnnouncementBanner message={flags.adminAnnouncement.message} />}
+          {showDriverAnnouncement && <AnnouncementBanner message={flags.driverAnnouncement.message} />}
           <Outlet />
         </main>
 
@@ -459,7 +457,8 @@ export default function Layout() {
         </header>
 
         <main style={{ flex: 1, padding: isTablet ? "16px" : "24px", overflow: "auto" }}>
-          {showAnnouncementBanner && <AnnouncementBanner message={flags.announcement.message} />}
+          {showAdminAnnouncement && <AnnouncementBanner message={flags.adminAnnouncement.message} />}
+          {showDriverAnnouncement && <AnnouncementBanner message={flags.driverAnnouncement.message} />}
           <Outlet />
         </main>
       </div>

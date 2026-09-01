@@ -47,24 +47,27 @@ export interface AdminModuleFlags {
 }
 
 export interface DriverModuleFlags {
-  // Drivers currently only see the Dashboard; these gate the two
-  // driver-facing content blocks that live there.
+  // Drivers currently only see the Dashboard; this gates the one
+  // driver-facing content block besides the announcement below.
   showAssignedVehicle: boolean; // "My Assigned Vehicle" card
-  showAnnouncement: boolean; // whether drivers see the announcement banner at all
 }
 
-export interface Announcement {
+// A single on/off + message banner. Kept separate per audience (rather than
+// one shared banner with an audience picker) so a plain admin can be given
+// write access to the driver-facing one without also being able to touch
+// what other admins/super admins see.
+export interface AnnouncementConfig {
   enabled: boolean;
   message: string;
-  // Which roles the banner is shown to, in addition to `enabled` and the
-  // per-role showAnnouncement flag (for drivers).
-  audience: Array<"admin" | "driver">;
 }
 
 export interface FeatureFlags {
   adminModules: AdminModuleFlags;
   driverModules: DriverModuleFlags;
-  announcement: Announcement;
+  // Shown to admin + super_admin. Editable by super_admin only.
+  adminAnnouncement: AnnouncementConfig;
+  // Shown to driver + super_admin. Editable by admin AND super_admin.
+  driverAnnouncement: AnnouncementConfig;
   updatedAt?: any;
   updatedByName?: string | null;
 }
@@ -78,12 +81,14 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   },
   driverModules: {
     showAssignedVehicle: true,
-    showAnnouncement: true,
   },
-  announcement: {
+  adminAnnouncement: {
     enabled: false,
     message: "",
-    audience: ["admin", "driver"],
+  },
+  driverAnnouncement: {
+    enabled: false,
+    message: "",
   },
 };
 

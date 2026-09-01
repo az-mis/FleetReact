@@ -108,18 +108,18 @@ service cloud.firestore {
     // may change it.
     // settings/{id} — CMS-style app configuration, currently just
     // "featureFlags" (which modules are enabled for admin/driver, and the
-    // announcement banner). Any signed-in user may read it, since the UI
-    // uses it to decide what to render for every role. A super_admin may
-    // change anything. A plain admin may only edit `driverModules` — the
-    // section that controls what content drivers see — and may not touch
-    // `adminModules` (which governs their own access) or `announcement`.
+    // two announcement banners). Any signed-in user may read it, since the
+    // UI uses it to decide what to render for every role. A super_admin may
+    // change anything. A plain admin may only edit `driverModules` and
+    // `driverAnnouncement` — the two things that control driver-facing
+    // content — and may not touch `adminModules` or `adminAnnouncement`.
     match /settings/{id} {
       allow read: if isSignedIn();
       allow create: if isSuperAdmin();
       allow update: if isSuperAdmin()
         || (isPlainAdmin() && id == 'featureFlags'
             && request.resource.data.adminModules == resource.data.adminModules
-            && request.resource.data.announcement == resource.data.announcement);
+            && request.resource.data.adminAnnouncement == resource.data.adminAnnouncement);
       allow delete: if isSuperAdmin();
     }
   }
