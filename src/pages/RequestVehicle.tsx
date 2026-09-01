@@ -1,8 +1,8 @@
 import React, { useEffect, useState, FormEvent } from "react";
-import { doc, setDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, collection, onSnapshot, orderBy, query, where, serverTimestamp } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../firebase";
-import { Vehicle } from "../types";
+import { Vehicle, VehicleAvailability } from "../types";
 import { OFFICES } from "../data/offices";
 import SearchableSelect from "../components/SearchableSelect";
 import { Truck, CheckCircle2, User, Building2, Phone, MapPin, CalendarDays, FileText, Users, Search, Copy } from "lucide-react";
@@ -55,6 +55,7 @@ export default function RequestVehicle() {
   const [submitted, setSubmitted] = useState(false);
   const [referenceCode, setReferenceCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [vehicleAvailability, setVehicleAvailability] = useState<VehicleAvailability[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "vehicles"), orderBy("plateNumber"));
@@ -63,6 +64,23 @@ export default function RequestVehicle() {
     });
     return unsub;
   }, []);
+
+  // Pull the chosen vehicle's already-booked (pending or approved) trip
+  // dates from the public vehicleAvailability mirror, so the requester can
+  // see the calendar before submitting instead of finding out later.
+  useEffect(() => {
+    if (!form.vehicleId) {
+      setVehicleAvailability([]);
+      return;
+    }
+    const q = query(collection(db, "vehicleAvailability"), where("vehicleId", "==", form.vehicleId));
+    const unsub = onSnapshot(q, (snap) => {
+      setVehicleAvailability(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<VehicleAvailability, "id">) }))
+      );
+    });
+    return unsub;
+  }, [form.vehicleId]);
 
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicleId) || null;
 
@@ -113,6 +131,23 @@ export default function RequestVehicle() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      // Mirror the (non-sensitive) date/status fields into vehicleAvailability
+      // so the calendar on this form can show the vehicle as booked. This is
+      // best-effort: if it fails for any reason, the request itself has
+      // already succeeded above, so we don't want to surface an error to the
+      // requester over what's just a "nice to have" calendar entry.
+      try {
+        await setDoc(doc(db, "vehicleAvailability", code), {
+          vehicleId: selectedVehicle!.id,
+          travelDate: form.travelDate,
+          travelDateEnd: form.travelDateEnd || null,
+          status: "pending",
+        });
+      } catch (availErr) {
+        console.error("Couldn't mirror request into vehicleAvailability:", availErr);
+      }
+
       setReferenceCode(code);
       setSubmitted(true);
     } catch (err: any) {
@@ -343,6 +378,14 @@ export default function RequestVehicle() {
           </div>
         )}
 
+        {selectedVehicle && (
+          <VehicleBookingCalendar
+            availability={vehicleAvailability}
+            focusDate={form.travelDate}
+            focusDateEnd={form.travelDateEnd}
+          />
+        )}
+
         <Field label="Destination" icon={MapPin} required>
           <input
             required
@@ -527,6 +570,207 @@ function PageShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Small month calendar highlighting the selected vehicle's already-booked
+// (pending or approved) trip dates, built from the vehicleAvailability
+// mirror. Multi-day trips (travelDate..travelDateEnd) shade every day in
+// the range, not just the start date.
+// yyyy-mm-dd using LOCAL date parts — never use toISOString() for this, since
+// that converts to UTC first and silently shifts the date by a day in any
+// timezone ahead of UTC (e.g. UTC+8), which is why Oct 15 was showing as
+// Oct 14 for Philippines-based users.
+function toLocalDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function VehicleBookingCalendar({
+  availability,
+  focusDate,
+  focusDateEnd,
+}: {
+  availability: VehicleAvailability[];
+  // yyyy-mm-dd — the currently-selected "Travel Date (From)"/"(To)" values, if any.
+  focusDate?: string;
+  focusDateEnd?: string;
+}) {
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth()); // 0-11
+
+  // Requesters pick their trip dates using the native "Travel Date (From)" /
+  // "(To)" inputs below, not by manually paging this calendar — so without
+  // this, the calendar just sits on whatever month is "today" and the dates
+  // the requester actually cares about can be scrolled off-screen. Jump the
+  // visible month to match as soon as a From date is chosen or changed.
+  useEffect(() => {
+    if (!focusDate) return;
+    const [y, m] = focusDate.split("-").map(Number);
+    if (!y || !m) return;
+    setViewYear(y);
+    setViewMonth(m - 1);
+  }, [focusDate]);
+
+  // yyyy-mm-dd -> "approved" | "pending" (approved wins if both overlap a day)
+  const bookedDays = React.useMemo(() => {
+    const map = new Map<string, "approved" | "pending">();
+    for (const req of availability) {
+      const start = new Date(req.travelDate + "T00:00:00");
+      const end = req.travelDateEnd ? new Date(req.travelDateEnd + "T00:00:00") : start;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = toLocalDateKey(d);
+        if (req.status === "approved" || map.get(key) !== "approved") {
+          map.set(key, req.status);
+        }
+      }
+    }
+    return map;
+  }, [availability]);
+
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startWeekday = firstOfMonth.getDay(); // 0 = Sunday
+  const cells: (number | null)[] = [
+    ...Array(startWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  const monthLabel = firstOfMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  function changeMonth(delta: number) {
+    const next = new Date(viewYear, viewMonth + delta, 1);
+    setViewYear(next.getFullYear());
+    setViewMonth(next.getMonth());
+  }
+
+  const hasAnyBookings = bookedDays.size > 0;
+
+  // Every date key the requester has currently selected (the From date, or
+  // the whole From..To range), so we can outline it on the grid and warn if
+  // it lands on an already-booked day.
+  const selectedDays = React.useMemo(() => {
+    const set = new Set<string>();
+    if (!focusDate) return set;
+    const start = new Date(focusDate + "T00:00:00");
+    const end = focusDateEnd ? new Date(focusDateEnd + "T00:00:00") : start;
+    if (end < start) return set;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      set.add(toLocalDateKey(d));
+    }
+    return set;
+  }, [focusDate, focusDateEnd]);
+
+  const conflict = React.useMemo(() => {
+    let worst: "approved" | "pending" | null = null;
+    for (const key of selectedDays) {
+      const status = bookedDays.get(key);
+      if (status === "approved") return "approved" as const;
+      if (status === "pending") worst = "pending";
+    }
+    return worst;
+  }, [selectedDays, bookedDays]);
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border)",
+        borderRadius: "10px",
+        padding: "12px",
+        marginTop: "-2px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+        <button
+          type="button"
+          onClick={() => changeMonth(-1)}
+          aria-label="Previous month"
+          style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px", color: "var(--text-muted)", padding: "2px 6px" }}
+        >
+          ‹
+        </button>
+        <span style={{ fontSize: "12.5px", fontWeight: 700, color: "#2d3748" }}>{monthLabel}</span>
+        <button
+          type="button"
+          onClick={() => changeMonth(1)}
+          aria-label="Next month"
+          style={{ border: "none", background: "none", cursor: "pointer", fontSize: "14px", color: "var(--text-muted)", padding: "2px 6px" }}
+        >
+          ›
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "2px", textAlign: "center" }}>
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <div key={i} style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", padding: "2px 0" }}>
+            {d}
+          </div>
+        ))}
+        {cells.map((day, i) => {
+          if (day === null) return <div key={i} />;
+          const key = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const status = bookedDays.get(key);
+          const isSelected = selectedDays.has(key);
+          const bg = status === "approved" ? "#c6f6d5" : status === "pending" ? "#feebc8" : "transparent";
+          const color = status === "approved" ? "#22543d" : status === "pending" ? "#7b341e" : "#2d3748";
+          return (
+            <div
+              key={i}
+              title={status ? (status === "approved" ? "Approved trip" : "Pending request") : undefined}
+              style={{
+                fontSize: "11px",
+                padding: "5px 0",
+                borderRadius: "6px",
+                background: bg,
+                color,
+                fontWeight: status || isSelected ? 700 : 400,
+                boxShadow: isSelected ? "inset 0 0 0 2px var(--primary)" : "none",
+              }}
+            >
+              {day}
+            </div>
+          );
+        })}
+      </div>
+
+      {conflict && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "6px",
+            marginTop: "10px",
+            background: conflict === "approved" ? "#fff5f5" : "#fffaf0",
+            color: conflict === "approved" ? "var(--danger)" : "#7b341e",
+            border: `1px solid ${conflict === "approved" ? "#feb2b2" : "#fbd38d"}`,
+            borderRadius: "8px",
+            padding: "8px 10px",
+            fontSize: "11.5px",
+            lineHeight: 1.4,
+          }}
+        >
+          {conflict === "approved"
+            ? "Heads up: this vehicle already has an approved trip during your selected date(s)."
+            : "Heads up: this vehicle already has a pending request during your selected date(s)."}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "14px", marginTop: "10px", fontSize: "11px", color: "var(--text-muted)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#c6f6d5", display: "inline-block" }} />
+          Approved
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#feebc8", display: "inline-block" }} />
+          Pending
+        </span>
+      </div>
+
+      {!hasAnyBookings && (
+        <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "8px", marginBottom: 0 }}>
+          No pending or approved trips found for this vehicle yet.
+        </p>
+      )}
     </div>
   );
 }

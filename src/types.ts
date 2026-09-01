@@ -123,6 +123,19 @@ export interface Vehicle {
   updatedAt?: any;
 }
 
+// A stripped-down public mirror of a VehicleRequest, kept in sync by the
+// mirrorVehicleAvailability Cloud Function (see functions/src/index.ts).
+// Same doc ID as the source vehicleRequests doc. Used by the public
+// RequestVehicle form to show a selected vehicle's booked dates without
+// exposing requester name/contact, destination, or purpose.
+export interface VehicleAvailability {
+  id: string;
+  vehicleId: string;
+  travelDate: string; // yyyy-mm-dd
+  travelDateEnd?: string | null; // yyyy-mm-dd
+  status: "pending" | "approved";
+}
+
 /* ───────────────────────── Vehicle Requests ───────────────────────── */
 
 // Staff have no accounts, so a request is submitted anonymously (e.g. via a

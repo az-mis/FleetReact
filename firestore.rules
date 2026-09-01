@@ -75,6 +75,12 @@ service cloud.firestore {
     function matchesOrBothEmpty(sent, real) {
       return sent == real || ((sent == null || sent == '') && (real == null || real == ''));
     }
+    // The vehicleRequests doc sharing this same ID — used to validate an
+    // anonymous vehicleAvailability write is an honest mirror of a request
+    // the same submitter just created, not spoofed/invented data.
+    function referencedVehicleRequest(id) {
+      return get(/databases/$(database)/documents/vehicleRequests/$(id)).data;
+    }
     match /vehicleRequests/{id} {
       // "get" (fetching one specific doc by its exact ID) is public — the
       // status-check page needs this so anonymous requesters can look up
@@ -100,6 +106,32 @@ service cloud.firestore {
         && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName);
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+    // vehicleAvailability/{id} — a stripped-down mirror of vehicleRequests
+    // (vehicleId, travelDate, travelDateEnd, status only), written directly
+    // by the client (no Cloud Functions / Blaze plan needed) so the public,
+    // unauthenticated vehicle request form can show a selected vehicle's
+    // pending/approved trip dates without exposing requester name, contact
+    // info, destination, or purpose from vehicleRequests.
+    //   - Anonymous create: only allowed as an honest same-ID mirror of a
+    //     vehicleRequests doc that already exists and is still "pending" —
+    //     this is exactly what happens right after RequestVehicle.tsx
+    //     creates the request. A submitter can't invent an availability
+    //     entry for a request that isn't theirs/doesn't exist.
+    //   - Update/delete: admin-only — this is what VehicleRequests.tsx does
+    //     when a request is approved (status -> "approved") or declined
+    //     (mirror doc deleted, since a declined trip no longer occupies the
+    //     vehicle's calendar).
+    match /vehicleAvailability/{id} {
+      allow read: if true;
+      allow create: if isAdmin()
+        || (request.resource.data.keys().hasOnly(['vehicleId', 'travelDate', 'travelDateEnd', 'status'])
+            && request.resource.data.status == 'pending'
+            && referencedVehicleRequest(id).status == 'pending'
+            && request.resource.data.vehicleId == referencedVehicleRequest(id).vehicleId
+            && request.resource.data.travelDate == referencedVehicleRequest(id).travelDate
+            && matchesOrBothEmpty(request.resource.data.travelDateEnd, referencedVehicleRequest(id).travelDateEnd));
+      allow update, delete: if isAdmin();
     }
     // settings/{id} — CMS-style app configuration, currently just
     // "featureFlags" (which modules are enabled for admin/driver, and the

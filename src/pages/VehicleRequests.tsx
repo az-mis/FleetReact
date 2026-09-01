@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -113,6 +115,24 @@ export default function VehicleRequests() {
     return set;
   }
 
+  // A vehicle can't physically be in two places at once — true regardless of
+  // which driver is behind the wheel. True when this exact plate is already
+  // committed to a *different*, already-approved request whose date range
+  // overlaps this one.
+  function isVehicleDoubleBooked(
+    vehiclePlateNumber: string,
+    travelDate: string,
+    travelDateEnd: string | null | undefined,
+    excludeRequestId: string
+  ) {
+    return requests.some((r) => {
+      if (r.id === excludeRequestId) return false;
+      if (r.status !== "approved") return false;
+      if (r.vehiclePlateNumber !== vehiclePlateNumber) return false;
+      return dateRangesOverlap(travelDate, travelDateEnd, r.travelDate, r.travelDateEnd);
+    });
+  }
+
   async function handleDecline(request: VehicleRequest, reason: string) {
     try {
       await updateDoc(doc(db, "vehicleRequests", request.id), {
@@ -123,6 +143,14 @@ export default function VehicleRequests() {
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      // A declined trip no longer occupies the vehicle's calendar. Deleting
+      // a doc that doesn't exist (e.g. it was never mirrored) is a no-op in
+      // Firestore, so this is safe to call unconditionally.
+      try {
+        await deleteDoc(doc(db, "vehicleAvailability", request.id));
+      } catch (availErr) {
+        console.error("Couldn't remove vehicleAvailability mirror:", availErr);
+      }
       showSuccess(`Request from ${request.requesterName} declined.`);
       setReviewing(null);
     } catch (err: any) {
@@ -141,6 +169,19 @@ export default function VehicleRequests() {
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      // setDoc (not updateDoc) since a mirror doc might not exist yet for
+      // older requests submitted before this feature — this both creates
+      // and updates as needed.
+      try {
+        await setDoc(doc(db, "vehicleAvailability", request.id), {
+          vehicleId: request.vehicleId,
+          travelDate: request.travelDate,
+          travelDateEnd: request.travelDateEnd ?? null,
+          status: "approved",
+        });
+      } catch (availErr) {
+        console.error("Couldn't update vehicleAvailability mirror:", availErr);
+      }
       showSuccess(`Request from ${request.requesterName} approved.`);
       setReviewing(null);
     } catch (err: any) {
@@ -228,6 +269,12 @@ export default function VehicleRequests() {
           request={reviewing}
           drivers={drivers}
           busyDriverIds={busyDriverIds(reviewing.travelDate, reviewing.travelDateEnd, reviewing.id)}
+          vehicleDoubleBooked={isVehicleDoubleBooked(
+            reviewing.vehiclePlateNumber,
+            reviewing.travelDate,
+            reviewing.travelDateEnd,
+            reviewing.id
+          )}
           onClose={() => setReviewing(null)}
           onApprove={handleApprove}
           onDecline={handleDecline}
@@ -324,6 +371,7 @@ function ReviewModal({
   request,
   drivers,
   busyDriverIds,
+  vehicleDoubleBooked,
   onClose,
   onApprove,
   onDecline,
@@ -331,6 +379,7 @@ function ReviewModal({
   request: VehicleRequest;
   drivers: AppUser[];
   busyDriverIds: Set<string>;
+  vehicleDoubleBooked: boolean;
   onClose: () => void;
   onApprove: (request: VehicleRequest, driverId: string, driverName: string) => Promise<void>;
   onDecline: (request: VehicleRequest, reason: string) => Promise<void>;
@@ -345,7 +394,20 @@ function ReviewModal({
 
   const isPending = request.status === "pending";
 
+  // The driver who would actually be confirmed if Approve is pressed right
+  // now, given the current Yes/No choice above.
+  const effectiveDriverId =
+    driverAvailable === true ? request.defaultDriverId || "" : driverAvailable === false ? substituteId : "";
+  const driverDoubleBooked = !!effectiveDriverId && busyDriverIds.has(effectiveDriverId);
+
+  // Either conflict makes an approval physically impossible to honor — the
+  // same vehicle, or the same driver, can't be on two trips at once — so
+  // approval is blocked rather than just flagged, until it's resolved by
+  // declining this request or (for a driver conflict) picking someone else.
+  const blockedByConflict = vehicleDoubleBooked || driverDoubleBooked;
+
   async function submitApprove() {
+    if (blockedByConflict) return;
     setSaving(true);
     try {
       if (driverAvailable) {
@@ -409,6 +471,30 @@ function ReviewModal({
 
         {isPending && !showDeclineForm && (
           <>
+            {vehicleDoubleBooked && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  fontSize: "12.5px",
+                  color: "var(--danger)",
+                  background: "#fff5f5",
+                  border: "1px solid #feb2b2",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  fontWeight: 500,
+                }}
+              >
+                <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  <strong>{request.vehiclePlateNumber}</strong> is already committed to another approved
+                  request that overlaps this travel date. A vehicle can't be in two places at once — decline
+                  this request, or wait until the conflicting trip is no longer approved, before approving it.
+                </span>
+              </div>
+            )}
+
             <div
               style={{
                 borderTop: "1px solid var(--border)",
@@ -456,6 +542,26 @@ function ReviewModal({
                 </button>
               </div>
 
+              {driverAvailable === true && effectiveDriverId && busyDriverIds.has(effectiveDriverId) && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "6px",
+                    fontSize: "12px",
+                    color: "var(--danger)",
+                    background: "#fff5f5",
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  {request.defaultDriverName || "This driver"} is already confirmed on another approved trip
+                  that overlaps this date — one driver can't cover two trips at once. Mark them "Not
+                  available" and choose a different driver, or decline this request.
+                </div>
+              )}
+
               {driverAvailable === false && (
                 <label style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
                   <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
@@ -482,15 +588,16 @@ function ReviewModal({
                         alignItems: "flex-start",
                         gap: "6px",
                         fontSize: "12px",
-                        color: "var(--warning)",
-                        background: "#fff8e6",
+                        color: "var(--danger)",
+                        background: "#fff5f5",
                         padding: "8px 10px",
                         borderRadius: "8px",
                       }}
                     >
                       <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                      This driver is already confirmed on another approved request for the same
-                      date. You can still proceed, but double check for a scheduling conflict.
+                      This driver is already confirmed on another approved trip that overlaps this date —
+                      one driver can't cover two trips at once. Choose someone else, or decline this
+                      request.
                     </div>
                   )}
                 </label>
@@ -521,8 +628,10 @@ function ReviewModal({
                 disabled={
                   saving ||
                   driverAvailable === null ||
-                  (driverAvailable === false && !substituteId)
+                  (driverAvailable === false && !substituteId) ||
+                  blockedByConflict
                 }
+                title={blockedByConflict ? "Resolve the scheduling conflict above before approving." : undefined}
                 style={{
                   flex: 1,
                   padding: "11px",
@@ -532,7 +641,11 @@ function ReviewModal({
                   color: "#fff",
                   fontWeight: 700,
                   fontSize: "13.5px",
-                  opacity: driverAvailable === null || (driverAvailable === false && !substituteId) ? 0.6 : 1,
+                  opacity:
+                    driverAvailable === null || (driverAvailable === false && !substituteId) || blockedByConflict
+                      ? 0.6
+                      : 1,
+                  cursor: blockedByConflict ? "not-allowed" : "pointer",
                 }}
               >
                 {saving ? "Approving..." : "Approve Request"}
