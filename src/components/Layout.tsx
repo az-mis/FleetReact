@@ -133,7 +133,7 @@ export default function Layout() {
       to: "/content-settings",
       icon: Settings2,
       label: "Content Settings",
-      show: isSuperAdmin,
+      show: isAdmin,
     },
   ];
 

@@ -9,12 +9,14 @@ import {
   ShieldCheck,
   Car,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
 import { AdminModuleFlags, DriverModuleFlags } from "../types";
 
 export default function ContentSettings() {
+  const { isSuperAdmin } = useAuth();
   const { flags, loading, updateFlags } = useFeatureFlags();
   const { showSuccess, showError } = useToast();
   const [savingKey, setSavingKey] = useState<string | null>(null);
@@ -102,9 +104,14 @@ export default function ContentSettings() {
       <PageHeader
         icon={Settings2}
         title="Content Settings"
-        subtitle="Enable or disable modules and content shown to Admins and Drivers."
+        subtitle={
+          isSuperAdmin
+            ? "Enable or disable modules and content shown to Admins and Drivers."
+            : "Control what content is shown to Drivers on their Dashboard."
+        }
       />
 
+      {isSuperAdmin && (
       <Section
         icon={ShieldCheck}
         title="Admin modules"
@@ -143,6 +150,7 @@ export default function ContentSettings() {
           onChange={() => toggleAdminModule("drivers")}
         />
       </Section>
+      )}
 
       <Section
         icon={Users}
@@ -160,13 +168,18 @@ export default function ContentSettings() {
         <ToggleRow
           icon={Megaphone}
           label="Announcement banner"
-          description="Whether drivers can see the announcement banner below, when it's on."
+          description={
+            isSuperAdmin
+              ? "Whether drivers can see the announcement banner below, when it's on."
+              : "Whether drivers can see the announcement banner, when a super admin turns it on."
+          }
           checked={flags.driverModules.showAnnouncement}
           saving={savingKey === "driver-showAnnouncement"}
           onChange={() => toggleDriverModule("showAnnouncement")}
         />
       </Section>
 
+      {isSuperAdmin && (
       <Section
         icon={Megaphone}
         title="Announcement banner"
@@ -235,6 +248,7 @@ export default function ContentSettings() {
           </div>
         </div>
       </Section>
+      )}
     </div>
   );
 }

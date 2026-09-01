@@ -14,6 +14,9 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && myRole() in ['admin', 'super_admin'];
     }
+    function isPlainAdmin() {
+      return isSignedIn() && myRole() == 'admin';
+    }
     // users/{uid} — profile + role. This is the source of truth for authorization.
     match /users/{uid} {
       // Anyone signed in can read their own profile; admins can read anyone's
@@ -103,9 +106,21 @@ service cloud.firestore {
     // announcement banner). Any signed-in user may read it, since the UI
     // uses it to decide what to render for every role; only a super_admin
     // may change it.
+    // settings/{id} — CMS-style app configuration, currently just
+    // "featureFlags" (which modules are enabled for admin/driver, and the
+    // announcement banner). Any signed-in user may read it, since the UI
+    // uses it to decide what to render for every role. A super_admin may
+    // change anything. A plain admin may only edit `driverModules` — the
+    // section that controls what content drivers see — and may not touch
+    // `adminModules` (which governs their own access) or `announcement`.
     match /settings/{id} {
       allow read: if isSignedIn();
-      allow write: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        || (isPlainAdmin() && id == 'featureFlags'
+            && request.resource.data.adminModules == resource.data.adminModules
+            && request.resource.data.announcement == resource.data.announcement);
+      allow delete: if isSuperAdmin();
     }
   }
 }

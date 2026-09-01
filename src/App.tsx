@@ -115,7 +115,7 @@ function App() {
             <Route
               path="content-settings"
               element={
-                <ProtectedRoute allow={["super_admin"]}>
+                <ProtectedRoute allow={["admin", "super_admin"]}>
                   <ContentSettings />
                 </ProtectedRoute>
               }
