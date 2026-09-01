@@ -70,8 +70,11 @@ export default function Layout() {
   const showAnnouncementBanner =
     flags.announcement.enabled &&
     !!flags.announcement.message.trim() &&
-    ((isDriver && flags.driverModules.showAnnouncement && flags.announcement.audience.includes("driver")) ||
-      (isAdmin && flags.announcement.audience.includes("admin")));
+    // Super admins always see it — they're the one who set it and should be
+    // able to confirm it's live, regardless of which audience is picked.
+    (isSuperAdmin ||
+      (isDriver && flags.driverModules.showAnnouncement && flags.announcement.audience.includes("driver")) ||
+      (role === "admin" && flags.announcement.audience.includes("admin")));
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);

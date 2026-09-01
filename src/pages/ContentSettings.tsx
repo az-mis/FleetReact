@@ -183,7 +183,7 @@ export default function ContentSettings() {
       <Section
         icon={Megaphone}
         title="Announcement banner"
-        description="A message shown at the top of the Dashboard for the audience you pick below."
+        description="A message shown at the top of the Dashboard for the audience you pick below. Super admins always see it too, regardless of audience, so you can confirm it went out."
       >
         <ToggleRow
           icon={Megaphone}
