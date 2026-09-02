@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -21,6 +22,7 @@ import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { useBranding } from "../contexts/BrandingContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
+import Modal from "../components/Modal";
 import { AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
@@ -39,6 +41,8 @@ export default function ContentSettings() {
   const [connectingDrive, setConnectingDrive] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState("");
+  const [confirmRemoveLogoOpen, setConfirmRemoveLogoOpen] = useState(false);
+  const [removingLogo, setRemovingLogo] = useState(false);
 
   /** Compresses, uploads to the "FMS Photos" root folder, saves the new URL
    *  to settings/appBranding, and best-effort deletes the old Drive file —
@@ -85,8 +89,13 @@ export default function ContentSettings() {
     }
   }
 
-  async function handleLogoRemove() {
+  function handleLogoRemove() {
+    setConfirmRemoveLogoOpen(true);
+  }
+
+  async function confirmLogoRemove() {
     setLogoError("");
+    setRemovingLogo(true);
     try {
       await setDoc(
         doc(db, ...BRANDING_DOC_PATH),
@@ -97,6 +106,9 @@ export default function ContentSettings() {
       showSuccess("Logo removed.");
     } catch (err: any) {
       showError(err.message || "Couldn't remove the logo.");
+    } finally {
+      setRemovingLogo(false);
+      setConfirmRemoveLogoOpen(false);
     }
   }
 
@@ -331,6 +343,70 @@ export default function ContentSettings() {
         showSuccess={showSuccess}
         showError={showError}
       />
+
+      {confirmRemoveLogoOpen && (
+        <Modal title="Remove logo?" onClose={() => !removingLogo && setConfirmRemoveLogoOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "10px",
+                  background: "#fff5f5",
+                  color: "var(--danger)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={20} />
+              </div>
+              <p style={{ fontSize: "13.5px", color: "#4a5568", lineHeight: 1.5, marginTop: "6px" }}>
+                This removes the logo everywhere it's shown (sidebar, header, and login screen) and can't be
+                undone — you'll need to upload it again to bring it back.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => setConfirmRemoveLogoOpen(false)}
+                disabled={removingLogo}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                  background: "#fff",
+                  color: "#2d3748",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: removingLogo ? "default" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogoRemove}
+                disabled={removingLogo}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "var(--danger)",
+                  color: "#fff",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: removingLogo ? "default" : "pointer",
+                }}
+              >
+                {removingLogo ? "Removing…" : "Remove Logo"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
