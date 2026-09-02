@@ -365,12 +365,31 @@ export default function Vehicles() {
           <div>No vehicles found.</div>
         </div>
       ) : view === "list" ? (
-        <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
-          <table style={{ fontSize: "13px" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            overflow: "auto",
+          }}
+        >
+          <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#f7fafc", textAlign: "left" }}>
+              <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
                 {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
+                  <th
+                    key={i}
+                    style={{
+                      padding: "12px 14px",
+                      color: "var(--text-muted)",
+                      fontWeight: 700,
+                      fontSize: "11.5px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -378,29 +397,31 @@ export default function Vehicles() {
             </thead>
             <tbody>
               {filtered.map((v) => (
-                <tr key={v.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 14px" }}>
+                <tr key={v.id} className="admin-row" style={{ borderTop: "1px solid var(--border)" }}>
+                  <td style={{ padding: "12px 14px" }}>
                     <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={34} />
                   </td>
-                  <td style={{ padding: "10px 14px", fontWeight: 600 }}>{v.plateNumber}</td>
-                  <td style={{ padding: "10px 14px" }}>
+                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>{v.plateNumber}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>
                     {v.brand} {v.model}
                   </td>
-                  <td style={{ padding: "10px 14px" }}>{v.year}</td>
-                  <td style={{ padding: "10px 14px" }}>{v.color}</td>
-                  <td style={{ padding: "10px 14px" }}>{v.odometer.toLocaleString()} km</td>
-                  <td style={{ padding: "10px 14px" }}>{v.vehicleType || "—"}</td>
-                  <td style={{ padding: "10px 14px" }}>{v.fuelType || "—"}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.year}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.color}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(v)}
-                      style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+                      className="admin-icon-btn"
+                      style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                     >
                       <Pencil size={15} />
                     </button>
                     <button
                       onClick={() => handleDelete(v)}
-                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+                      className="admin-icon-btn"
+                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -587,13 +608,15 @@ function VehicleCard({
         <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
           <button
             onClick={onEdit}
-            style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+            className="admin-icon-btn"
+            style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
           >
             <Pencil size={15} />
           </button>
           <button
             onClick={onDelete}
-            style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+            className="admin-icon-btn"
+            style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
           >
             <Trash2 size={15} />
           </button>

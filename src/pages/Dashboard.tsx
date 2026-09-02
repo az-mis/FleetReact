@@ -4,6 +4,7 @@ import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 import StatCard from "../components/StatCard";
+import { Avatar } from "../components/Avatar";
 import { Truck, Users, ShieldCheck, UserCircle, Sparkles, ClipboardList, Car } from "lucide-react";
 import { USER_ROLE_LABEL, Vehicle } from "../types";
 
@@ -280,21 +281,13 @@ export default function Dashboard() {
                 boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
               }}
             >
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: "12px",
-                  background: "rgba(26,107,60,0.1)",
-                  color: "var(--primary)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Car size={22} />
-              </div>
+              <Avatar
+                photoURL={assignedVehicle.photoURL}
+                fallback="icon"
+                icon={Car}
+                size={46}
+                name={assignedVehicle.plateNumber}
+              />
               <div>
                 <div style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                   My Assigned Vehicle

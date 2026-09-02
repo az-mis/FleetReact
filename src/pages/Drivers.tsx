@@ -377,12 +377,31 @@ export default function Drivers() {
           <div>No drivers found.</div>
         </div>
       ) : view === "list" ? (
-        <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
-          <table style={{ fontSize: "13px" }}>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            border: "1px solid var(--border)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            overflow: "auto",
+          }}
+        >
+          <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#f7fafc", textAlign: "left" }}>
+              <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
                 {["Name", "Email", "Address", "License Expiry", ""].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 14px",
+                      color: "var(--text-muted)",
+                      fontWeight: 700,
+                      fontSize: "11.5px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -390,26 +409,28 @@ export default function Drivers() {
             </thead>
             <tbody>
               {filtered.map((d) => (
-                <tr key={d.id} style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "10px 14px", fontWeight: 600 }}>
+                <tr key={d.id} className="admin-row" style={{ borderTop: "1px solid var(--border)" }}>
+                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <Avatar name={d.name} photoURL={d.photoURL} size={30} />
+                      <Avatar name={d.name} photoURL={d.photoURL} size={32} />
                       <span>{d.name}</span>
                     </div>
                   </td>
-                  <td style={{ padding: "10px 14px" }}>{d.email}</td>
-                  <td style={{ padding: "10px 14px" }}>{d.address || "—"}</td>
-                  <td style={{ padding: "10px 14px" }}>{d.licenseExpirationDate || "—"}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.email}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.address || "—"}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.licenseExpirationDate || "—"}</td>
+                  <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(d)}
-                      style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+                      className="admin-icon-btn"
+                      style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                     >
                       <Pencil size={15} />
                     </button>
                     <button
                       onClick={() => handleDelete(d)}
-                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+                      className="admin-icon-btn"
+                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -567,13 +588,15 @@ function DriverCard({
         <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
           <button
             onClick={onEdit}
-            style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+            className="admin-icon-btn"
+            style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
           >
             <Pencil size={15} />
           </button>
           <button
             onClick={onDelete}
-            style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+            className="admin-icon-btn"
+            style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
           >
             <Trash2 size={15} />
           </button>

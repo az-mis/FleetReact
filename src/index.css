@@ -77,6 +77,16 @@ table {
   animation: spin 0.8s linear infinite;
 }
 
+/* Admins list view: subtle row hover + icon-button hover, since the plain
+   inline-style table has no way to express :hover on its own. */
+.admin-row:hover {
+  background: #f7fafc;
+}
+
+.admin-icon-btn:hover {
+  background: var(--accent);
+}
+
 /* PageHeader: keep title and actions on their own full-width rows once
    space gets tight, so the search box never gets clipped or squeezed. */
 @media (max-width: 640px) {

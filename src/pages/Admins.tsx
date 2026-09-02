@@ -20,7 +20,7 @@ import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
-import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail } from "lucide-react";
+import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail, Crown } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
@@ -307,7 +307,8 @@ export default function Admins() {
               style={{
                 background: "#fff",
                 borderRadius: "14px",
-                border: "1px solid var(--border)",
+                border: a.role === "super_admin" ? "1px solid #cfe8db" : "1px solid var(--border)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                 padding: "16px",
                 display: "flex",
                 flexDirection: "column",
@@ -320,20 +321,7 @@ export default function Admins() {
                   <div style={{ fontWeight: 700, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {a.name} {a.id === currentUser?.uid && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(you)</span>}
                   </div>
-                  <span
-                    style={{
-                      background: USER_ROLE_COLOR[a.role] + "1a",
-                      color: USER_ROLE_COLOR[a.role],
-                      padding: "2px 8px",
-                      borderRadius: "999px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      display: "inline-block",
-                      marginTop: "3px",
-                    }}
-                  >
-                    {USER_ROLE_LABEL[a.role]}
-                  </span>
+                  <RoleBadge role={a.role} />
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "var(--text-muted)" }}>
@@ -386,12 +374,31 @@ export default function Admins() {
       )}
 
       {filtered.length > 0 && view === "list" && (
-      <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid var(--border)", overflow: "auto" }}>
-        <table style={{ fontSize: "13px" }}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: "12px",
+          border: "1px solid var(--border)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          overflow: "auto",
+        }}
+      >
+        <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#f7fafc", textAlign: "left" }}>
+            <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
               {["Name", "Email", "Role", ""].map((h) => (
-                <th key={h} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
+                <th
+                  key={h}
+                  style={{
+                    padding: "12px 14px",
+                    color: "var(--text-muted)",
+                    fontWeight: 700,
+                    fontSize: "11.5px",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
                   {h}
                 </th>
               ))}
@@ -399,40 +406,38 @@ export default function Admins() {
           </thead>
           <tbody>
             {filtered.map((a) => (
-              <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
-                <td style={{ padding: "10px 14px", fontWeight: 600 }}>
+              <tr
+                key={a.id}
+                className="admin-row"
+                style={{
+                  borderTop: "1px solid var(--border)",
+                  background: a.id === currentUser?.uid ? "#f6fbf8" : undefined,
+                }}
+              >
+                <td style={{ padding: "12px 14px", fontWeight: 600 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Avatar name={a.name} photoURL={a.photoURL} size={30} />
+                    <Avatar name={a.name} photoURL={a.photoURL} size={32} />
                     <span>
                       {a.name} {a.id === currentUser?.uid && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(you)</span>}
                     </span>
                   </div>
                 </td>
-                <td style={{ padding: "10px 14px" }}>{a.email}</td>
-                <td style={{ padding: "10px 14px" }}>
-                  <span
-                    style={{
-                      background: USER_ROLE_COLOR[a.role] + "1a",
-                      color: USER_ROLE_COLOR[a.role],
-                      padding: "3px 9px",
-                      borderRadius: "999px",
-                      fontSize: "11.5px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {USER_ROLE_LABEL[a.role]}
-                  </span>
+                <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{a.email}</td>
+                <td style={{ padding: "12px 14px" }}>
+                  <RoleBadge role={a.role} />
                 </td>
-                <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                   <button
                     onClick={() => openEdit(a)}
-                    style={{ background: "none", border: "none", color: "var(--info)", padding: "4px" }}
+                    className="admin-icon-btn"
+                    style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                   >
                     <Pencil size={15} />
                   </button>
                   <button
                     onClick={() => handleDelete(a)}
-                    style={{ background: "none", border: "none", color: "var(--danger)", padding: "4px" }}
+                    className="admin-icon-btn"
+                    style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
                   >
                     <Trash2 size={15} />
                   </button>
@@ -519,6 +524,29 @@ export default function Admins() {
         </Modal>
       )}
     </div>
+  );
+}
+
+function RoleBadge({ role }: { role: UserRole }) {
+  const isSuper = role === "super_admin";
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        background: USER_ROLE_COLOR[role] + "1a",
+        color: USER_ROLE_COLOR[role],
+        border: isSuper ? `1px solid ${USER_ROLE_COLOR[role]}40` : "none",
+        padding: isSuper ? "3px 10px 3px 8px" : "3px 9px",
+        borderRadius: "999px",
+        fontSize: "11.5px",
+        fontWeight: 700,
+      }}
+    >
+      {isSuper && <Crown size={11} />}
+      {USER_ROLE_LABEL[role]}
+    </span>
   );
 }
 
