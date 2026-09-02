@@ -1,6 +1,7 @@
 import React, { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useBranding } from "../contexts/BrandingContext";
 import { Lock, Mail, Truck, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
@@ -10,6 +11,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
 
   async function handleSubmit(e: FormEvent) {
@@ -50,7 +52,15 @@ export default function Login() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-          <Truck size={22} color="var(--primary)" />
+          {branding?.logoURL ? (
+            <img
+              src={branding.logoURL}
+              alt="Logo"
+              style={{ width: 22, height: 22, borderRadius: "5px", objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : (
+            <Truck size={22} color="var(--primary)" />
+          )}
           <h1 style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management</h1>
         </div>
         <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "24px" }}>

@@ -111,6 +111,21 @@ export interface DriveConfig {
 }
 export const DRIVE_CONFIG_DOC_PATH = ["settings", "driveConfig"] as const;
 
+// App-wide branding (currently just the logo shown in the sidebar/header).
+// Stored the same way as DriveConfig — a single settings doc, read by
+// everyone signed in, written only by a super_admin (see firestore.rules:
+// settings/{id} already restricts writes to super_admin by default). Uses
+// the same Google Drive upload flow as vehicle/driver/admin photos, saved
+// straight into the "FMS Photos" root folder rather than a subfolder since
+// there's only ever one of these.
+export interface AppBranding {
+  logoURL?: string | null;
+  logoDriveFileId?: string | null;
+  updatedAt?: any; // Firestore server timestamp
+  updatedByName?: string | null;
+}
+export const BRANDING_DOC_PATH = ["settings", "appBranding"] as const;
+
 /* ───────────────────────── Vehicles ───────────────────────── */
 
 // Mirrors Modules/Vehicle/Models/Vehicle.php, plus an optional photoURL — a

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import {
   Settings2,
   Truck,
@@ -9,24 +10,95 @@ import {
   ShieldCheck,
   Car,
   HardDrive,
+  Image as ImageIcon,
   CheckCircle2,
   ExternalLink,
 } from "lucide-react";
+import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
+import { useBranding } from "../contexts/BrandingContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
-import { AdminModuleFlags, AnnouncementConfig, DriverModuleFlags } from "../types";
+import { AvatarPicker } from "../components/Avatar";
+import { compressImageToBlob } from "../lib/imageCompress";
+import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
+import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags } from "../types";
 import { connectGoogleDrive } from "../lib/googleDrive";
+
+const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
 
 export default function ContentSettings() {
   const { isSuperAdmin, profile } = useAuth();
   const { flags, loading, updateFlags } = useFeatureFlags();
   const { config: driveConfig } = useDriveConfig();
+  const { branding } = useBranding();
   const { showSuccess, showError } = useToast();
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [connectingDrive, setConnectingDrive] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState("");
+
+  /** Compresses, uploads to the "FMS Photos" root folder, saves the new URL
+   *  to settings/appBranding, and best-effort deletes the old Drive file —
+   *  mirrors the photo-save step in Vehicles.tsx/Drivers.tsx, just without
+   *  a surrounding form since this is a single always-on setting. */
+  async function handleLogoSelect(file: File) {
+    setLogoError("");
+    if (!file.type.startsWith("image/")) {
+      setLogoError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE) {
+      setLogoError("Image is too large. Please choose one under 5MB.");
+      return;
+    }
+    if (!driveConfig) {
+      setLogoError("Connect Google Drive above first.");
+      return;
+    }
+    // Fire while still inside the click that opened the file picker, so the
+    // browser doesn't block the consent popup for accounts that need it.
+    preauthorizeDrive(driveConfig.connectedByEmail);
+    setLogoUploading(true);
+    try {
+      const blob = await compressImageToBlob(file);
+      const { fileId, url } = await uploadPhotoToDrive(
+        blob,
+        `app-logo-${Date.now()}.jpg`,
+        driveConfig.rootFolderId,
+        driveConfig.connectedByEmail
+      );
+      await setDoc(
+        doc(db, ...BRANDING_DOC_PATH),
+        { logoURL: url, logoDriveFileId: fileId, updatedAt: serverTimestamp(), updatedByName: profile?.name || null },
+        { merge: true }
+      );
+      if (branding?.logoDriveFileId) deletePhotoFromDrive(branding.logoDriveFileId, driveConfig.connectedByEmail); // best-effort
+      showSuccess("Logo updated.");
+    } catch (err: any) {
+      setLogoError(err.message || "Couldn't upload that logo.");
+      showError(err.message || "Couldn't upload that logo.");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
+  async function handleLogoRemove() {
+    setLogoError("");
+    try {
+      await setDoc(
+        doc(db, ...BRANDING_DOC_PATH),
+        { logoURL: null, logoDriveFileId: null, updatedAt: serverTimestamp(), updatedByName: profile?.name || null },
+        { merge: true }
+      );
+      if (branding?.logoDriveFileId) deletePhotoFromDrive(branding.logoDriveFileId, driveConfig?.connectedByEmail); // best-effort
+      showSuccess("Logo removed.");
+    } catch (err: any) {
+      showError(err.message || "Couldn't remove the logo.");
+    }
+  }
 
   async function handleConnectDrive() {
     setConnectingDrive(true);
@@ -146,6 +218,33 @@ export default function ContentSettings() {
               </button>
             </div>
           )}
+        </Section>
+      )}
+
+      {isSuperAdmin && (
+        <Section
+          icon={ImageIcon}
+          title="App Logo"
+          description="Shown in the sidebar and header across the app. Stored in the same 'FMS Photos' Drive folder as other photos."
+        >
+          <div style={{ padding: "10px 4px" }}>
+            <AvatarPicker
+              inputId="app-logo-input"
+              fallback="icon"
+              icon={Truck}
+              photoURL={branding?.logoURL || null}
+              onSelect={handleLogoSelect}
+              onRemove={handleLogoRemove}
+              error={logoError}
+              label={
+                !driveConfig
+                  ? "Connect Google Drive above first"
+                  : logoUploading
+                  ? "Uploading to Drive…"
+                  : "Logo (optional, max 5MB)"
+              }
+            />
+          </div>
         </Section>
       )}
 

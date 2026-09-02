@@ -23,6 +23,24 @@ import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
 import { Avatar } from "./Avatar";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
+import { useBranding } from "../contexts/BrandingContext";
+
+// Small logo chip used in place of the Truck icon wherever the app's
+// wordmark/icon appears, once a super_admin has set one in Content
+// Settings > App Logo. Falls back to the Truck icon otherwise.
+function BrandLogo({ size }: { size: number }) {
+  const { branding } = useBranding();
+  if (branding?.logoURL) {
+    return (
+      <img
+        src={branding.logoURL}
+        alt="Logo"
+        style={{ width: size, height: size, borderRadius: size * 0.24, objectFit: "cover", flexShrink: 0 }}
+      />
+    );
+  }
+  return <Truck size={size} />;
+}
 
 function useBreakpoint() {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
@@ -204,7 +222,10 @@ export default function Layout() {
             <Menu size={22} />
             <Badge count={pendingRequestsCount} dot />
           </button>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "14px" }}>Fleet Management</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#fff", fontWeight: 700, fontSize: "14px" }}>
+            <BrandLogo size={22} />
+            Fleet Management
+          </div>
           <div
             style={{
               borderRadius: "50%",
@@ -257,9 +278,12 @@ export default function Layout() {
               justifyContent: "space-between",
             }}
           >
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "13px" }}>Fleet Management</div>
-              <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <BrandLogo size={28} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "13px" }}>Fleet Management</div>
+                <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
+              </div>
             </div>
             <button
               onClick={() => setMobileNavOpen(false)}
@@ -353,12 +377,15 @@ export default function Layout() {
       >
         <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
           {sidebarOpen ? (
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>Fleet Management</div>
-              <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <BrandLogo size={26} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>Fleet Management</div>
+                <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
+              </div>
             </div>
           ) : (
-            <Truck size={20} />
+            <BrandLogo size={20} />
           )}
         </div>
 
@@ -446,11 +473,14 @@ export default function Layout() {
             {sidebarOpen && !isTablet ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", flexDirection: "column" }}>
-            <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management System</h1>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-              Vehicles, drivers, and admin accounts.
-            </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--primary)" }}>
+            <BrandLogo size={30} />
+            <div style={{ display: "flex", alignItems: "center", flexDirection: "column" }}>
+              <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management System</h1>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                Vehicles, drivers, and admin accounts.
+              </p>
+            </div>
           </div>
 
           <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
