@@ -45,6 +45,29 @@ function loadGis(): Promise<void> {
 
 let tokenClient: any = null;
 let cachedToken: { value: string; expiresAt: number } | null = null;
+let inFlightTokenRequest: Promise<string> | null = null;
+
+// How long we let a single Drive auth/upload step run before giving up and
+// showing the person a "try again later" message instead of leaving them
+// staring at an endless "Uploading to Drive…" spinner. This matters most for
+// non-owner accounts (e.g. an Admin, as opposed to the Super Admin who
+// originally connected Drive): their silent token refresh is expected to
+// fail, and the interactive popup that follows can get silently blocked by
+// the browser if it fires outside a fresh user gesture — in that case
+// Google's client never calls back at all, so without a timeout the promise
+// would simply hang forever.
+const AUTH_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
+const TIMEOUT_MESSAGE =
+  "This is taking longer than expected. Please try again later.";
 
 /**
  * Resolves a valid Drive access token, prompting for Google consent via a
@@ -82,6 +105,27 @@ export function getAccessToken(loginHint?: string, forceInteractive = false): Pr
   if (!forceInteractive && cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
     return Promise.resolve(cachedToken.value);
   }
+  // Google's token client only has one callback slot at a time — if a
+  // second request comes in (e.g. the "preauthorize on photo pick" call is
+  // still waiting on an interactive popup when Save triggers the real
+  // upload's own getAccessToken call) it would silently overwrite the first
+  // request's callback, leaving that first caller's promise unresolved
+  // forever. So instead of starting a fresh request, any call that arrives
+  // while one is already in flight just piggybacks on that same promise.
+  if (!forceInteractive && inFlightTokenRequest) {
+    return inFlightTokenRequest;
+  }
+  const request = withTimeout(getAccessTokenInner(loginHint, forceInteractive), AUTH_TIMEOUT_MS, TIMEOUT_MESSAGE);
+  if (!forceInteractive) {
+    inFlightTokenRequest = request;
+    request.finally(() => {
+      if (inFlightTokenRequest === request) inFlightTokenRequest = null;
+    });
+  }
+  return request;
+}
+
+function getAccessTokenInner(loginHint?: string, forceInteractive = false): Promise<string> {
   return loadGis().then(
     () =>
       new Promise<string>((resolve, reject) => {
@@ -217,6 +261,28 @@ export async function connectGoogleDrive(connectedByName: string): Promise<Drive
   return config;
 }
 
+/**
+ * Best-effort "warm up" of Drive authorization, meant to be called the
+ * instant the person picks a photo (still inside that click's user-gesture
+ * window) rather than later on Save. Google's interactive consent popup is
+ * only reliably allowed through by the browser when it's triggered close to
+ * a real user action; requesting it here — instead of after image
+ * compression and other awaits have already run — is what lets an Admin
+ * (whose session usually needs the interactive popup, unlike the Super
+ * Admin who connected Drive and already has a silent-refreshable session)
+ * actually get prompted instead of having the popup silently blocked.
+ *
+ * Never throws: any failure here is simply left for the real upload call
+ * (during Save) to surface properly, since by then it's a fully-informed
+ * error the person can act on.
+ */
+export function preauthorizeDrive(loginHint?: string): void {
+  if (!CLIENT_ID) return;
+  getAccessToken(loginHint).catch(() => {
+    // Ignore — handled again (with a real error message) at actual upload time.
+  });
+}
+
 export interface DriveUploadResult {
   fileId: string;
   url: string; // directly usable as an <img src>
@@ -243,18 +309,25 @@ export async function uploadPhotoToDrive(
   form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
   form.append("file", blob);
 
-  const { id: fileId } = await driveFetch(
-    token,
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-    { method: "POST", body: form }
+  const { id: fileId } = await withTimeout(
+    driveFetch(token, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+      method: "POST",
+      body: form,
+    }),
+    AUTH_TIMEOUT_MS,
+    TIMEOUT_MESSAGE
   );
 
   try {
-    await driveFetch(token, `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "reader", type: "anyone" }),
-    });
+    await withTimeout(
+      driveFetch(token, `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "reader", type: "anyone" }),
+      }),
+      AUTH_TIMEOUT_MS,
+      TIMEOUT_MESSAGE
+    );
   } catch (err) {
     // The file uploaded but isn't publicly viewable yet — still return it
     // rather than failing outright, since this can be fixed manually in Drive.

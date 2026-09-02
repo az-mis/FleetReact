@@ -20,7 +20,7 @@ import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
-import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
+import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel } from "lucide-react";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
@@ -149,6 +149,11 @@ export default function Vehicles() {
       setPhotoError("Image is too large. Please choose one under 5MB.");
       return;
     }
+    // Kick off Drive authorization now, while we're still inside the click
+    // that opened the file picker, so the browser doesn't block the consent
+    // popup for accounts (e.g. Admins) that need it. Best-effort only — any
+    // real failure is reported properly when Save actually uploads.
+    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
     revokePreview();
     const preview = URL.createObjectURL(file);
     photoPreviewUrlRef.current = preview;

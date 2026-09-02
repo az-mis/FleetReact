@@ -17,6 +17,7 @@ import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import DriverSelect from "../components/DriverSelect";
 import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck } from "lucide-react";
+import { Avatar } from "../components/Avatar";
 
 export default function VehicleAssigning() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -243,24 +244,11 @@ function VehicleAssignCard({
           alignItems: "center",
           justifyContent: "space-between",
           gap: "10px",
+          background: vehicle.assignedDriverId ? undefined : "#fffaf0",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "10px",
-              background: "var(--accent)",
-              color: "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Truck size={18} />
-          </div>
+          <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={40} name={vehicle.plateNumber} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {vehicle.plateNumber}
@@ -273,14 +261,21 @@ function VehicleAssignCard({
         <span
           style={{
             flexShrink: 0,
-            fontSize: "11px",
-            fontWeight: 600,
-            padding: "3px 9px",
+            fontSize: "11.5px",
+            fontWeight: 700,
+            padding: "5px 12px",
             borderRadius: "999px",
-            background: vehicle.assignedDriverId ? "#e6f7ee" : "#fff8e6",
-            color: vehicle.assignedDriverId ? "var(--primary)" : "var(--warning)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "5px",
+            textTransform: "uppercase",
+            letterSpacing: "0.3px",
+            background: vehicle.assignedDriverId ? "#d9f5e5" : "#ffe8b3",
+            color: vehicle.assignedDriverId ? "#0f7a44" : "#8a5a00",
+            border: `1px solid ${vehicle.assignedDriverId ? "#a9e6c4" : "#ffcf66"}`,
           }}
         >
+          {vehicle.assignedDriverId ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />}
           {vehicle.assignedDriverId ? "Assigned" : "Unassigned"}
         </span>
       </div>
@@ -333,7 +328,6 @@ function DriverInfo({ driver }: { driver: AppUser | null }) {
     // showing stale/blank info.
     return null;
   }
-  const initial = (driver.name || driver.email || "?")[0]?.toUpperCase();
 
   return (
     <div
@@ -346,23 +340,7 @@ function DriverInfo({ driver }: { driver: AppUser | null }) {
         padding: "10px",
       }}
     >
-      <div
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
-          background: "var(--primary)",
-          color: "#fff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "13px",
-          fontWeight: 700,
-          flexShrink: 0,
-        }}
-      >
-        {initial}
-      </div>
+      <Avatar photoURL={driver.photoURL} name={driver.name || driver.email} size={34} />
       <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0, fontSize: "12px", color: "var(--text-muted)" }}>
         <span style={{ fontWeight: 700, fontSize: "13px", color: "#2d3748" }}>{driver.name}</span>
         <span style={{ display: "flex", alignItems: "center", gap: "5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

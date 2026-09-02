@@ -19,6 +19,7 @@ import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import { Avatar } from "../components/Avatar";
 import {
   ClipboardList,
   Truck,
@@ -35,10 +36,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const STATUS_COLOR: Record<VehicleRequestStatus, string> = {
-  pending: "var(--warning)",
-  approved: "var(--primary)",
-  declined: "var(--danger)",
+const STATUS_BADGE_STYLE: Record<VehicleRequestStatus, { bg: string; border: string; color: string; icon: React.ComponentType<{ size?: number }> }> = {
+  pending: { bg: "#ffe8b3", border: "#ffcf66", color: "#8a5a00", icon: Clock },
+  approved: { bg: "#d9f5e5", border: "#a9e6c4", color: "#0f7a44", icon: CheckCircle2 },
+  declined: { bg: "#fdd9d9", border: "#f7b8b8", color: "#a11e1e", icon: XCircle },
 };
 
 export default function VehicleRequests() {
@@ -257,9 +258,9 @@ export default function VehicleRequests() {
           <div>No requests found.</div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {filtered.map((r) => (
-            <RequestRow key={r.id} request={r} onReview={() => setReviewing(r)} />
+            <RequestRow key={r.id} request={r} vehicles={vehicles} drivers={drivers} onReview={() => setReviewing(r)} />
           ))}
         </div>
       )}
@@ -284,75 +285,86 @@ export default function VehicleRequests() {
   );
 }
 
-function RequestRow({ request, onReview }: { request: VehicleRequest; onReview: () => void }) {
+function RequestRow({
+  request,
+  vehicles,
+  drivers,
+  onReview,
+}: {
+  request: VehicleRequest;
+  vehicles: Vehicle[];
+  drivers: AppUser[];
+  onReview: () => void;
+}) {
+  const vehicle = vehicles.find((v) => v.id === request.vehicleId);
+  const driverName =
+    request.status === "approved"
+      ? request.confirmedDriverName || "Unassigned"
+      : request.defaultDriverName || "Not yet assigned";
+  const driverId = request.status === "approved" ? request.confirmedDriverId : request.defaultDriverId;
+  const driver = drivers.find((d) => d.id === driverId);
+  const badge = STATUS_BADGE_STYLE[request.status];
+  const BadgeIcon = badge.icon;
+
   return (
     <div
       style={{
         background: "#fff",
-        borderRadius: "12px",
+        borderRadius: "10px",
         border: "1px solid var(--border)",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-        padding: "14px 16px",
-        display: "flex",
+        padding: "9px 14px",
+        display: "grid",
+        gridTemplateColumns: "32px minmax(0, 1.6fr) minmax(0, 1fr) 76px",
         alignItems: "center",
-        gap: "14px",
-        flexWrap: "wrap",
+        gap: "12px",
       }}
     >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: "10px",
-          background: "var(--accent)",
-          color: "var(--primary)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Truck size={18} />
-      </div>
+      <Avatar photoURL={vehicle?.photoURL} fallback="icon" icon={Truck} size={32} name={request.vehiclePlateNumber} />
 
-      <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 700, fontSize: "14px" }}>{request.requesterName}</span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+          <span style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {request.requesterName}
+          </span>
           <span
             style={{
-              fontSize: "10.5px",
+              fontSize: "9.5px",
               fontWeight: 700,
-              padding: "2px 8px",
+              padding: "2px 7px",
               borderRadius: "999px",
-              background: STATUS_COLOR[request.status] + "1a",
-              color: STATUS_COLOR[request.status],
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
+              flexShrink: 0,
+              background: badge.bg,
+              color: badge.color,
+              border: `1px solid ${badge.border}`,
               textTransform: "uppercase",
               letterSpacing: "0.03em",
             }}
           >
+            <BadgeIcon size={9} />
             {request.status}
           </span>
         </div>
-        <div style={{ fontSize: "12.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {request.vehiclePlateNumber} · {request.destination} · {formatTravelDateRange(request.travelDate, request.travelDateEnd)}
         </div>
       </div>
 
-      <div style={{ fontSize: "12.5px", color: "var(--text-muted)", flex: "1 1 160px" }}>
-        Driver:{" "}
-        <b style={{ color: "#2d3748" }}>
-          {request.status === "approved"
-            ? request.confirmedDriverName || "Unassigned"
-            : request.defaultDriverName || "Not yet assigned"}
-        </b>
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, fontSize: "12px", color: "var(--text-muted)" }}>
+        <Avatar photoURL={driver?.photoURL} name={driverName} size={20} />
+        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <b style={{ color: "#2d3748" }}>{driverName}</b>
+        </span>
       </div>
 
       <button
         onClick={onReview}
         style={{
-          flexShrink: 0,
-          padding: "8px 14px",
-          borderRadius: "8px",
+          justifySelf: "end",
+          padding: "6px 12px",
+          borderRadius: "7px",
           border: "1px solid var(--border)",
           background: request.status === "pending" ? "var(--primary)" : "#fff",
           color: request.status === "pending" ? "#fff" : "#2d3748",
