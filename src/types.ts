@@ -106,6 +106,7 @@ export interface DriveConfig {
   vehicleFolderId: string;
   driverFolderId: string;
   connectedByName: string;
+  connectedByEmail?: string; // pins token requests to this Google account via login_hint
   connectedAt: any; // Firestore server timestamp
 }
 export const DRIVE_CONFIG_DOC_PATH = ["settings", "driveConfig"] as const;

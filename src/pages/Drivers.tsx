@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, FormEvent } from "react";
+import React, { useEffect, useMemo, useRef, useState, FormEvent } from "react";
 import {
   collection,
   deleteDoc,
@@ -25,6 +25,8 @@ import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
 const emptyForm = {
   name: "",
@@ -54,6 +56,31 @@ export default function Drivers() {
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
 
+  // Photo selection is local-only until "Save Changes" is clicked: `photoFile`
+  // holds the file waiting to be uploaded, and `photoPreviewUrl` is a local
+  // object URL used just for the <img> preview. Nothing touches Drive until
+  // handleSubmit runs. `originalPhotoRef` remembers what was actually saved
+  // (so we know what to delete from Drive if it gets replaced/removed) and
+  // `photoRemoved` marks that the user cleared an existing photo.
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+  const photoPreviewUrlRef = useRef<string | null>(null);
+  const originalPhotoRef = useRef<{ url: string | null; fileId: string | null }>({ url: null, fileId: null });
+
+  function revokePreview() {
+    if (photoPreviewUrlRef.current) {
+      URL.revokeObjectURL(photoPreviewUrlRef.current);
+      photoPreviewUrlRef.current = null;
+    }
+  }
+
+  function resetPhotoState() {
+    revokePreview();
+    setPhotoFile(null);
+    setPhotoRemoved(false);
+    setPhotoError("");
+  }
+
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "driver"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
@@ -76,7 +103,8 @@ export default function Drivers() {
     setEditing(null);
     setForm(emptyForm);
     setError("");
-    setPhotoError("");
+    resetPhotoState();
+    originalPhotoRef.current = { url: null, fileId: null };
     setModalOpen(true);
   }
 
@@ -93,40 +121,41 @@ export default function Drivers() {
       photoDriveFileId: d.photoDriveFileId || null,
     });
     setError("");
-    setPhotoError("");
+    resetPhotoState();
+    originalPhotoRef.current = { url: d.photoURL || null, fileId: d.photoDriveFileId || null };
     setModalOpen(true);
   }
 
-  async function handlePhotoSelect(file: File) {
+  function closeModal() {
+    resetPhotoState();
+    setModalOpen(false);
+  }
+
+  /** Just stages the file for preview — nothing is uploaded to Drive until
+   *  Save Changes is clicked (see handleSubmit). */
+  function handlePhotoSelect(file: File) {
     setPhotoError("");
-    if (!driveConfig) {
-      setPhotoError("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
-      return;
-    }
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please choose an image file.");
       return;
     }
-    setPhotoUploading(true);
-    try {
-      const blob = await compressImageToBlob(file);
-      const previousFileId = form.photoDriveFileId;
-      const { fileId, url } = await uploadPhotoToDrive(
-        blob,
-        `driver-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
-        driveConfig.driverFolderId
-      );
-      setForm((f) => ({ ...f, photoURL: url, photoDriveFileId: fileId }));
-      if (previousFileId) deletePhotoFromDrive(previousFileId); // best-effort
-    } catch (err: any) {
-      setPhotoError(err.message || "Couldn't upload that photo.");
-    } finally {
-      setPhotoUploading(false);
+    if (file.size > MAX_PHOTO_SIZE) {
+      setPhotoError("Image is too large. Please choose one under 5MB.");
+      return;
     }
+    revokePreview();
+    const preview = URL.createObjectURL(file);
+    photoPreviewUrlRef.current = preview;
+    setPhotoFile(file);
+    setPhotoRemoved(false);
+    setForm((f) => ({ ...f, photoURL: preview }));
   }
 
   function handlePhotoRemove() {
-    if (form.photoDriveFileId) deletePhotoFromDrive(form.photoDriveFileId); // best-effort
+    revokePreview();
+    setPhotoFile(null);
+    setPhotoRemoved(true);
+    setPhotoError("");
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
@@ -135,14 +164,48 @@ export default function Drivers() {
     setError("");
     setSaving(true);
     try {
+      // Resolve the photo now: upload a newly-picked file (or process a
+      // removal) to Drive right before saving, instead of at selection time.
+      let finalPhotoURL = originalPhotoRef.current.url;
+      let finalPhotoDriveFileId = originalPhotoRef.current.fileId;
+
+      if (photoFile) {
+        if (!driveConfig) {
+          throw new Error("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
+        }
+        setPhotoUploading(true);
+        try {
+          const blob = await compressImageToBlob(photoFile);
+          const { fileId, url } = await uploadPhotoToDrive(
+            blob,
+            `driver-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
+            driveConfig.driverFolderId,
+            driveConfig.connectedByEmail
+          );
+          if (originalPhotoRef.current.fileId)
+            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail); // best-effort
+          finalPhotoURL = url;
+          finalPhotoDriveFileId = fileId;
+        } catch (err: any) {
+          throw new Error(err.message || "Couldn't upload that photo.");
+        } finally {
+          setPhotoUploading(false);
+        }
+      } else if (photoRemoved) {
+        if (originalPhotoRef.current.fileId)
+          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail); // best-effort
+        finalPhotoURL = null;
+        finalPhotoDriveFileId = null;
+      }
+
       if (editing) {
         await updateDoc(doc(db, "users", editing.id), {
           name: form.name,
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
-          photoURL: form.photoURL || null,
-          photoDriveFileId: form.photoDriveFileId || null,
+          photoURL: finalPhotoURL,
+          photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
         });
         // vehicles.assignedDriverName is a denormalized copy of the driver's
@@ -177,15 +240,15 @@ export default function Drivers() {
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
-          photoURL: form.photoURL || null,
-          photoDriveFileId: form.photoDriveFileId || null,
+          photoURL: finalPhotoURL,
+          photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
         showSuccess(`${form.name} added as a driver.`);
       }
       if (editing) showSuccess(`${form.name} updated.`);
-      setModalOpen(false);
+      closeModal();
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
       showError(err.message || "Something went wrong while saving the driver.");
@@ -200,7 +263,7 @@ export default function Drivers() {
     // SDK; wire this up to a Cloud Function if you need full account removal.
     try {
       await deleteDoc(doc(db, "users", d.id));
-      if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId); // best-effort
+      if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
       showSuccess(`${d.name} deleted.`);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${d.name}.`);
@@ -366,7 +429,7 @@ export default function Drivers() {
       )}
 
       {modalOpen && (
-        <Modal title={editing ? "Edit Driver" : "Add Driver"} onClose={() => setModalOpen(false)}>
+        <Modal title={editing ? "Edit Driver" : "Add Driver"} onClose={closeModal}>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {error && (
               <div style={{ background: "#fff5f5", color: "var(--danger)", padding: "8px 10px", borderRadius: 8, fontSize: 13 }}>
@@ -381,7 +444,7 @@ export default function Drivers() {
               onSelect={handlePhotoSelect}
               onRemove={handlePhotoRemove}
               error={photoError}
-              label={photoUploading ? "Uploading to Drive…" : undefined}
+              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
             />
 
             <Field label="Full Name" required>

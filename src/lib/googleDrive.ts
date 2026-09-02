@@ -2,7 +2,9 @@
 // "connects" Drive once (Content Settings > Google Drive) — a normal Google
 // consent popup, same pattern as "Sign in with Google" — using Google
 // Identity Services' token client, scoped to `drive.file` (this app can only
-// see/manage files/folders IT creates, never the rest of the admin's Drive).
+// see/manage files/folders IT creates, never the rest of the admin's Drive)
+// plus a read-only `userinfo.email` scope (just to record which account
+// connected, for login_hint — see getAccessToken).
 // That first connect auto-creates a "FMS Photos" folder with Admins/
 // Vehicles/Drivers subfolders and saves their IDs to Firestore
 // (settings/driveConfig — see types.ts DriveConfig), so every other upload,
@@ -13,7 +15,7 @@ import { db } from "../firebase";
 import { DRIVE_CONFIG_DOC_PATH, DriveConfig } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
 
 const ROOT_FOLDER_NAME = "FMS Photos";
 const SUBFOLDER_NAMES = { admin: "Admins", vehicle: "Vehicles", driver: "Drivers" } as const;
@@ -48,12 +50,36 @@ let cachedToken: { value: string; expiresAt: number } | null = null;
  * Resolves a valid Drive access token, prompting for Google consent via a
  * popup the first time (or after the ~1hr token expires). Cached in memory
  * only — never persisted, never touches Firestore.
+ *
+ * On a fresh page load there's no in-memory cachedToken yet, but the user
+ * may well have already granted this app Drive access in an earlier
+ * session — so by default we first try a silent refresh (prompt: "none"),
+ * which just re-mints a token with no UI if consent is still valid, and
+ * only fall back to the full "choose an account" consent screen if that
+ * silent attempt actually fails (e.g. truly first-time authorization, or
+ * consent was revoked).
+ *
+ * The silent attempt uses a hidden iframe under the hood, which some
+ * browsers' third-party-cookie restrictions can cause to hang without ever
+ * calling back — so it's given a short timeout and treated as a failure
+ * (falling through to the interactive screen) if nothing comes back in
+ * time, rather than leaving the caller stuck forever.
+ *
+ * Pass `forceInteractive: true` for an explicit user-initiated "Connect" /
+ * "Reconnect" action — there's no point trying silently when the user just
+ * clicked a button specifically to go through the picker themselves, and
+ * skipping it avoids any chance of that hang.
+ *
+ * `loginHint` (typically DriveConfig.connectedByEmail) pins both attempts
+ * to the specific Google account that connected Drive, so a browser signed
+ * into multiple Google accounts doesn't end up using — or being asked to
+ * pick between — the wrong one.
  */
-export function getAccessToken(): Promise<string> {
+export function getAccessToken(loginHint?: string, forceInteractive = false): Promise<string> {
   if (!CLIENT_ID) {
     return Promise.reject(new Error("Google Drive isn't configured yet (missing VITE_GOOGLE_CLIENT_ID)."));
   }
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
+  if (!forceInteractive && cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
     return Promise.resolve(cachedToken.value);
   }
   return loadGis().then(
@@ -66,15 +92,42 @@ export function getAccessToken(): Promise<string> {
             callback: () => {}, // overridden per-request below
           });
         }
+
+        let triedInteractive = forceInteractive;
+        let silentTimeout: ReturnType<typeof setTimeout> | null = null;
+
+        function goInteractive() {
+          if (triedInteractive) return; // already showing (or shown) the picker — don't fire it twice
+          triedInteractive = true;
+          if (silentTimeout) clearTimeout(silentTimeout);
+          tokenClient.requestAccessToken({ prompt: "consent", login_hint: loginHint });
+        }
+
         tokenClient.callback = (resp: any) => {
+          if (silentTimeout) clearTimeout(silentTimeout);
           if (resp.error) {
+            if (!triedInteractive) {
+              // Silent refresh failed (no active session / consent not yet
+              // granted / revoked) — fall back to the interactive consent
+              // screen exactly once.
+              goInteractive();
+              return;
+            }
             reject(new Error(resp.error_description || "Google Drive authorization was cancelled or failed."));
             return;
           }
           cachedToken = { value: resp.access_token, expiresAt: Date.now() + resp.expires_in * 1000 };
           resolve(resp.access_token);
         };
-        tokenClient.requestAccessToken({ prompt: cachedToken ? "" : "consent" });
+
+        if (forceInteractive) {
+          tokenClient.requestAccessToken({ prompt: "consent", login_hint: loginHint });
+        } else {
+          // Guard against the silent iframe hanging with no callback at all
+          // (seen under some browsers' third-party-cookie restrictions).
+          silentTimeout = setTimeout(goInteractive, 4000);
+          tokenClient.requestAccessToken({ prompt: "none", login_hint: loginHint });
+        }
       })
   );
 }
@@ -125,7 +178,11 @@ async function findOrCreateFolder(token: string, name: string, parentId?: string
  * super_admin-only UI (Firestore rules also enforce this on write).
  */
 export async function connectGoogleDrive(connectedByName: string): Promise<DriveConfig> {
-  const token = await getAccessToken();
+  // Explicit user-initiated action (the Connect / Reconnect button) — go
+  // straight to the interactive account picker rather than trying a silent
+  // refresh first, since the user is already deliberately choosing an
+  // account and there's nothing to gain from attempting silent auth here.
+  const token = await getAccessToken(undefined, true);
 
   const rootFolderId = await findOrCreateFolder(token, ROOT_FOLDER_NAME);
   const [adminFolderId, vehicleFolderId, driverFolderId] = await Promise.all([
@@ -134,12 +191,26 @@ export async function connectGoogleDrive(connectedByName: string): Promise<Drive
     findOrCreateFolder(token, SUBFOLDER_NAMES.driver, rootFolderId),
   ]);
 
+  // Record which Google account this is, so future token requests (from any
+  // device) can be pinned to it via login_hint instead of leaving Google to
+  // guess which signed-in account to use.
+  let connectedByEmail: string | undefined;
+  try {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) connectedByEmail = (await res.json()).email;
+  } catch (err) {
+    console.error("Connected to Drive but couldn't look up the account email:", err);
+  }
+
   const config: DriveConfig = {
     rootFolderId,
     adminFolderId,
     vehicleFolderId,
     driverFolderId,
     connectedByName,
+    connectedByEmail,
     connectedAt: serverTimestamp(),
   };
   await setDoc(doc(db, ...DRIVE_CONFIG_DOC_PATH), config);
@@ -155,10 +226,17 @@ export interface DriveUploadResult {
  * Uploads a Blob into the given Drive folder, makes it viewable by "anyone
  * with the link" (required so the app can display it without a backend),
  * and returns a stable thumbnail URL plus the Drive file ID (kept so the
- * app can delete it later if the photo is replaced/removed).
+ * app can delete it later if the photo is replaced/removed). Pass
+ * `loginHint` (DriveConfig.connectedByEmail) so the token request is pinned
+ * to the account that connected Drive.
  */
-export async function uploadPhotoToDrive(blob: Blob, filename: string, folderId: string): Promise<DriveUploadResult> {
-  const token = await getAccessToken();
+export async function uploadPhotoToDrive(
+  blob: Blob,
+  filename: string,
+  folderId: string,
+  loginHint?: string
+): Promise<DriveUploadResult> {
+  const token = await getAccessToken(loginHint);
 
   const metadata = { name: filename, parents: [folderId] };
   const form = new FormData();
@@ -188,10 +266,12 @@ export async function uploadPhotoToDrive(blob: Blob, filename: string, folderId:
 
 /** Best-effort delete — called when a photo is replaced or removed. Never
  *  throws; a leftover file in Drive is harmless and not worth blocking the
- *  UI over (5GB of free Drive storage covers thousands of these). */
-export async function deletePhotoFromDrive(fileId: string): Promise<void> {
+ *  UI over (5GB of free Drive storage covers thousands of these). Pass
+ *  `loginHint` (DriveConfig.connectedByEmail) so the token request is
+ *  pinned to the account that connected Drive. */
+export async function deletePhotoFromDrive(fileId: string, loginHint?: string): Promise<void> {
   try {
-    const token = await getAccessToken();
+    const token = await getAccessToken(loginHint);
     await driveFetch(token, `https://www.googleapis.com/drive/v3/files/${fileId}`, { method: "DELETE" });
   } catch (err) {
     console.error("Couldn't delete old Drive file (non-fatal):", err);

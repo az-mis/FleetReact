@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, FormEvent } from "react";
+import React, { useEffect, useMemo, useRef, useState, FormEvent } from "react";
 import {
   collection,
   deleteDoc,
@@ -24,6 +24,8 @@ import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail } from "lucid
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
 const emptyForm = {
   name: "",
@@ -51,6 +53,27 @@ export default function Admins() {
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
 
+  // Photo selection is local-only until "Save Changes" is clicked — see the
+  // matching comment in Drivers.tsx for the full rationale.
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+  const photoPreviewUrlRef = useRef<string | null>(null);
+  const originalPhotoRef = useRef<{ url: string | null; fileId: string | null }>({ url: null, fileId: null });
+
+  function revokePreview() {
+    if (photoPreviewUrlRef.current) {
+      URL.revokeObjectURL(photoPreviewUrlRef.current);
+      photoPreviewUrlRef.current = null;
+    }
+  }
+
+  function resetPhotoState() {
+    revokePreview();
+    setPhotoFile(null);
+    setPhotoRemoved(false);
+    setPhotoError("");
+  }
+
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "in", ["admin", "super_admin"]), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
@@ -74,7 +97,8 @@ export default function Admins() {
     setEditing(null);
     setForm(emptyForm);
     setError("");
-    setPhotoError("");
+    resetPhotoState();
+    originalPhotoRef.current = { url: null, fileId: null };
     setModalOpen(true);
   }
 
@@ -89,40 +113,41 @@ export default function Admins() {
       photoDriveFileId: a.photoDriveFileId || null,
     });
     setError("");
-    setPhotoError("");
+    resetPhotoState();
+    originalPhotoRef.current = { url: a.photoURL || null, fileId: a.photoDriveFileId || null };
     setModalOpen(true);
   }
 
-  async function handlePhotoSelect(file: File) {
+  function closeModal() {
+    resetPhotoState();
+    setModalOpen(false);
+  }
+
+  /** Just stages the file for preview — nothing is uploaded to Drive until
+   *  Save Changes is clicked (see handleSubmit). */
+  function handlePhotoSelect(file: File) {
     setPhotoError("");
-    if (!driveConfig) {
-      setPhotoError("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
-      return;
-    }
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please choose an image file.");
       return;
     }
-    setPhotoUploading(true);
-    try {
-      const blob = await compressImageToBlob(file);
-      const previousFileId = form.photoDriveFileId;
-      const { fileId, url } = await uploadPhotoToDrive(
-        blob,
-        `admin-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
-        driveConfig.adminFolderId
-      );
-      setForm((f) => ({ ...f, photoURL: url, photoDriveFileId: fileId }));
-      if (previousFileId) deletePhotoFromDrive(previousFileId); // best-effort
-    } catch (err: any) {
-      setPhotoError(err.message || "Couldn't upload that photo.");
-    } finally {
-      setPhotoUploading(false);
+    if (file.size > MAX_PHOTO_SIZE) {
+      setPhotoError("Image is too large. Please choose one under 5MB.");
+      return;
     }
+    revokePreview();
+    const preview = URL.createObjectURL(file);
+    photoPreviewUrlRef.current = preview;
+    setPhotoFile(file);
+    setPhotoRemoved(false);
+    setForm((f) => ({ ...f, photoURL: preview }));
   }
 
   function handlePhotoRemove() {
-    if (form.photoDriveFileId) deletePhotoFromDrive(form.photoDriveFileId); // best-effort
+    revokePreview();
+    setPhotoFile(null);
+    setPhotoRemoved(true);
+    setPhotoError("");
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
@@ -131,12 +156,46 @@ export default function Admins() {
     setError("");
     setSaving(true);
     try {
+      // Resolve the photo now: upload a newly-picked file (or process a
+      // removal) to Drive right before saving, instead of at selection time.
+      let finalPhotoURL = originalPhotoRef.current.url;
+      let finalPhotoDriveFileId = originalPhotoRef.current.fileId;
+
+      if (photoFile) {
+        if (!driveConfig) {
+          throw new Error("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
+        }
+        setPhotoUploading(true);
+        try {
+          const blob = await compressImageToBlob(photoFile);
+          const { fileId, url } = await uploadPhotoToDrive(
+            blob,
+            `admin-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
+            driveConfig.adminFolderId,
+            driveConfig.connectedByEmail
+          );
+          if (originalPhotoRef.current.fileId)
+            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail); // best-effort
+          finalPhotoURL = url;
+          finalPhotoDriveFileId = fileId;
+        } catch (err: any) {
+          throw new Error(err.message || "Couldn't upload that photo.");
+        } finally {
+          setPhotoUploading(false);
+        }
+      } else if (photoRemoved) {
+        if (originalPhotoRef.current.fileId)
+          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail); // best-effort
+        finalPhotoURL = null;
+        finalPhotoDriveFileId = null;
+      }
+
       if (editing) {
         await updateDoc(doc(db, "users", editing.id), {
           name: form.name,
           role: form.role,
-          photoURL: form.photoURL || null,
-          photoDriveFileId: form.photoDriveFileId || null,
+          photoURL: finalPhotoURL,
+          photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
         });
         showSuccess(`${form.name} updated.`);
@@ -149,14 +208,14 @@ export default function Admins() {
           name: form.name,
           email: form.email,
           role: form.role,
-          photoURL: form.photoURL || null,
-          photoDriveFileId: form.photoDriveFileId || null,
+          photoURL: finalPhotoURL,
+          photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
         showSuccess(`${form.name} added as ${USER_ROLE_LABEL[form.role]}.`);
       }
-      setModalOpen(false);
+      closeModal();
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
       showError(err.message || "Something went wrong while saving the account.");
@@ -173,7 +232,7 @@ export default function Admins() {
     if (!confirm(`Delete ${USER_ROLE_LABEL[a.role]} ${a.name}? This removes their profile record.`)) return;
     try {
       await deleteDoc(doc(db, "users", a.id));
-      if (a.photoDriveFileId) deletePhotoFromDrive(a.photoDriveFileId); // best-effort
+      if (a.photoDriveFileId) deletePhotoFromDrive(a.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
       showSuccess(`${a.name} deleted.`);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${a.name}.`);
@@ -386,7 +445,7 @@ export default function Admins() {
       )}
 
       {modalOpen && (
-        <Modal title={editing ? "Edit Admin" : "Add Admin"} onClose={() => setModalOpen(false)}>
+        <Modal title={editing ? "Edit Admin" : "Add Admin"} onClose={closeModal}>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {error && (
               <div style={{ background: "#fff5f5", color: "var(--danger)", padding: "8px 10px", borderRadius: 8, fontSize: 13 }}>
@@ -401,7 +460,7 @@ export default function Admins() {
               onSelect={handlePhotoSelect}
               onRemove={handlePhotoRemove}
               error={photoError}
-              label={photoUploading ? "Uploading to Drive…" : undefined}
+              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
             />
 
             <Field label="Full Name" required>
