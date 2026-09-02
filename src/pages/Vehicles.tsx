@@ -13,10 +13,14 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { Vehicle } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import { Avatar, AvatarPicker } from "../components/Avatar";
+import { compressImageToBlob } from "../lib/imageCompress";
+import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
 import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel } from "lucide-react";
 
 const emptyForm = {
@@ -30,11 +34,14 @@ const emptyForm = {
   odometer: 0,
   vehicleType: "",
   fuelType: "",
+  photoURL: null as string | null,
+  photoDriveFileId: null as string | null,
 };
 
 export default function Vehicles() {
   const { isSuperAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
+  const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"list" | "grid">(() => {
@@ -45,6 +52,8 @@ export default function Vehicles() {
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -73,6 +82,7 @@ export default function Vehicles() {
     setEditing(null);
     setForm(emptyForm);
     setError("");
+    setPhotoError("");
     setModalOpen(true);
   }
 
@@ -89,9 +99,45 @@ export default function Vehicles() {
       odometer: v.odometer,
       vehicleType: v.vehicleType || "",
       fuelType: v.fuelType || "",
+      photoURL: v.photoURL || null,
+      photoDriveFileId: v.photoDriveFileId || null,
     });
     setError("");
+    setPhotoError("");
     setModalOpen(true);
+  }
+
+  async function handlePhotoSelect(file: File) {
+    setPhotoError("");
+    if (!driveConfig) {
+      setPhotoError("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const blob = await compressImageToBlob(file);
+      const previousFileId = form.photoDriveFileId;
+      const { fileId, url } = await uploadPhotoToDrive(
+        blob,
+        `vehicle-${form.plateNumber || "photo"}-${Date.now()}.jpg`,
+        driveConfig.vehicleFolderId
+      );
+      setForm((f) => ({ ...f, photoURL: url, photoDriveFileId: fileId }));
+      if (previousFileId) deletePhotoFromDrive(previousFileId); // best-effort, don't await
+    } catch (err: any) {
+      setPhotoError(err.message || "Couldn't upload that photo.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  function handlePhotoRemove() {
+    if (form.photoDriveFileId) deletePhotoFromDrive(form.photoDriveFileId); // best-effort
+    setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -144,6 +190,7 @@ export default function Vehicles() {
     if (!confirm(`Delete vehicle ${v.plateNumber}? This cannot be undone.`)) return;
     try {
       await deleteDoc(doc(db, "vehicles", v.id));
+      if (v.photoDriveFileId) deletePhotoFromDrive(v.photoDriveFileId); // best-effort
       showSuccess(`${v.plateNumber} deleted.`);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${v.plateNumber}.`);
@@ -256,8 +303,8 @@ export default function Vehicles() {
           <table style={{ fontSize: "13px" }}>
             <thead>
               <tr style={{ background: "#f7fafc", textAlign: "left" }}>
-                {["Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", ""].map((h) => (
-                  <th key={h} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
+                {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", ""].map((h, i) => (
+                  <th key={i} style={{ padding: "10px 14px", color: "var(--text-muted)", fontWeight: 600 }}>
                     {h}
                   </th>
                 ))}
@@ -266,6 +313,9 @@ export default function Vehicles() {
             <tbody>
               {filtered.map((v) => (
                 <tr key={v.id} style={{ borderTop: "1px solid var(--border)" }}>
+                  <td style={{ padding: "10px 14px" }}>
+                    <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={34} />
+                  </td>
                   <td style={{ padding: "10px 14px", fontWeight: 600 }}>{v.plateNumber}</td>
                   <td style={{ padding: "10px 14px" }}>
                     {v.brand} {v.model}
@@ -316,6 +366,17 @@ export default function Vehicles() {
                 {error}
               </div>
             )}
+
+            <AvatarPicker
+              inputId="vehicle-photo-input"
+              fallback="icon"
+              icon={Truck}
+              photoURL={form.photoURL}
+              onSelect={handlePhotoSelect}
+              onRemove={handlePhotoRemove}
+              error={photoError}
+              label={photoUploading ? "Uploading to Drive…" : undefined}
+            />
 
             <Field label="Plate Number" required>
               <input
@@ -397,7 +458,7 @@ export default function Vehicles() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || photoUploading}
               style={{
                 marginTop: "8px",
                 padding: "11px",
@@ -409,7 +470,7 @@ export default function Vehicles() {
                 fontSize: "14px",
               }}
             >
-              {saving ? "Saving..." : editing ? "Save Changes" : "Register Vehicle"}
+              {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Register Vehicle"}
             </button>
           </form>
         </Modal>
@@ -448,21 +509,7 @@ function VehicleCard({
           gap: "12px",
         }}
       >
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "10px",
-            background: "var(--accent)",
-            color: "var(--primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Truck size={19} />
-        </div>
+        <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={40} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {vehicle.plateNumber}

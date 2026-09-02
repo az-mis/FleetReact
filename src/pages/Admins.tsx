@@ -15,15 +15,24 @@ import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
+import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
-import { compressImageToDataURL } from "../lib/imageCompress";
+import { compressImageToBlob } from "../lib/imageCompress";
+import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
 
-const emptyForm = { name: "", email: "", password: "", role: "admin" as UserRole, photoURL: null as string | null };
+const emptyForm = {
+  name: "",
+  email: "",
+  password: "",
+  role: "admin" as UserRole,
+  photoURL: null as string | null,
+  photoDriveFileId: null as string | null,
+};
 
 export default function Admins() {
   const { currentUser } = useAuth();
@@ -37,8 +46,10 @@ export default function Admins() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { showSuccess, showError } = useToast();
+  const { config: driveConfig } = useDriveConfig();
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "in", ["admin", "super_admin"]), orderBy("createdAt", "desc"));
@@ -69,7 +80,14 @@ export default function Admins() {
 
   function openEdit(a: AppUser) {
     setEditing(a);
-    setForm({ name: a.name, email: a.email, password: "", role: a.role, photoURL: a.photoURL || null });
+    setForm({
+      name: a.name,
+      email: a.email,
+      password: "",
+      role: a.role,
+      photoURL: a.photoURL || null,
+      photoDriveFileId: a.photoDriveFileId || null,
+    });
     setError("");
     setPhotoError("");
     setModalOpen(true);
@@ -77,16 +95,35 @@ export default function Admins() {
 
   async function handlePhotoSelect(file: File) {
     setPhotoError("");
+    if (!driveConfig) {
+      setPhotoError("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
+      return;
+    }
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please choose an image file.");
       return;
     }
+    setPhotoUploading(true);
     try {
-      const dataUrl = await compressImageToDataURL(file);
-      setForm((f) => ({ ...f, photoURL: dataUrl }));
+      const blob = await compressImageToBlob(file);
+      const previousFileId = form.photoDriveFileId;
+      const { fileId, url } = await uploadPhotoToDrive(
+        blob,
+        `admin-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
+        driveConfig.adminFolderId
+      );
+      setForm((f) => ({ ...f, photoURL: url, photoDriveFileId: fileId }));
+      if (previousFileId) deletePhotoFromDrive(previousFileId); // best-effort
     } catch (err: any) {
-      setPhotoError(err.message || "Couldn't process that image.");
+      setPhotoError(err.message || "Couldn't upload that photo.");
+    } finally {
+      setPhotoUploading(false);
     }
+  }
+
+  function handlePhotoRemove() {
+    if (form.photoDriveFileId) deletePhotoFromDrive(form.photoDriveFileId); // best-effort
+    setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -99,6 +136,7 @@ export default function Admins() {
           name: form.name,
           role: form.role,
           photoURL: form.photoURL || null,
+          photoDriveFileId: form.photoDriveFileId || null,
           updatedAt: serverTimestamp(),
         });
         showSuccess(`${form.name} updated.`);
@@ -112,6 +150,7 @@ export default function Admins() {
           email: form.email,
           role: form.role,
           photoURL: form.photoURL || null,
+          photoDriveFileId: form.photoDriveFileId || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -134,6 +173,7 @@ export default function Admins() {
     if (!confirm(`Delete ${USER_ROLE_LABEL[a.role]} ${a.name}? This removes their profile record.`)) return;
     try {
       await deleteDoc(doc(db, "users", a.id));
+      if (a.photoDriveFileId) deletePhotoFromDrive(a.photoDriveFileId); // best-effort
       showSuccess(`${a.name} deleted.`);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${a.name}.`);
@@ -359,8 +399,9 @@ export default function Admins() {
               name={form.name}
               photoURL={form.photoURL}
               onSelect={handlePhotoSelect}
-              onRemove={() => setForm((f) => ({ ...f, photoURL: null }))}
+              onRemove={handlePhotoRemove}
               error={photoError}
+              label={photoUploading ? "Uploading to Drive…" : undefined}
             />
 
             <Field label="Full Name" required>
@@ -401,7 +442,7 @@ export default function Admins() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || photoUploading}
               style={{
                 marginTop: "8px",
                 padding: "11px",
@@ -413,7 +454,7 @@ export default function Admins() {
                 fontSize: "14px",
               }}
             >
-              {saving ? "Saving..." : editing ? "Save Changes" : "Add Admin"}
+              {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Add Admin"}
             </button>
           </form>
         </Modal>

@@ -16,13 +16,15 @@ import {
 import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useToast } from "../contexts/ToastContext";
+import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
-import { compressImageToDataURL } from "../lib/imageCompress";
+import { compressImageToBlob } from "../lib/imageCompress";
+import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
 
 const emptyForm = {
   name: "",
@@ -32,6 +34,7 @@ const emptyForm = {
   address: "",
   licenseExpirationDate: "",
   photoURL: null as string | null,
+  photoDriveFileId: null as string | null,
 };
 
 export default function Drivers() {
@@ -46,8 +49,10 @@ export default function Drivers() {
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { showSuccess, showError } = useToast();
+  const { config: driveConfig } = useDriveConfig();
 
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "driver"), orderBy("createdAt", "desc"));
@@ -85,6 +90,7 @@ export default function Drivers() {
       address: d.address || "",
       licenseExpirationDate: d.licenseExpirationDate || "",
       photoURL: d.photoURL || null,
+      photoDriveFileId: d.photoDriveFileId || null,
     });
     setError("");
     setPhotoError("");
@@ -93,16 +99,35 @@ export default function Drivers() {
 
   async function handlePhotoSelect(file: File) {
     setPhotoError("");
+    if (!driveConfig) {
+      setPhotoError("Google Drive isn't connected yet. Ask a super admin to connect it in Content Settings.");
+      return;
+    }
     if (!file.type.startsWith("image/")) {
       setPhotoError("Please choose an image file.");
       return;
     }
+    setPhotoUploading(true);
     try {
-      const dataUrl = await compressImageToDataURL(file);
-      setForm((f) => ({ ...f, photoURL: dataUrl }));
+      const blob = await compressImageToBlob(file);
+      const previousFileId = form.photoDriveFileId;
+      const { fileId, url } = await uploadPhotoToDrive(
+        blob,
+        `driver-${form.name || form.email || "photo"}-${Date.now()}.jpg`,
+        driveConfig.driverFolderId
+      );
+      setForm((f) => ({ ...f, photoURL: url, photoDriveFileId: fileId }));
+      if (previousFileId) deletePhotoFromDrive(previousFileId); // best-effort
     } catch (err: any) {
-      setPhotoError(err.message || "Couldn't process that image.");
+      setPhotoError(err.message || "Couldn't upload that photo.");
+    } finally {
+      setPhotoUploading(false);
     }
+  }
+
+  function handlePhotoRemove() {
+    if (form.photoDriveFileId) deletePhotoFromDrive(form.photoDriveFileId); // best-effort
+    setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -117,6 +142,7 @@ export default function Drivers() {
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
           photoURL: form.photoURL || null,
+          photoDriveFileId: form.photoDriveFileId || null,
           updatedAt: serverTimestamp(),
         });
         // vehicles.assignedDriverName is a denormalized copy of the driver's
@@ -152,6 +178,7 @@ export default function Drivers() {
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
           photoURL: form.photoURL || null,
+          photoDriveFileId: form.photoDriveFileId || null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -173,6 +200,7 @@ export default function Drivers() {
     // SDK; wire this up to a Cloud Function if you need full account removal.
     try {
       await deleteDoc(doc(db, "users", d.id));
+      if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId); // best-effort
       showSuccess(`${d.name} deleted.`);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${d.name}.`);
@@ -351,8 +379,9 @@ export default function Drivers() {
               name={form.name}
               photoURL={form.photoURL}
               onSelect={handlePhotoSelect}
-              onRemove={() => setForm((f) => ({ ...f, photoURL: null }))}
+              onRemove={handlePhotoRemove}
               error={photoError}
+              label={photoUploading ? "Uploading to Drive…" : undefined}
             />
 
             <Field label="Full Name" required>
@@ -409,7 +438,7 @@ export default function Drivers() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || photoUploading}
               style={{
                 marginTop: "8px",
                 padding: "11px",
@@ -421,7 +450,7 @@ export default function Drivers() {
                 fontSize: "14px",
               }}
             >
-              {saving ? "Saving..." : editing ? "Save Changes" : "Add Driver"}
+              {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Add Driver"}
             </button>
           </form>
         </Modal>

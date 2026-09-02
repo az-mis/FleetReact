@@ -8,18 +8,41 @@ import {
   Megaphone,
   ShieldCheck,
   Car,
+  HardDrive,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
+import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
 import { AdminModuleFlags, AnnouncementConfig, DriverModuleFlags } from "../types";
+import { connectGoogleDrive } from "../lib/googleDrive";
 
 export default function ContentSettings() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, profile } = useAuth();
   const { flags, loading, updateFlags } = useFeatureFlags();
+  const { config: driveConfig } = useDriveConfig();
   const { showSuccess, showError } = useToast();
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [connectingDrive, setConnectingDrive] = useState(false);
+
+  async function handleConnectDrive() {
+    setConnectingDrive(true);
+    try {
+      await connectGoogleDrive(profile?.name || "Unknown admin");
+      showSuccess(
+        driveConfig
+          ? "Reconnected to Google Drive."
+          : "Connected! The \"FMS Photos\" folder (with Admins/Vehicles/Drivers subfolders) was created in your Drive."
+      );
+    } catch (err: any) {
+      showError(err.message || "Couldn't connect to Google Drive.");
+    } finally {
+      setConnectingDrive(false);
+    }
+  }
 
   async function toggleAdminModule(key: keyof AdminModuleFlags) {
     setSavingKey(`admin-${key}`);
@@ -60,6 +83,71 @@ export default function ContentSettings() {
             : "Control what content is shown to Drivers on their Dashboard."
         }
       />
+
+      {isSuperAdmin && (
+        <Section
+          icon={HardDrive}
+          title="Google Drive (photo storage)"
+          description="Admin, vehicle, and driver photos upload to a Google Drive folder in your account, since Firebase Storage isn't free anymore. Connect once — the folder structure is created automatically."
+        >
+          {driveConfig ? (
+            <div style={{ padding: "10px 4px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--primary)", fontSize: "13.5px", fontWeight: 600 }}>
+                <CheckCircle2 size={16} />
+                Connected by {driveConfig.connectedByName}
+              </div>
+              <a
+                href={`https://drive.google.com/drive/folders/${driveConfig.rootFolderId}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "8px", fontSize: "12.5px", color: "var(--text-muted)" }}
+              >
+                Open "FMS Photos" folder in Drive <ExternalLink size={12} />
+              </a>
+              <div style={{ marginTop: "12px" }}>
+                <button
+                  onClick={handleConnectDrive}
+                  disabled={connectingDrive}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "#fff",
+                    color: "#1a202c",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: connectingDrive ? "default" : "pointer",
+                  }}
+                >
+                  {connectingDrive ? "Reconnecting…" : "Reconnect / switch account"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "10px 4px" }}>
+              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "12px" }}>
+                Not connected yet. Photo uploads (Admins, Drivers, Vehicles) won't work until this is set up.
+              </p>
+              <button
+                onClick={handleConnectDrive}
+                disabled={connectingDrive}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "var(--primary)",
+                  color: "#fff",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  cursor: connectingDrive ? "default" : "pointer",
+                }}
+              >
+                {connectingDrive ? "Connecting…" : "Connect Google Drive"}
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
 
       {isSuperAdmin && (
         <Section

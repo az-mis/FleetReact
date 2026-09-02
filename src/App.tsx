@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
+import { DriveConfigProvider } from "./contexts/DriveConfigContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
@@ -27,6 +28,7 @@ function App() {
   return (
     <AuthProvider>
       <FeatureFlagsProvider>
+      <DriveConfigProvider>
       <ToastProvider>
       <Router>
         <Routes>
@@ -126,6 +128,7 @@ function App() {
         </Routes>
       </Router>
       </ToastProvider>
+      </DriveConfigProvider>
       </FeatureFlagsProvider>
     </AuthProvider>
   );

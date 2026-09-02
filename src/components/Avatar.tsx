@@ -1,23 +1,43 @@
 import React from "react";
 import { Camera, X } from "lucide-react";
 
-/** Small circular avatar — shows the photo if present, otherwise the person's initial on a
- *  solid primary-color background (matching the profile badge elsewhere in the app). Used in
- *  list/grid views and anywhere a compact identity chip fits. */
-export function Avatar({ name, photoURL, size = 32 }: { name: string; photoURL?: string | null; size?: number }) {
-  const initial = (name || "?").trim()[0]?.toUpperCase() || "?";
+type FallbackProps =
+  | { fallback?: "initials"; name: string; icon?: undefined }
+  | { fallback: "icon"; icon: React.ComponentType<{ size?: number }>; name?: string };
+
+/** Small avatar — shows the photo if present, otherwise a fallback. Two fallback modes:
+ *  - "initials" (default): the person's initial on a solid primary-color circle, matching
+ *    the profile badge elsewhere in the app. Used for admins/drivers.
+ *  - "icon": a given icon on a soft accent-color rounded square. Used for vehicles, where
+ *    an initial letter (e.g. from a plate number) isn't a meaningful identity cue.
+ *  Used in list/grid views and anywhere a compact identity chip fits. */
+export function Avatar({
+  photoURL,
+  size = 32,
+  ...rest
+}: { photoURL?: string | null; size?: number } & FallbackProps) {
+  const isIcon = rest.fallback === "icon";
   const common: React.CSSProperties = {
     width: size,
     height: size,
-    borderRadius: "50%",
+    borderRadius: isIcon ? size * 0.24 : "50%",
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   };
   if (photoURL) {
-    return <img src={photoURL} alt={name} style={{ ...common, objectFit: "cover" }} />;
+    return <img src={photoURL} alt={rest.name || "Photo"} style={{ ...common, objectFit: "cover" }} />;
   }
+  if (isIcon) {
+    const Icon = rest.icon;
+    return (
+      <div style={{ ...common, background: "var(--accent)", color: "var(--primary)" }}>
+        <Icon size={size * 0.5} />
+      </div>
+    );
+  }
+  const initial = (rest.name || "?").trim()[0]?.toUpperCase() || "?";
   return (
     <div
       style={{
@@ -33,24 +53,27 @@ export function Avatar({ name, photoURL, size = 32 }: { name: string; photoURL?:
   );
 }
 
-/** Circular photo picker for Add/Edit forms — click (or the small camera badge) to choose a
- *  photo, "×" badge appears once a photo is set to clear it. Deliberately plain: no
- *  borders/cards, just the avatar itself and two tiny action badges. */
+/** Photo picker for Add/Edit forms — click (or the small camera badge) to choose a photo,
+ *  "×" badge appears once a photo is set to clear it. Deliberately plain: no borders/cards,
+ *  just the avatar itself and two tiny action badges. Pass `fallback="icon"` + `icon` for
+ *  non-person subjects (e.g. vehicles) instead of the default initials-on-circle look. */
 export function AvatarPicker({
   inputId,
-  name,
   photoURL,
   onSelect,
   onRemove,
   error,
+  label = "Photo (optional)",
+  ...rest
 }: {
   inputId: string;
-  name: string;
   photoURL: string | null;
   onSelect: (file: File) => void;
   onRemove: () => void;
   error?: string;
-}) {
+  label?: string;
+} & FallbackProps) {
+  const shape = rest.fallback === "icon" ? "14px" : "50%";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
       <div style={{ position: "relative", width: 76, height: 76 }}>
@@ -60,13 +83,13 @@ export function AvatarPicker({
             display: "block",
             width: 76,
             height: 76,
-            borderRadius: "50%",
+            borderRadius: shape,
             cursor: "pointer",
             overflow: "hidden",
             border: "1px solid var(--border)",
           }}
         >
-          <Avatar name={name} photoURL={photoURL} size={76} />
+          <Avatar photoURL={photoURL} size={76} {...(rest as FallbackProps)} />
         </label>
         <input
           id={inputId}
@@ -131,7 +154,7 @@ export function AvatarPicker({
       {error ? (
         <span style={{ fontSize: "11px", color: "var(--danger)" }}>{error}</span>
       ) : (
-        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Photo (optional)</span>
+        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{label}</span>
       )}
     </div>
   );

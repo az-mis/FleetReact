@@ -20,11 +20,13 @@ export interface AppUser {
   name: string;
   email: string;
   role: UserRole;
-  // Small (~150px) compressed JPEG stored inline as a data URL — no Firebase
-  // Storage dependency (this project intentionally stays on the Firestore
-  // free tier only), and a thumbnail this size comfortably fits Firestore's
-  // 1 MiB document limit.
+  // A Google Drive "anyone with link" thumbnail URL (see src/lib/googleDrive.ts)
+  // — Firebase Cloud Storage requires the Blaze plan, so photos are uploaded
+  // to a Drive folder from the browser instead, staying on the free tier.
   photoURL?: string | null;
+  // The Drive file ID behind photoURL, kept so the old file can be deleted
+  // when the photo is replaced or removed. Not used for display.
+  photoDriveFileId?: string | null;
   birthDate?: string | null; // yyyy-mm-dd, drivers only
   address?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
@@ -95,10 +97,25 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
 // Firestore doc that stores the flags above.
 export const FEATURE_FLAGS_DOC_PATH = ["settings", "featureFlags"] as const;
 
+// Google Drive photo storage config (see src/lib/googleDrive.ts and
+// src/contexts/DriveConfigContext.tsx). Created once by a super_admin via
+// Content Settings > "Connect Google Drive" — everyone else just reads it.
+export interface DriveConfig {
+  rootFolderId: string; // the "FMS Photos" folder itself
+  adminFolderId: string;
+  vehicleFolderId: string;
+  driverFolderId: string;
+  connectedByName: string;
+  connectedAt: any; // Firestore server timestamp
+}
+export const DRIVE_CONFIG_DOC_PATH = ["settings", "driveConfig"] as const;
+
 /* ───────────────────────── Vehicles ───────────────────────── */
 
-// Mirrors Modules/Vehicle/Models/Vehicle.php. Note: no "photo" field —
-// this app intentionally has no image upload feature (Firestore free tier only).
+// Mirrors Modules/Vehicle/Models/Vehicle.php, plus an optional photoURL — a
+// Google Drive "anyone with link" thumbnail URL (see src/lib/googleDrive.ts).
+// Firebase Cloud Storage requires the Blaze plan, so photos are uploaded to
+// a Drive folder from the browser instead, staying on the free tier.
 export interface Vehicle {
   id: string;
   plateNumber: string;
@@ -111,6 +128,10 @@ export interface Vehicle {
   odometer: number;
   vehicleType?: string | null;
   fuelType?: string | null;
+  photoURL?: string | null;
+  // The Drive file ID behind photoURL — kept so the old file can be deleted
+  // when the photo is replaced or removed. Not used for display.
+  photoDriveFileId?: string | null;
   // Permanent driver assignment (Vehicle Assigning feature). A vehicle has at
   // most one permanently assigned driver, and a driver is assigned to at most
   // one vehicle at a time. This is the default driver for the vehicle — future
