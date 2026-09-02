@@ -16,7 +16,8 @@ import StatCard from "../components/StatCard";
 import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import DriverSelect from "../components/DriverSelect";
-import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck } from "lucide-react";
+import Modal from "../components/Modal";
+import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck, AlertTriangle } from "lucide-react";
 import { Avatar } from "../components/Avatar";
 
 export default function VehicleAssigning() {
@@ -25,6 +26,7 @@ export default function VehicleAssigning() {
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [confirmUnassign, setConfirmUnassign] = useState<Vehicle | null>(null);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -78,6 +80,18 @@ export default function VehicleAssigning() {
       )
     );
   }, [vehicles, search]);
+
+  // Unassigning is one accidental dropdown click away from wiping a real
+  // permanent assignment, so it goes through a confirmation step first;
+  // picking a driver (including for the first time) doesn't need one, since
+  // that's not destructive.
+  function requestAssign(vehicle: Vehicle, driverId: string) {
+    if (!driverId && vehicle.assignedDriverId) {
+      setConfirmUnassign(vehicle);
+      return;
+    }
+    handleAssign(vehicle, driverId);
+  }
 
   async function handleAssign(vehicle: Vehicle, driverId: string) {
     setError("");
@@ -199,10 +213,73 @@ export default function VehicleAssigning() {
               drivers={drivers}
               assignedElsewhere={assignedElsewhere}
               saving={savingId === v.id}
-              onAssign={(driverId) => handleAssign(v, driverId)}
+              onAssign={(driverId) => requestAssign(v, driverId)}
             />
           ))}
         </div>
+      )}
+
+      {confirmUnassign && (
+        <Modal title="Remove permanent driver?" onClose={() => setConfirmUnassign(null)}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "18px" }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "10px",
+                background: "#fff8e6",
+                color: "var(--warning)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle size={18} />
+            </div>
+            <div style={{ fontSize: "13.5px", color: "#2d3748", lineHeight: 1.5 }}>
+              <b>{confirmUnassign.assignedDriverName}</b> is currently the permanent driver for{" "}
+              <b>{confirmUnassign.plateNumber}</b>. This will unassign them, leaving the vehicle without a
+              default driver until someone else is assigned.
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <button
+              onClick={() => setConfirmUnassign(null)}
+              style={{
+                padding: "9px 16px",
+                borderRadius: "8px",
+                border: "1px solid var(--border)",
+                background: "#fff",
+                color: "#2d3748",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                const vehicle = confirmUnassign;
+                setConfirmUnassign(null);
+                if (vehicle) handleAssign(vehicle, "");
+              }}
+              style={{
+                padding: "9px 16px",
+                borderRadius: "8px",
+                border: "1px solid var(--danger)",
+                background: "var(--danger)",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Yes, unassign
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
