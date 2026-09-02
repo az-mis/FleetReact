@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   ExternalLink,
   AlertTriangle,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,7 +25,6 @@ import { useBranding } from "../contexts/BrandingContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
-import { AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags } from "../types";
@@ -237,26 +238,16 @@ export default function ContentSettings() {
         <Section
           icon={ImageIcon}
           title="App Logo"
-          description="Shown in the sidebar and header across the app. Stored in the same 'FMS Photos' Drive folder as other photos."
+          description="Shown in the sidebar, header, and login screen across the app. Stored in the same 'FMS Photos' Drive folder as other photos."
         >
-          <div style={{ padding: "10px 4px" }}>
-            <AvatarPicker
-              inputId="app-logo-input"
-              fallback="icon"
-              icon={Truck}
-              photoURL={branding?.logoURL || null}
-              onSelect={handleLogoSelect}
-              onRemove={handleLogoRemove}
-              error={logoError}
-              label={
-                !driveConfig
-                  ? "Connect Google Drive above first"
-                  : logoUploading
-                  ? "Uploading to Drive…"
-                  : "Logo (optional, max 5MB)"
-              }
-            />
-          </div>
+          <LogoEditor
+            logoURL={branding?.logoURL || null}
+            uploading={logoUploading}
+            disabled={!driveConfig}
+            error={logoError}
+            onSelect={handleLogoSelect}
+            onRemove={handleLogoRemove}
+          />
         </Section>
       )}
 
@@ -553,6 +544,182 @@ function AnnouncementSection({
         )}
       </div>
     </Section>
+  );
+}
+
+// Left: large square preview of the current logo (or an empty state) that
+// doubles as the "change logo" click target. Right: status text + explicit
+// Upload/Replace and Remove buttons — bigger, more legible target than the
+// small AvatarPicker used for per-record photos elsewhere, since this is a
+// one-off, high-visibility setting rather than a repeated list-row action.
+function LogoEditor({
+  logoURL,
+  uploading,
+  disabled,
+  error,
+  onSelect,
+  onRemove,
+}: {
+  logoURL: string | null;
+  uploading: boolean;
+  disabled: boolean;
+  error?: string;
+  onSelect: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function openPicker() {
+    if (disabled || uploading) return;
+    inputRef.current?.click();
+  }
+
+  return (
+    <div style={{ padding: "6px 4px 4px" }}>
+      <div style={{ display: "flex", alignItems: "stretch", gap: "20px" }}>
+        <div
+          onClick={openPicker}
+          role="button"
+          aria-label={logoURL ? "Change logo" : "Upload logo"}
+          style={{
+            position: "relative",
+            width: 116,
+            height: 116,
+            flexShrink: 0,
+            borderRadius: "18px",
+            overflow: "hidden",
+            cursor: disabled || uploading ? "default" : "pointer",
+            background: logoURL ? "#f7fafc" : "rgba(26,107,60,0.06)",
+            border: logoURL ? "1px solid var(--border)" : "1.5px dashed rgba(26,107,60,0.35)",
+            opacity: uploading ? 0.6 : 1,
+            transition: "opacity 0.2s ease",
+          }}
+        >
+          {logoURL ? (
+            <img src={logoURL} alt="App logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                color: "var(--primary)",
+              }}
+            >
+              <ImageIcon size={30} strokeWidth={1.6} />
+              <span style={{ fontSize: "10.5px", fontWeight: 600, textAlign: "center", padding: "0 8px", color: "var(--text-muted)" }}>
+                No logo yet
+              </span>
+            </div>
+          )}
+
+          {!disabled && !uploading && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 6,
+                right: 6,
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "var(--primary)",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "2px solid #fff",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+              }}
+            >
+              <Camera size={13} />
+            </div>
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
+              {logoURL ? "Current logo" : "No logo set"}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+              {disabled
+                ? "Connect Google Drive above first."
+                : uploading
+                ? "Uploading to Drive…"
+                : logoURL
+                ? "Visible to everyone across the app, including logged-out visitors on the Login screen."
+                : "PNG or JPG, square works best, up to 5MB."}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={openPicker}
+              disabled={disabled || uploading}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                padding: "9px 16px",
+                borderRadius: "9px",
+                border: "none",
+                background: disabled || uploading ? "var(--border)" : "var(--primary)",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: disabled || uploading ? "default" : "pointer",
+              }}
+            >
+              <Camera size={14} />
+              {logoURL ? "Replace Logo" : "Upload Logo"}
+            </button>
+
+            {logoURL && (
+              <button
+                type="button"
+                onClick={onRemove}
+                disabled={uploading}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "9px 16px",
+                  borderRadius: "9px",
+                  border: "1px solid var(--border)",
+                  background: "#fff",
+                  color: "var(--danger)",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: uploading ? "default" : "pointer",
+                }}
+              >
+                <Trash2 size={14} />
+                Remove
+              </button>
+            )}
+          </div>
+
+          {error && <div style={{ fontSize: "12px", color: "var(--danger)" }}>{error}</div>}
+        </div>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onSelect(file);
+          e.target.value = "";
+        }}
+        style={{ display: "none" }}
+      />
+    </div>
   );
 }
 
