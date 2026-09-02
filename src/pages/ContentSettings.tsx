@@ -27,7 +27,7 @@ import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
-import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags } from "../types";
+import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
 import { connectGoogleDrive } from "../lib/googleDrive";
 
 const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
@@ -175,62 +175,11 @@ export default function ContentSettings() {
           title="Google Drive (photo storage)"
           description="Admin, vehicle, and driver photos upload to a Google Drive folder in your account, since Firebase Storage isn't free anymore. Connect once — the folder structure is created automatically."
         >
-          {driveConfig ? (
-            <div style={{ padding: "10px 4px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--primary)", fontSize: "13.5px", fontWeight: 600 }}>
-                <CheckCircle2 size={16} />
-                Connected by {driveConfig.connectedByName}
-              </div>
-              <a
-                href={`https://drive.google.com/drive/folders/${driveConfig.rootFolderId}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: "5px", marginTop: "8px", fontSize: "12.5px", color: "var(--text-muted)" }}
-              >
-                Open "FMS Photos" folder in Drive <ExternalLink size={12} />
-              </a>
-              <div style={{ marginTop: "12px" }}>
-                <button
-                  onClick={handleConnectDrive}
-                  disabled={connectingDrive}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid var(--border)",
-                    background: "#fff",
-                    color: "#1a202c",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: connectingDrive ? "default" : "pointer",
-                  }}
-                >
-                  {connectingDrive ? "Reconnecting…" : "Reconnect / switch account"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: "10px 4px" }}>
-              <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "12px" }}>
-                Not connected yet. Photo uploads (Admins, Drivers, Vehicles) won't work until this is set up.
-              </p>
-              <button
-                onClick={handleConnectDrive}
-                disabled={connectingDrive}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "var(--primary)",
-                  color: "#fff",
-                  fontSize: "13.5px",
-                  fontWeight: 600,
-                  cursor: connectingDrive ? "default" : "pointer",
-                }}
-              >
-                {connectingDrive ? "Connecting…" : "Connect Google Drive"}
-              </button>
-            </div>
-          )}
+          <DriveConnectionCard
+            driveConfig={driveConfig}
+            connecting={connectingDrive}
+            onConnect={handleConnectDrive}
+          />
         </Section>
       )}
 
@@ -544,6 +493,96 @@ function AnnouncementSection({
         )}
       </div>
     </Section>
+  );
+}
+
+// Same left-tile / right-details layout as LogoEditor, for visual
+// consistency between the two "external service" cards at the top of this
+// page. Left: a big status tile (green + check when connected, dashed +
+// HardDrive icon when not). Right: connection details/actions.
+function DriveConnectionCard({
+  driveConfig,
+  connecting,
+  onConnect,
+}: {
+  driveConfig: DriveConfig | null;
+  connecting: boolean;
+  onConnect: () => void;
+}) {
+  const connected = !!driveConfig;
+  return (
+    <div style={{ padding: "6px 4px 4px" }}>
+      <div style={{ display: "flex", alignItems: "stretch", gap: "20px" }}>
+        <div
+          style={{
+            width: 116,
+            height: 116,
+            flexShrink: 0,
+            borderRadius: "18px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: connected ? "rgba(26,107,60,0.08)" : "rgba(160,174,192,0.1)",
+            border: connected ? "1px solid rgba(26,107,60,0.25)" : "1.5px dashed var(--border)",
+            color: connected ? "var(--primary)" : "#a0aec0",
+          }}
+        >
+          {connected ? <CheckCircle2 size={40} strokeWidth={1.6} /> : <HardDrive size={34} strokeWidth={1.6} />}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
+              {connected ? `Connected by ${driveConfig!.connectedByName}` : "Not connected"}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+              {connected ? (
+                <a
+                  href={`https://drive.google.com/drive/folders/${driveConfig!.rootFolderId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--text-muted)" }}
+                >
+                  Open "FMS Photos" folder in Drive <ExternalLink size={12} />
+                </a>
+              ) : (
+                "Photo uploads (Admins, Drivers, Vehicles, App Logo) won't work until this is set up."
+              )}
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={onConnect}
+              disabled={connecting}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                padding: "9px 16px",
+                borderRadius: "9px",
+                border: connected ? "1px solid var(--border)" : "none",
+                background: connected ? "#fff" : "var(--primary)",
+                color: connected ? "#1a202c" : "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: connecting ? "default" : "pointer",
+              }}
+            >
+              <HardDrive size={14} />
+              {connected
+                ? connecting
+                  ? "Reconnecting…"
+                  : "Reconnect / switch account"
+                : connecting
+                ? "Connecting…"
+                : "Connect Google Drive"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
