@@ -17,6 +17,7 @@ import CheckStatus from "./pages/CheckStatus";
 import TripTicket from "./pages/TripTicket";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
+import MyProfile from "./pages/MyProfile";
 import ContentSettings from "./pages/ContentSettings";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -60,6 +61,10 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+
+            {/* My Profile: every authenticated role (super_admin, admin,
+                driver) can view and update their own personal info here. */}
+            <Route path="my-profile" element={<MyProfile />} />
 
             {/* Vehicles: admin + super_admin only (drivers have no access) */}
             <Route

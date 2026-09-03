@@ -17,6 +17,17 @@ service cloud.firestore {
     function isPlainAdmin() {
       return isSignedIn() && myRole() == 'admin';
     }
+    // A self-service edit of your own users/{uid} doc (My Profile): only the
+    // personal-info fields below may change, and role/email — the things
+    // that affect authorization — must stay exactly as they were. Anyone
+    // signed in may do this to their own doc, regardless of role.
+    function isOwnProfileEdit(uid) {
+      return isSignedIn() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'photoURL', 'photoDriveFileId', 'birthDate', 'address', 'updatedAt']);
+    }
     // users/{uid} — profile + role. This is the source of truth for authorization.
     match /users/{uid} {
       // Anyone signed in can read their own profile; admins can read anyone's
@@ -27,7 +38,8 @@ service cloud.firestore {
       allow create: if isSuperAdmin()
         || (isAdmin() && request.resource.data.role == 'driver');
       allow update: if isSuperAdmin()
-        || (isAdmin() && resource.data.role == 'driver' && request.resource.data.role == 'driver');
+        || (isAdmin() && resource.data.role == 'driver' && request.resource.data.role == 'driver')
+        || isOwnProfileEdit(uid);
       allow delete: if isSuperAdmin();
     }
     // vehicles/{id} — admins and super admins manage; only super admins may

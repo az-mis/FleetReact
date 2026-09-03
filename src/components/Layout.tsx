@@ -226,16 +226,22 @@ export default function Layout() {
             <BrandLogo size={22} />
             Fleet Management
           </div>
-          <div
+          <button
+            onClick={() => navigate("/my-profile")}
+            aria-label="My Profile"
             style={{
               borderRadius: "50%",
               boxShadow: "0 0 0 2px rgba(255,255,255,0.85)",
               flexShrink: 0,
               display: "flex",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
             }}
           >
             <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={30} />
-          </div>
+          </button>
         </header>
 
         <main style={{ flex: 1, padding: "14px", overflow: "auto" }}>
@@ -306,12 +312,29 @@ export default function Layout() {
           </nav>
 
           <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-            <div style={{ padding: "8px 12px", marginBottom: "8px" }}>
+            <button
+              onClick={() => {
+                setMobileNavOpen(false);
+                navigate("/my-profile");
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "8px 12px",
+                marginBottom: "8px",
+                borderRadius: "10px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#fff",
+              }}
+            >
               <div style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile?.name || currentUser?.email}
               </div>
               {role && <div style={{ fontSize: "10px", opacity: 0.75, marginTop: 2 }}>{USER_ROLE_LABEL[role]}</div>}
-            </div>
+            </button>
             <button
               onClick={() => {
                 setMobileNavOpen(false);
@@ -403,7 +426,21 @@ export default function Layout() {
 
         <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
           {sidebarOpen && (
-            <div style={{ padding: "8px 12px", marginBottom: "8px" }}>
+            <button
+              onClick={() => navigate("/my-profile")}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                padding: "8px 12px",
+                marginBottom: "8px",
+                borderRadius: "10px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#fff",
+              }}
+            >
               <div
                 style={{
                   fontSize: "12px",
@@ -417,7 +454,7 @@ export default function Layout() {
               {role && (
                 <div style={{ fontSize: "10px", opacity: 0.75, marginTop: 2 }}>{USER_ROLE_LABEL[role]}</div>
               )}
-            </div>
+            </button>
           )}
           <button
             onClick={() => setConfirmLogoutOpen(true)}
@@ -483,7 +520,13 @@ export default function Layout() {
             </div>
           </div>
 
-          <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
+          <button
+            onClick={() => navigate("/my-profile")}
+            aria-label="My Profile"
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex" }}
+          >
+            <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
+          </button>
         </header>
 
         <main style={{ flex: 1, padding: isTablet ? "16px" : "24px", overflow: "auto" }}>
