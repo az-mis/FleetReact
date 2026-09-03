@@ -19,6 +19,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
@@ -53,6 +54,8 @@ export default function Drivers() {
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
 
@@ -262,16 +265,25 @@ export default function Drivers() {
     }
   }
 
-  async function handleDelete(d: AppUser) {
-    if (!confirm(`Delete driver ${d.name}? This removes their profile record.`)) return;
+  function handleDelete(d: AppUser) {
+    setDeleteTarget(d);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const d = deleteTarget;
     // Deleting the matching Firebase Auth account also requires the Admin
     // SDK; wire this up to a Cloud Function if you need full account removal.
+    setDeleting(true);
     try {
       await deleteDoc(doc(db, "users", d.id));
       if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
       showSuccess(`${d.name} deleted.`);
+      setDeleteTarget(null);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${d.name}.`);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -544,6 +556,22 @@ export default function Drivers() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Driver?"
+        message={
+          deleteTarget && (
+            <>
+              Delete driver <strong>{deleteTarget.name}</strong>? This removes their profile record. This can't be
+              undone.
+            </>
+          )
+        }
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

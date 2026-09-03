@@ -18,6 +18,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { AppUser, UserRole, USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail, Crown } from "lucide-react";
@@ -50,6 +51,8 @@ export default function Admins() {
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
 
@@ -224,18 +227,27 @@ export default function Admins() {
     }
   }
 
-  async function handleDelete(a: AppUser) {
+  function handleDelete(a: AppUser) {
     if (a.id === currentUser?.uid) {
-      alert("You can't delete your own account while signed in.");
+      showError("You can't delete your own account while signed in.");
       return;
     }
-    if (!confirm(`Delete ${USER_ROLE_LABEL[a.role]} ${a.name}? This removes their profile record.`)) return;
+    setDeleteTarget(a);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const a = deleteTarget;
+    setDeleting(true);
     try {
       await deleteDoc(doc(db, "users", a.id));
       if (a.photoDriveFileId) deletePhotoFromDrive(a.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
       showSuccess(`${a.name} deleted.`);
+      setDeleteTarget(null);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${a.name}.`);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -523,6 +535,21 @@ export default function Admins() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={deleteTarget ? `Delete ${USER_ROLE_LABEL[deleteTarget.role]}?` : ""}
+        message={
+          deleteTarget && (
+            <>
+              Delete <strong>{deleteTarget.name}</strong>? This removes their profile record. This can't be undone.
+            </>
+          )
+        }
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

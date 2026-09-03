@@ -16,6 +16,7 @@ import { useToast } from "../contexts/ToastContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { Vehicle } from "../types";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { Avatar, AvatarPicker } from "../components/Avatar";
@@ -57,6 +58,8 @@ export default function Vehicles() {
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Photo selection is local-only until "Save Changes" is clicked — see the
   // matching comment in Drivers.tsx for the full rationale.
@@ -252,14 +255,23 @@ export default function Vehicles() {
     }
   }
 
-  async function handleDelete(v: Vehicle) {
-    if (!confirm(`Delete vehicle ${v.plateNumber}? This cannot be undone.`)) return;
+  function handleDelete(v: Vehicle) {
+    setDeleteTarget(v);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const v = deleteTarget;
+    setDeleting(true);
     try {
       await deleteDoc(doc(db, "vehicles", v.id));
       if (v.photoDriveFileId) deletePhotoFromDrive(v.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
       showSuccess(`${v.plateNumber} deleted.`);
+      setDeleteTarget(null);
     } catch (err: any) {
       showError(err.message || `Couldn't delete ${v.plateNumber}.`);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -562,6 +574,21 @@ export default function Vehicles() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Vehicle?"
+        message={
+          deleteTarget && (
+            <>
+              Delete vehicle <strong>{deleteTarget.plateNumber}</strong>? This cannot be undone.
+            </>
+          )
+        }
+        loading={deleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
