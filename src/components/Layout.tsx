@@ -18,6 +18,7 @@ import {
   Settings2,
   Megaphone,
   Lock,
+  UserCircle,
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
@@ -106,6 +107,7 @@ export default function Layout() {
   // desktop sidebar and the mobile slide-out drawer (see NavList below).
   const navStructure: NavItem[] = [
     { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
+    { type: "link", to: "/my-profile", icon: UserCircle, label: "My Profile", show: true },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
     {
       type: "link",
@@ -226,22 +228,16 @@ export default function Layout() {
             <BrandLogo size={22} />
             Fleet Management
           </div>
-          <button
-            onClick={() => navigate("/my-profile")}
-            aria-label="My Profile"
+          <div
             style={{
               borderRadius: "50%",
               boxShadow: "0 0 0 2px rgba(255,255,255,0.85)",
               flexShrink: 0,
               display: "flex",
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
             }}
           >
             <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={30} />
-          </button>
+          </div>
         </header>
 
         <main style={{ flex: 1, padding: "14px", overflow: "auto" }}>
@@ -312,29 +308,12 @@ export default function Layout() {
           </nav>
 
           <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-            <button
-              onClick={() => {
-                setMobileNavOpen(false);
-                navigate("/my-profile");
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "8px 12px",
-                marginBottom: "8px",
-                borderRadius: "10px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#fff",
-              }}
-            >
+            <div style={{ padding: "8px 12px", marginBottom: "8px" }}>
               <div style={{ fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile?.name || currentUser?.email}
               </div>
               {role && <div style={{ fontSize: "10px", opacity: 0.75, marginTop: 2 }}>{USER_ROLE_LABEL[role]}</div>}
-            </button>
+            </div>
             <button
               onClick={() => {
                 setMobileNavOpen(false);
@@ -426,21 +405,7 @@ export default function Layout() {
 
         <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
           {sidebarOpen && (
-            <button
-              onClick={() => navigate("/my-profile")}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "8px 12px",
-                marginBottom: "8px",
-                borderRadius: "10px",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#fff",
-              }}
-            >
+            <div style={{ padding: "8px 12px", marginBottom: "8px" }}>
               <div
                 style={{
                   fontSize: "12px",
@@ -454,7 +419,7 @@ export default function Layout() {
               {role && (
                 <div style={{ fontSize: "10px", opacity: 0.75, marginTop: 2 }}>{USER_ROLE_LABEL[role]}</div>
               )}
-            </button>
+            </div>
           )}
           <button
             onClick={() => setConfirmLogoutOpen(true)}
@@ -520,13 +485,7 @@ export default function Layout() {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate("/my-profile")}
-            aria-label="My Profile"
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex" }}
-          >
-            <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
-          </button>
+          <Avatar name={profile?.name || currentUser?.email || "?"} photoURL={profile?.photoURL} size={32} />
         </header>
 
         <main style={{ flex: 1, padding: isTablet ? "16px" : "24px", overflow: "auto" }}>
