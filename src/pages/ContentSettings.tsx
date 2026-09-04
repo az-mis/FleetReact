@@ -68,9 +68,6 @@ export default function ContentSettings() {
       setLogoError("Connect Google Drive above first.");
       return;
     }
-    // Fire while still inside the click that opened the file picker, so the
-    // browser doesn't block the consent popup for accounts that need it.
-    preauthorizeDrive(driveConfig.connectedByEmail);
     setLogoUploading(true);
     try {
       const blob = await compressImageToBlob(file);
@@ -97,6 +94,15 @@ export default function ContentSettings() {
 
   function handleLogoRemove() {
     setConfirmRemoveLogoOpen(true);
+  }
+
+  // Fired on the click that OPENS the file picker (see LogoEditor's
+  // onBeforePick), not after a file is chosen — browsers only allow
+  // opening a new popup during a fresh, unbroken click, and the OS-native
+  // file dialog can stay open for any length of time, so authorizing here
+  // is what actually keeps the Drive consent popup from being blocked.
+  function handleBeforeLogoPick() {
+    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
 
   async function confirmLogoRemove() {
@@ -133,7 +139,6 @@ export default function ContentSettings() {
       setBgError("Connect Google Drive above first.");
       return;
     }
-    preauthorizeDrive(driveConfig.connectedByEmail);
     setBgUploading(true);
     try {
       const blob = await compressImageToBlob(file);
@@ -166,6 +171,11 @@ export default function ContentSettings() {
 
   function handleBgRemove() {
     setConfirmRemoveBgOpen(true);
+  }
+
+  // Same rationale as handleBeforeLogoPick, for the background photo.
+  function handleBeforeBgPick() {
+    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
 
   async function confirmBgRemove() {
@@ -275,6 +285,7 @@ export default function ContentSettings() {
             disabled={!driveConfig}
             error={logoError}
             onSelect={handleLogoSelect}
+            onBeforePick={handleBeforeLogoPick}
             onRemove={handleLogoRemove}
           />
         </Section>
@@ -292,6 +303,7 @@ export default function ContentSettings() {
             disabled={!driveConfig}
             error={bgError}
             onSelect={handleBgSelect}
+            onBeforePick={handleBeforeBgPick}
             onRemove={handleBgRemove}
             shape="wide"
             noneLabel="No background set"
@@ -712,6 +724,7 @@ function LogoEditor({
   disabled,
   error,
   onSelect,
+  onBeforePick,
   onRemove,
   shape = "square",
   noneLabel = "No logo set",
@@ -726,6 +739,13 @@ function LogoEditor({
   disabled: boolean;
   error?: string;
   onSelect: (file: File) => void;
+  /** Called synchronously when the tile/button is clicked — BEFORE the
+   *  OS-native file dialog opens, not after a file is chosen. Browsers only
+   *  allow opening a new popup window during a fresh, unbroken click, and
+   *  the native dialog can stay open for any length of time, so this is
+   *  where Drive's consent popup needs to be kicked off (see
+   *  preauthorizeDrive) rather than in onSelect's onChange. */
+  onBeforePick?: () => void;
   onRemove: () => void;
   shape?: "square" | "wide";
   noneLabel?: string;
@@ -740,6 +760,7 @@ function LogoEditor({
 
   function openPicker() {
     if (disabled || uploading) return;
+    onBeforePick?.();
     inputRef.current?.click();
   }
 

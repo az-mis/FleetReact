@@ -146,17 +146,22 @@ export default function Drivers() {
       setPhotoError("Image is too large. Please choose one under 5MB.");
       return;
     }
-    // Kick off Drive authorization now, while we're still inside the click
-    // that opened the file picker, so the browser doesn't block the consent
-    // popup for accounts (e.g. Admins) that need it. Best-effort only — any
-    // real failure is reported properly when Save actually uploads.
-    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
     revokePreview();
     const preview = URL.createObjectURL(file);
     photoPreviewUrlRef.current = preview;
     setPhotoFile(file);
     setPhotoRemoved(false);
     setForm((f) => ({ ...f, photoURL: preview }));
+  }
+
+  // Fired on the click that OPENS the file picker (see AvatarPicker's
+  // onBeforePick), not after a file is chosen — this is what actually keeps
+  // the browser from blocking the consent popup for accounts (e.g. Admins)
+  // that need it: browsers only allow opening a new popup during a fresh,
+  // unbroken click, and the OS-native file dialog can stay open for any
+  // length of time, so authorizing here beats authorizing in onChange.
+  function handleBeforePhotoPick() {
+    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
 
   function handlePhotoRemove() {
@@ -480,6 +485,7 @@ export default function Drivers() {
               name={form.name}
               photoURL={form.photoURL}
               onSelect={handlePhotoSelect}
+              onBeforePick={handleBeforePhotoPick}
               onRemove={handlePhotoRemove}
               error={photoError}
               label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}

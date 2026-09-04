@@ -24,7 +24,7 @@ import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail, Crown } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import { compressImageToBlob } from "../lib/imageCompress";
-import { uploadPhotoToDrive, deletePhotoFromDrive } from "../lib/googleDrive";
+import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -152,6 +152,16 @@ export default function Admins() {
     setPhotoRemoved(true);
     setPhotoError("");
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
+  }
+
+  // Fired on the click that OPENS the file picker (see AvatarPicker's
+  // onBeforePick), not after a file is chosen — browsers only allow
+  // opening a new popup during a fresh, unbroken click, and the OS-native
+  // file dialog can stay open for any length of time, so authorizing here
+  // (rather than in handlePhotoSelect's onChange) is what keeps the Drive
+  // consent popup from being silently blocked.
+  function handleBeforePhotoPick() {
+    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -475,6 +485,7 @@ export default function Admins() {
               name={form.name}
               photoURL={form.photoURL}
               onSelect={handlePhotoSelect}
+              onBeforePick={handleBeforePhotoPick}
               onRemove={handlePhotoRemove}
               error={photoError}
               label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}

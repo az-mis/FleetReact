@@ -62,6 +62,7 @@ export function AvatarPicker({
   photoURL,
   onSelect,
   onRemove,
+  onBeforePick,
   error,
   label = "Photo (optional)",
   ...rest
@@ -70,6 +71,14 @@ export function AvatarPicker({
   photoURL: string | null;
   onSelect: (file: File) => void;
   onRemove: () => void;
+  /** Called synchronously when the person clicks to open the file picker —
+   *  BEFORE the OS-native dialog opens, not after they've chosen a file. Use
+   *  this to kick off Drive's OAuth popup (preauthorizeDrive) here rather
+   *  than in onSelect: browsers only allow opening a new popup window
+   *  during a fresh, unbroken click, and the native file dialog can take
+   *  any amount of time to close, so by the time onSelect/onChange fires
+   *  that window has already expired and the popup gets silently blocked. */
+  onBeforePick?: () => void;
   error?: string;
   label?: string;
 } & FallbackProps) {
@@ -79,6 +88,7 @@ export function AvatarPicker({
       <div style={{ position: "relative", width: 76, height: 76 }}>
         <label
           htmlFor={inputId}
+          onClick={onBeforePick}
           style={{
             display: "block",
             width: 76,
@@ -105,6 +115,7 @@ export function AvatarPicker({
 
         <label
           htmlFor={inputId}
+          onClick={onBeforePick}
           aria-label="Choose photo"
           style={{
             position: "absolute",
