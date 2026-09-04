@@ -43,6 +43,27 @@ function loadGis(): Promise<void> {
   return gisLoadPromise;
 }
 
+/**
+ * Fetches Google's Identity Services script ahead of time, so it's already
+ * sitting in memory by the time someone actually clicks "Upload"/"Replace".
+ * This matters because `requestAccessToken()` opens its consent window via
+ * a real `window.open()` call, which browsers only allow inside a fresh,
+ * unbroken user gesture — and `await`ing the script's network fetch inside
+ * the click handler itself burns through that gesture window before the
+ * popup call ever runs, so the browser silently blocks it (surfacing as
+ * Google's own "Failed to open popup window... Maybe blocked by the
+ * browser" warning, then our own 20s timeout). Call this once, early,
+ * completely outside of any click — see DriveConfigContext, which calls it
+ * as soon as someone's signed in. Never throws; a failure here just means
+ * the first real click will (re)try the fetch itself, same as before.
+ */
+export function preloadGoogleIdentityServices(): void {
+  if (!CLIENT_ID) return;
+  loadGis().catch(() => {
+    // Ignore — loadGis() will simply be retried the next time it's called.
+  });
+}
+
 let tokenClient: any = null;
 let cachedToken: { value: string; expiresAt: number } | null = null;
 let inFlightTokenRequest: Promise<string> | null = null;

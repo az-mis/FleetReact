@@ -25,6 +25,7 @@ import { useBranding } from "../contexts/BrandingContext";
 import { useToast } from "../contexts/ToastContext";
 import PageHeader from "../components/PageHeader";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
@@ -44,6 +45,10 @@ export default function ContentSettings() {
   const [logoError, setLogoError] = useState("");
   const [confirmRemoveLogoOpen, setConfirmRemoveLogoOpen] = useState(false);
   const [removingLogo, setRemovingLogo] = useState(false);
+  const [bgUploading, setBgUploading] = useState(false);
+  const [bgError, setBgError] = useState("");
+  const [confirmRemoveBgOpen, setConfirmRemoveBgOpen] = useState(false);
+  const [removingBg, setRemovingBg] = useState(false);
 
   /** Compresses, uploads to the "FMS Photos" root folder, saves the new URL
    *  to settings/appBranding, and best-effort deletes the old Drive file —
@@ -110,6 +115,81 @@ export default function ContentSettings() {
     } finally {
       setRemovingLogo(false);
       setConfirmRemoveLogoOpen(false);
+    }
+  }
+
+  /** Same flow as handleLogoSelect, for the Login screen's background photo. */
+  async function handleBgSelect(file: File) {
+    setBgError("");
+    if (!file.type.startsWith("image/")) {
+      setBgError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE) {
+      setBgError("Image is too large. Please choose one under 5MB.");
+      return;
+    }
+    if (!driveConfig) {
+      setBgError("Connect Google Drive above first.");
+      return;
+    }
+    preauthorizeDrive(driveConfig.connectedByEmail);
+    setBgUploading(true);
+    try {
+      const blob = await compressImageToBlob(file);
+      const { fileId, url } = await uploadPhotoToDrive(
+        blob,
+        `login-background-${Date.now()}.jpg`,
+        driveConfig.rootFolderId,
+        driveConfig.connectedByEmail
+      );
+      await setDoc(
+        doc(db, ...BRANDING_DOC_PATH),
+        {
+          loginBackgroundURL: url,
+          loginBackgroundDriveFileId: fileId,
+          updatedAt: serverTimestamp(),
+          updatedByName: profile?.name || null,
+        },
+        { merge: true }
+      );
+      if (branding?.loginBackgroundDriveFileId)
+        deletePhotoFromDrive(branding.loginBackgroundDriveFileId, driveConfig.connectedByEmail); // best-effort
+      showSuccess("Login background updated.");
+    } catch (err: any) {
+      setBgError(err.message || "Couldn't upload that image.");
+      showError(err.message || "Couldn't upload that image.");
+    } finally {
+      setBgUploading(false);
+    }
+  }
+
+  function handleBgRemove() {
+    setConfirmRemoveBgOpen(true);
+  }
+
+  async function confirmBgRemove() {
+    setBgError("");
+    setRemovingBg(true);
+    try {
+      await setDoc(
+        doc(db, ...BRANDING_DOC_PATH),
+        {
+          loginBackgroundURL: null,
+          loginBackgroundDriveFileId: null,
+          updatedAt: serverTimestamp(),
+          updatedByName: profile?.name || null,
+        },
+        { merge: true }
+      );
+      if (branding?.loginBackgroundDriveFileId)
+        deletePhotoFromDrive(branding.loginBackgroundDriveFileId, driveConfig?.connectedByEmail); // best-effort
+      showSuccess("Login background removed. The default illustration will show instead.");
+    } catch (err: any) {
+      showError(err.message || "Couldn't remove the background image.");
+    } finally {
+      setRemovingBg(false);
+      setConfirmRemoveBgOpen(false);
     }
   }
 
@@ -196,6 +276,30 @@ export default function ContentSettings() {
             error={logoError}
             onSelect={handleLogoSelect}
             onRemove={handleLogoRemove}
+          />
+        </Section>
+      )}
+
+      {isSuperAdmin && (
+        <Section
+          icon={ImageIcon}
+          title="Login Background"
+          description="The photo shown behind the branding panel on the Login screen. Leave unset to keep the default illustration."
+        >
+          <LogoEditor
+            logoURL={branding?.loginBackgroundURL || null}
+            uploading={bgUploading}
+            disabled={!driveConfig}
+            error={bgError}
+            onSelect={handleBgSelect}
+            onRemove={handleBgRemove}
+            shape="wide"
+            noneLabel="No background set"
+            uploadLabel="Upload Background"
+            replaceLabel="Replace Background"
+            currentLabel="Current background"
+            hint="Landscape photo works best (e.g. fleet, vehicles, or a facility shot), up to 5MB."
+            visibilityHint="Visible on the logged-out Login screen, behind the branding panel."
           />
         </Section>
       )}
@@ -347,6 +451,17 @@ export default function ContentSettings() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={confirmRemoveBgOpen}
+        title="Remove login background?"
+        message="This removes the custom background photo from the Login screen — it'll fall back to the default illustration. This can't be undone; you'll need to upload it again to bring it back."
+        confirmLabel="Remove Background"
+        confirmingLabel="Removing…"
+        loading={removingBg}
+        onCancel={() => setConfirmRemoveBgOpen(false)}
+        onConfirm={confirmBgRemove}
+      />
     </div>
   );
 }
@@ -598,6 +713,13 @@ function LogoEditor({
   error,
   onSelect,
   onRemove,
+  shape = "square",
+  noneLabel = "No logo set",
+  uploadLabel = "Upload Logo",
+  replaceLabel = "Replace Logo",
+  currentLabel = "Current logo",
+  hint = "PNG or JPG, square works best, up to 5MB.",
+  visibilityHint = "Visible to everyone across the app, including logged-out visitors on the Login screen.",
 }: {
   logoURL: string | null;
   uploading: boolean;
@@ -605,8 +727,16 @@ function LogoEditor({
   error?: string;
   onSelect: (file: File) => void;
   onRemove: () => void;
+  shape?: "square" | "wide";
+  noneLabel?: string;
+  uploadLabel?: string;
+  replaceLabel?: string;
+  currentLabel?: string;
+  hint?: string;
+  visibilityHint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const tileSize = shape === "wide" ? { width: 176, height: 116 } : { width: 116, height: 116 };
 
   function openPicker() {
     if (disabled || uploading) return;
@@ -615,15 +745,15 @@ function LogoEditor({
 
   return (
     <div style={{ padding: "6px 4px 4px" }}>
-      <div style={{ display: "flex", alignItems: "stretch", gap: "20px" }}>
+      <div style={{ display: "flex", alignItems: "stretch", gap: "20px", flexWrap: "wrap" }}>
         <div
           onClick={openPicker}
           role="button"
-          aria-label={logoURL ? "Change logo" : "Upload logo"}
+          aria-label={logoURL ? "Change image" : "Upload image"}
           style={{
             position: "relative",
-            width: 116,
-            height: 116,
+            width: tileSize.width,
+            height: tileSize.height,
             flexShrink: 0,
             borderRadius: "18px",
             overflow: "hidden",
@@ -635,7 +765,7 @@ function LogoEditor({
           }}
         >
           {logoURL ? (
-            <img src={logoURL} alt="App logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src={logoURL} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <div
               style={{
@@ -651,7 +781,7 @@ function LogoEditor({
             >
               <ImageIcon size={30} strokeWidth={1.6} />
               <span style={{ fontSize: "10.5px", fontWeight: 600, textAlign: "center", padding: "0 8px", color: "var(--text-muted)" }}>
-                No logo yet
+                {noneLabel}
               </span>
             </div>
           )}
@@ -682,16 +812,10 @@ function LogoEditor({
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
           <div>
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
-              {logoURL ? "Current logo" : "No logo set"}
+              {logoURL ? currentLabel : noneLabel}
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {disabled
-                ? "Connect Google Drive above first."
-                : uploading
-                ? "Uploading to Drive…"
-                : logoURL
-                ? "Visible to everyone across the app, including logged-out visitors on the Login screen."
-                : "PNG or JPG, square works best, up to 5MB."}
+              {disabled ? "Connect Google Drive above first." : uploading ? "Uploading to Drive…" : logoURL ? visibilityHint : hint}
             </div>
           </div>
 
@@ -715,7 +839,7 @@ function LogoEditor({
               }}
             >
               <Camera size={14} />
-              {logoURL ? "Replace Logo" : "Upload Logo"}
+              {logoURL ? replaceLabel : uploadLabel}
             </button>
 
             {logoURL && (

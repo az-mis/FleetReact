@@ -121,6 +121,11 @@ export const DRIVE_CONFIG_DOC_PATH = ["settings", "driveConfig"] as const;
 export interface AppBranding {
   logoURL?: string | null;
   logoDriveFileId?: string | null;
+  // Background image shown behind the marketing/brand panel on the Login
+  // screen (left side on desktop). Optional — falls back to the built-in
+  // green gradient + illustration when unset.
+  loginBackgroundURL?: string | null;
+  loginBackgroundDriveFileId?: string | null;
   updatedAt?: any; // Firestore server timestamp
   updatedByName?: string | null;
 }
