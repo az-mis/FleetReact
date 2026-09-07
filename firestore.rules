@@ -17,10 +17,6 @@ service cloud.firestore {
     function isPlainAdmin() {
       return isSignedIn() && myRole() == 'admin';
     }
-    // A self-service edit of your own users/{uid} doc (My Profile): only the
-    // personal-info fields below may change, and role/email — the things
-    // that affect authorization — must stay exactly as they were. Anyone
-    // signed in may do this to their own doc, regardless of role.
     function isOwnProfileEdit(uid) {
       return isSignedIn() && request.auth.uid == uid
         && request.resource.data.role == resource.data.role
@@ -30,11 +26,7 @@ service cloud.firestore {
     }
     // users/{uid} — profile + role. This is the source of truth for authorization.
     match /users/{uid} {
-      // Anyone signed in can read their own profile; admins can read anyone's
-      // (needed to list drivers/admins in the dashboard).
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
-      // Only super admins can create/delete accounts and manage admin roles.
-      // Regular admins may create/update driver profiles only.
       allow create: if isSuperAdmin()
         || (isAdmin() && request.resource.data.role == 'driver');
       allow update: if isSuperAdmin()
@@ -42,29 +34,13 @@ service cloud.firestore {
         || isOwnProfileEdit(uid);
       allow delete: if isSuperAdmin();
     }
-    // vehicles/{id} — admins and super admins manage; only super admins may
-    // change plateNumber on an existing vehicle. Admins may also set
-    // assignedDriverId/assignedDriverName (Vehicle Assigning) freely, since
-    // that's just a regular field update covered by the same rule below.
     match /vehicles/{id} {
-      // Public read: the QR-code vehicle request form is unauthenticated and
-      // needs to list vehicles + their assigned driver. Nothing here is
-      // sensitive (no personal driver contact info lives on this doc).
       allow read: if true;
       allow create: if isAdmin();
       allow update: if isAdmin()
         && (isSuperAdmin() || request.resource.data.plateNumber == resource.data.plateNumber);
       allow delete: if isAdmin();
     }
-    // vehicleRequests/{id} — staff have no accounts, so a request is
-    // submitted anonymously (typically via a QR code -> public form) with no
-    // sign-in required. To keep this safe with an open create rule:
-    //   - only the specific fields below may be set, nothing else
-    //   - status must always start as "pending" on create (never
-    //     self-approved) and admin-only fields (confirmedDriverId,
-    //     approvedBy, etc.) must be absent on create
-    //   - only admins/super admins may read the list or update a request
-    //     (e.g. to approve/decline), since it may contain contact info
     function requestCreateFields() {
       return request.resource.data.keys().hasOnly([
         'requesterName', 'location', 'requesterOffice', 'requesterContact', 'requesterIsPassenger',
@@ -75,32 +51,16 @@ service cloud.firestore {
         'status', 'createdAt', 'updatedAt'
       ]);
     }
-    // The vehicle doc being referenced by this request — used to verify the
-    // client-supplied "snapshot" fields (vehiclePlateNumber, defaultDriverId,
-    // defaultDriverName) actually match reality rather than being spoofed by
-    // an anonymous submitter, since /vehicleRequests has no auth on create.
     function referencedVehicle() {
       return get(/databases/$(database)/documents/vehicles/$(request.resource.data.vehicleId)).data;
     }
-    // null and "" are both treated as "no driver assigned" — the client
-    // sends null when a vehicle has no assignedDriverId/Name.
     function matchesOrBothEmpty(sent, real) {
       return sent == real || ((sent == null || sent == '') && (real == null || real == ''));
     }
-    // The vehicleRequests doc sharing this same ID — used to validate an
-    // anonymous vehicleAvailability write is an honest mirror of a request
-    // the same submitter just created, not spoofed/invented data.
     function referencedVehicleRequest(id) {
       return get(/databases/$(database)/documents/vehicleRequests/$(id)).data;
     }
     match /vehicleRequests/{id} {
-      // "get" (fetching one specific doc by its exact ID) is public — the
-      // status-check page needs this so anonymous requesters can look up
-      // their own request using the reference code they were given, which
-      // *is* the document ID. This does not expose other people's requests:
-      // without already knowing the exact ~28-billion-combination code,
-      // there's nothing to guess. "list" (querying/browsing the whole
-      // collection) stays admin-only, so the collection can't be enumerated.
       allow get: if true;
       allow list: if isAdmin();
       allow create: if requestCreateFields()
@@ -111,29 +71,12 @@ service cloud.firestore {
         && request.resource.data.purpose is string
         && request.resource.data.destination is string
         && request.resource.data.travelDate is string
-        // vehiclePlateNumber/defaultDriverId/defaultDriverName must be an
-        // honest snapshot of the referenced vehicle doc, not client-chosen
         && request.resource.data.vehiclePlateNumber == referencedVehicle().plateNumber
         && matchesOrBothEmpty(request.resource.data.defaultDriverId, referencedVehicle().assignedDriverId)
         && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName);
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
-    // vehicleAvailability/{id} — a stripped-down mirror of vehicleRequests
-    // (vehicleId, travelDate, travelDateEnd, status only), written directly
-    // by the client (no Cloud Functions / Blaze plan needed) so the public,
-    // unauthenticated vehicle request form can show a selected vehicle's
-    // pending/approved trip dates without exposing requester name, contact
-    // info, destination, or purpose from vehicleRequests.
-    //   - Anonymous create: only allowed as an honest same-ID mirror of a
-    //     vehicleRequests doc that already exists and is still "pending" —
-    //     this is exactly what happens right after RequestVehicle.tsx
-    //     creates the request. A submitter can't invent an availability
-    //     entry for a request that isn't theirs/doesn't exist.
-    //   - Update/delete: admin-only — this is what VehicleRequests.tsx does
-    //     when a request is approved (status -> "approved") or declined
-    //     (mirror doc deleted, since a declined trip no longer occupies the
-    //     vehicle's calendar).
     match /vehicleAvailability/{id} {
       allow read: if true;
       allow create: if isAdmin()
@@ -145,21 +88,6 @@ service cloud.firestore {
             && matchesOrBothEmpty(request.resource.data.travelDateEnd, referencedVehicleRequest(id).travelDateEnd));
       allow update, delete: if isAdmin();
     }
-    // settings/{id} — CMS-style app configuration, currently just
-    // "featureFlags" (which modules are enabled for admin/driver, and the
-    // announcement banner). Any signed-in user may read it, since the UI
-    // uses it to decide what to render for every role; only a super_admin
-    // may change it.
-    // settings/{id} — CMS-style app configuration, currently just
-    // "featureFlags" (which modules are enabled for admin/driver, and the
-    // two announcement banners) and "appBranding" (the app logo). Any
-    // signed-in user may read it, since the UI uses it to decide what to
-    // render for every role. "appBranding" is additionally public-readable
-    // so the logged-out Login screen can show the logo too — it's just a
-    // URL, nothing sensitive. A super_admin may change anything. A plain
-    // admin may only edit `driverModules` and `driverAnnouncement` — the
-    // two things that control driver-facing content — and may not touch
-    // `adminModules` or `adminAnnouncement`.
     match /settings/{id} {
       allow read: if isSignedIn() || id == 'appBranding';
       allow create: if isSuperAdmin();
