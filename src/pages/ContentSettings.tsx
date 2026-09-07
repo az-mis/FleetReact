@@ -662,6 +662,11 @@ function DriveConnectionCard({
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
               {connected ? `Connected by ${driveConfig!.connectedByName}` : "Not connected"}
             </div>
+            {connected && driveConfig!.connectedByEmail && (
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "1px" }}>
+                {driveConfig!.connectedByEmail}
+              </div>
+            )}
             <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
               {connected ? (
                 <a
