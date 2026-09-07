@@ -1,9 +1,9 @@
 import React from "react";
-import { Camera, X } from "lucide-react";
+import { Camera, X, LucideIcon } from "lucide-react";
 
 type FallbackProps =
   | { fallback?: "initials"; name: string; icon?: undefined }
-  | { fallback: "icon"; icon: React.ComponentType<{ size?: number }>; name?: string };
+  | { fallback: "icon"; icon: LucideIcon | React.ComponentType<{ size?: number | string; [key: string]: any }>; name?: string };
 
 /** Small avatar — shows the photo if present, otherwise a fallback. Two fallback modes:
  *  - "initials" (default): the person's initial on a solid primary-color circle, matching
