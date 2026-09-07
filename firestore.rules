@@ -8,6 +8,7 @@ service cloud.firestore {
     function myRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
+    // function for Super Admin account
     function isSuperAdmin() {
       return isSignedIn() && myRole() == 'super_admin';
     }
