@@ -87,8 +87,14 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
+// Google's client never calls back in this case either — it just logs
+// "Failed to open popup window... Maybe blocked by the browser?" to the
+// console and goes silent — so this timeout is also the only way we ever
+// find out a popup got blocked. Since that's the single most common cause
+// of this exact symptom (a hang with no other error), the message below
+// leads with it directly instead of a generic "try again."
 const TIMEOUT_MESSAGE =
-  "This is taking longer than expected. Please try again later.";
+  "Google Drive didn't respond — this is almost always the browser blocking its sign-in popup. Check your browser's address bar for a \"pop-up blocked\" icon, or Site settings → Pop-ups and redirects → Allow, then try again.";
 
 /**
  * Resolves a valid Drive access token, prompting for Google consent via a
