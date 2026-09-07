@@ -1,9 +1,9 @@
 import React from "react";
-import { Camera, X, LucideIcon } from "lucide-react";
+import { Camera, X } from "lucide-react";
 
 type FallbackProps =
   | { fallback?: "initials"; name: string; icon?: undefined }
-  | { fallback: "icon"; icon: LucideIcon; name?: string };
+  | { fallback: "icon"; icon: React.ComponentType<{ size?: number }>; name?: string };
 
 /** Small avatar — shows the photo if present, otherwise a fallback. Two fallback modes:
  *  - "initials" (default): the person's initial on a solid primary-color circle, matching
@@ -65,6 +65,7 @@ export function AvatarPicker({
   onBeforePick,
   error,
   label = "Photo (optional)",
+  size = 76,
   ...rest
 }: {
   inputId: string;
@@ -81,25 +82,31 @@ export function AvatarPicker({
   onBeforePick?: () => void;
   error?: string;
   label?: string;
+  /** Diameter/side length in px. Defaults to 76 (the compact Add/Edit-form
+   *  size used in Admins/Drivers/Vehicles) — pass a larger value for a
+   *  hero-style profile header instead. */
+  size?: number;
 } & FallbackProps) {
   const shape = rest.fallback === "icon" ? "14px" : "50%";
+  const badgeSize = Math.max(20, Math.round(size * 0.3));
+  const removeSize = Math.max(18, Math.round(size * 0.26));
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
-      <div style={{ position: "relative", width: 76, height: 76 }}>
+      <div style={{ position: "relative", width: size, height: size }}>
         <label
           htmlFor={inputId}
           onClick={onBeforePick}
           style={{
             display: "block",
-            width: 76,
-            height: 76,
+            width: size,
+            height: size,
             borderRadius: shape,
             cursor: "pointer",
             overflow: "hidden",
             border: "1px solid var(--border)",
           }}
         >
-          <Avatar photoURL={photoURL} size={76} {...(rest as FallbackProps)} />
+          <Avatar photoURL={photoURL} size={size} {...(rest as FallbackProps)} />
         </label>
         <input
           id={inputId}
@@ -121,8 +128,8 @@ export function AvatarPicker({
             position: "absolute",
             bottom: -2,
             right: -2,
-            width: 24,
-            height: 24,
+            width: badgeSize,
+            height: badgeSize,
             borderRadius: "50%",
             background: "var(--primary)",
             color: "#fff",
@@ -133,7 +140,7 @@ export function AvatarPicker({
             border: "2px solid #fff",
           }}
         >
-          <Camera size={12} />
+          <Camera size={Math.round(badgeSize * 0.5)} />
         </label>
 
         {photoURL && (
@@ -145,8 +152,8 @@ export function AvatarPicker({
               position: "absolute",
               top: -2,
               right: -2,
-              width: 20,
-              height: 20,
+              width: removeSize,
+              height: removeSize,
               borderRadius: "50%",
               background: "#fff",
               color: "var(--text-muted)",
@@ -158,7 +165,7 @@ export function AvatarPicker({
               padding: 0,
             }}
           >
-            <X size={11} />
+            <X size={Math.round(removeSize * 0.5)} />
           </button>
         )}
       </div>

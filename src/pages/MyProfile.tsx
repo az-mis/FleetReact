@@ -7,6 +7,7 @@ import { useDriveConfig } from "../contexts/DriveConfigContext";
 import PageHeader from "../components/PageHeader";
 import { AvatarPicker } from "../components/Avatar";
 import { UserCircle } from "lucide-react";
+import { USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 
@@ -164,20 +165,16 @@ export default function MyProfile() {
 
   if (!profile) return null;
 
+  const roleColor = USER_ROLE_COLOR[profile.role];
+
   return (
     <div>
       <PageHeader icon={UserCircle} title="My Profile" subtitle="Update your personal information." />
 
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: "16px",
-          border: "1px solid var(--border)",
-          padding: "24px",
-          maxWidth: "480px",
-        }}
-      >
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      <div className="profile-card fade-in">
+        <div className="profile-cover" />
+
+        <div className="profile-identity">
           <AvatarPicker
             inputId="my-profile-photo-input"
             name={name}
@@ -187,39 +184,51 @@ export default function MyProfile() {
             onRemove={handlePhotoRemove}
             error={photoError}
             label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
+            size={92}
           />
+          <div className="profile-name-display">{name || "Unnamed"}</div>
+          <span className="profile-role-chip" style={{ background: roleColor + "1a", color: roleColor }}>
+            {USER_ROLE_LABEL[profile.role]}
+          </span>
+        </div>
 
-          <Field label="Full Name" required>
-            <input required value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-          </Field>
-
-          <Field label="Email">
-            <input type="email" disabled value={profile.email} style={inputStyle} />
-            <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>
-          </Field>
-
-          {isDriver && (
-            <>
-              <Field label="Birth Date">
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  style={inputStyle}
-                />
+        <form onSubmit={handleSubmit} className="profile-form">
+          <div className="profile-grid">
+            <section className="profile-section">
+              <h3>Account</h3>
+              <Field label="Full Name" required>
+                <input required value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
               </Field>
-              <Field label="Address">
-                <input value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
+              <Field label="Email">
+                <input type="email" disabled value={profile.email} style={inputStyle} />
+                <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>
               </Field>
-            </>
-          )}
+            </section>
+
+            {isDriver && (
+              <section className="profile-section">
+                <h3>Personal Details</h3>
+                <Field label="Birth Date">
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Address">
+                  <input value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
+                </Field>
+              </section>
+            )}
+          </div>
 
           <button
             type="submit"
             disabled={saving || photoUploading}
             style={{
-              marginTop: "8px",
-              padding: "11px",
+              alignSelf: "flex-end",
+              padding: "11px 28px",
               borderRadius: "8px",
               border: "none",
               background: "var(--primary)",
