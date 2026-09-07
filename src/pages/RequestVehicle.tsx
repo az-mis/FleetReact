@@ -322,7 +322,7 @@ export default function RequestVehicle() {
             onChange={(e) => setForm({ ...form, requesterIsPassenger: e.target.checked })}
             style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "var(--primary)" }}
           />
-          <span>I am riding along on this trip as a passenger</span>
+          <span style={{color:"white"}}>I am riding along on this trip as a passenger</span>
         </label>
 
         <div className="portal-field-group">
@@ -549,7 +549,7 @@ export default function RequestVehicle() {
               gap: "6px",
               fontSize: "12.5px",
               fontWeight: 700,
-              color: "var(--primary)",
+              color: "white",
               background: "none",
               border: "none",
               cursor: "pointer",

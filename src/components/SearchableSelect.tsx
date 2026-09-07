@@ -76,7 +76,7 @@ export default function SearchableSelect({
           border: `1.5px solid ${open ? "var(--primary)" : "var(--border)"}`,
           fontSize: "13px",
           width: "100%",
-          background: "#fff",
+          background: "#0808082c",
           color: value ? "#2d3748" : "var(--text-muted)",
           cursor: "pointer",
           boxShadow: open ? "0 0 0 3px rgba(26,107,60,0.12)" : "none",
