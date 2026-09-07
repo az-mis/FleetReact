@@ -70,7 +70,7 @@ function App() {
             <Route
               path="vehicles"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicles" adminModuleLabel="Vehicle Information">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicles" adminModuleLabel="Vehicles List">
                   <Vehicles />
                 </ProtectedRoute>
               }

@@ -127,7 +127,7 @@ export default function Layout() {
         {
           to: "/vehicles",
           icon: Truck,
-          label: "Vehicle Information",
+          label: "Vehicles List",
           show: true,
           disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicles"),
         },

@@ -324,7 +324,7 @@ export default function ContentSettings() {
         >
           <ToggleRow
             icon={Truck}
-            label="Vehicle Information"
+            label="Vehicles List"
             description="Vehicle list, records, and details."
             checked={flags.adminModules.vehicles}
             saving={savingKey === "admin-vehicles"}
@@ -515,7 +515,9 @@ function AnnouncementSection({
   async function toggleEnabled() {
     setSavingToggle(true);
     try {
-      await updateFlags({ [flagKey]: { enabled: !config.enabled } });
+      const next = !config.enabled;
+      await updateFlags({ [flagKey]: { enabled: next } });
+      showSuccess(next ? "Announcement banner turned on." : "Announcement banner turned off.");
     } catch (e: any) {
       showError(e.message || "Couldn't save that change.");
     } finally {
