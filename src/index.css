@@ -148,24 +148,23 @@ textarea::placeholder {
   justify-content: center;
   padding: clamp(16px, 3vw, 40px);
   background:
-    radial-gradient(ellipse at 20% 10%, rgba(26, 107, 60, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 90%, rgba(45, 158, 95, 0.06) 0%, transparent 50%),
-    #f8faf9;
+    linear-gradient(135deg, rgba(10, 48, 26, 0.82) 0%, rgba(19, 77, 43, 0.72) 50%, rgba(6, 30, 16, 0.88) 100%),
+    url("/FleetMS-bg.jpg") center / cover no-repeat fixed;
   position: relative;
   overflow-x: hidden;
 }
 
 .login-container--custom-bg {
   background:
-    linear-gradient(135deg, rgba(13, 56, 32, 0.88) 0%, rgba(19, 77, 43, 0.78) 100%),
-    var(--custom-bg) center / cover no-repeat;
+    linear-gradient(135deg, rgba(10, 48, 26, 0.82) 0%, rgba(19, 77, 43, 0.72) 50%, rgba(6, 30, 16, 0.88) 100%),
+    var(--custom-bg) center / cover no-repeat fixed;
 }
 
 .login-bg-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(rgba(26, 107, 60, 0.04) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -177,10 +176,10 @@ textarea::placeholder {
   min-height: 580px;
   background: #ffffff;
   border-radius: 24px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow:
-    0 20px 45px -15px rgba(19, 77, 43, 0.12),
-    0 4px 16px -2px rgba(0, 0, 0, 0.04);
+    0 25px 60px -15px rgba(0, 0, 0, 0.35),
+    0 4px 20px -2px rgba(0, 0, 0, 0.15);
   display: grid;
   grid-template-columns: 1.12fr 0.98fr;
   overflow: hidden;
@@ -663,5 +662,250 @@ textarea::placeholder {
 
   .login-public-links {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ───────────────────────── Public Portal Pages (Request Vehicle & Check Status) ───────────────────────── */
+.portal-container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 40px) clamp(12px, 3vw, 24px);
+  background:
+    linear-gradient(135deg, rgba(10, 48, 26, 0.82) 0%, rgba(19, 77, 43, 0.72) 50%, rgba(6, 30, 16, 0.88) 100%),
+    url("/FleetMS-bg.jpg") center / cover no-repeat fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.portal-container--custom-bg {
+  background:
+    linear-gradient(135deg, rgba(10, 48, 26, 0.82) 0%, rgba(19, 77, 43, 0.72) 50%, rgba(6, 30, 16, 0.88) 100%),
+    var(--custom-bg) center / cover no-repeat fixed;
+}
+
+.portal-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 25px 60px -15px rgba(0, 0, 0, 0.35),
+    0 4px 20px -2px rgba(0, 0, 0, 0.15);
+  padding: clamp(24px, 4vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.portal-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.portal-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.portal-back-link:hover {
+  color: var(--primary);
+}
+
+.portal-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--accent);
+  border: 1px solid rgba(26, 107, 60, 0.18);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.portal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.portal-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  border: 1px solid rgba(26, 107, 60, 0.15);
+  box-shadow: 0 4px 12px rgba(26, 107, 60, 0.08);
+  overflow: hidden;
+}
+
+.portal-header-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portal-title {
+  font-size: clamp(20px, 2.4vw, 24px);
+  font-weight: 800;
+  color: #1a202c;
+  letter-spacing: -0.02em;
+}
+
+.portal-subtitle {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.portal-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.portal-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.portal-field-label svg {
+  color: var(--primary);
+}
+
+.portal-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.portal-input-wrapper:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3.5px rgba(26, 107, 60, 0.12);
+}
+
+.portal-input-icon {
+  position: absolute;
+  left: 13px;
+  color: #a0aec0;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.portal-input-wrapper:focus-within .portal-input-icon {
+  color: var(--primary);
+}
+
+.portal-input-wrapper input,
+.portal-input-wrapper select,
+.portal-input-wrapper textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px 0 38px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #2d3748;
+  background: transparent;
+  font-family: inherit;
+}
+
+.portal-input-wrapper textarea {
+  padding: 12px 14px 12px 38px;
+  min-height: 84px;
+  resize: vertical;
+}
+
+.portal-input-wrapper select {
+  cursor: pointer;
+}
+
+.portal-submit-btn {
+  height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(26, 107, 60, 0.25);
+  transition: all 0.2s ease;
+}
+
+.portal-submit-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(26, 107, 60, 0.32);
+}
+
+.portal-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.portal-info-box {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.portal-card-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .portal-wrapper {
+    border-radius: 18px;
+    padding: 22px 16px;
+    gap: 18px;
   }
 }
