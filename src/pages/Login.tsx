@@ -1,5 +1,5 @@
 import React, { useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useBranding } from "../contexts/BrandingContext";
 import {
@@ -8,29 +8,14 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  MapPin,
-  ClipboardList,
-  Car,
-  LogIn,
+  Truck,
+  ArrowRight,
   AlertTriangle,
+  FileSpreadsheet,
+  Search,
+  Loader2,
 } from "lucide-react";
 
-/**
- * Visual redesign (green government-portal look, two-column layout with a
- * branding panel + sign-in card) adapted from a static HTML/CSS mockup into
- * this page's real React/Firebase auth flow. Two things are still fully
- * live/dynamic, same as before the redesign:
- *  - the "seal" logo and the small app icon both fall back to a generic
- *    mark until a super admin uploads a real logo in Content Settings
- *    (BrandingContext -> branding.logoURL);
- *  - the branding panel's background image is the built-in CSS
- *    illustration by default, but switches to a super admin's uploaded
- *    photo the moment branding.loginBackgroundURL is set (see the new
- *    "Login Background" section added to Content Settings).
- * The mockup's "Forgot password?" link went nowhere (`onclick="return
- * false"`) and there's no such flow wired up yet, so it's left out rather
- * than shipping a dead link -- easy to add back once that flow exists.
- */
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +34,7 @@ export default function Login() {
       await login(email, password);
       navigate("/");
     } catch (err: any) {
-      setError("Invalid email or password.");
+      setError("Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -58,162 +43,206 @@ export default function Login() {
   const hasCustomBg = !!branding?.loginBackgroundURL;
 
   return (
-    <main className="login-page">
-      <section
-        className={`login-visual${hasCustomBg ? " login-visual--custom-bg" : ""}`}
-        style={hasCustomBg ? ({ "--login-bg-image": `url(${branding!.loginBackgroundURL})` } as React.CSSProperties) : undefined}
-      >
-        <div className="login-brand">
-          <div className="login-seal">
-            {branding?.logoURL ? (
-              <img src={branding.logoURL} alt="Logo" />
-            ) : (
-              <>
-                FLEET
-                <br />
-                MGMT
-              </>
-            )}
-          </div>
-          <div className="login-brand-title">
-            VEHICLE MONITORING &amp;
-            <br />
-            MANAGEMENT SYSTEM
-          </div>
-        </div>
+    <div
+      className={`login-container${hasCustomBg ? " login-container--custom-bg" : ""}`}
+      style={
+        hasCustomBg
+          ? ({ "--custom-bg": `url(${branding!.loginBackgroundURL})` } as React.CSSProperties)
+          : undefined
+      }
+    >
+      {/* Ambient background decoration */}
+      <div className="login-bg-glow" aria-hidden="true" />
 
-        <div className="login-intro">
-          <div className="login-green-line" />
-          <p>
-            A secure and efficient system for monitoring, managing, and maintaining your fleet's vehicles, drivers,
-            and requests in one place.
-          </p>
-        </div>
-
-        <div className="login-fleet" aria-hidden="true">
-          <div className="login-car login-car1" />
-          <div className="login-car login-car2" />
-          <div className="login-car login-car3" />
-        </div>
-
-        <div className="login-features">
-          <div className="login-feature">
-            <div className="login-feature-icon">
-              <ShieldCheck size={22} strokeWidth={1.8} />
+      <main className="login-wrapper fade-in">
+        {/* Left / Hero Branding Panel */}
+        <section className="login-hero-panel">
+          <div className="login-hero-content">
+            <div className="login-hero-badge">
+              <span className="login-hero-badge-dot" />
+              <span>Fleet Management System</span>
             </div>
-            <h3>SECURE</h3>
-            <p>Your data is protected with role-based access and secure sign-in.</p>
-          </div>
-          <div className="login-feature">
-            <div className="login-feature-icon">
-              <MapPin size={22} strokeWidth={1.8} />
+
+            <div className="login-hero-header">
+              <div className="login-hero-logo">
+                {branding?.logoURL ? (
+                  <img src={branding.logoURL} alt="Logo" />
+                ) : (
+                  <div className="login-hero-logo-placeholder">
+                    <Truck size={28} />
+                  </div>
+                )}
+              </div>
+              <h1 className="login-hero-title">
+                Smart Fleet Operations &amp; Monitoring
+              </h1>
             </div>
-            <h3>MONITOR</h3>
-            <p>Keep track of every vehicle's status and assignment at a glance.</p>
-          </div>
-          <div className="login-feature">
-            <div className="login-feature-icon">
-              <ClipboardList size={22} strokeWidth={1.8} />
-            </div>
-            <h3>MANAGE</h3>
-            <p>Manage vehicles, drivers, and requests efficiently in one system.</p>
-          </div>
-        </div>
-      </section>
 
-      <section className="login-area">
-        <div className="login-dots" aria-hidden="true" />
-
-        <form className="login-card fade-in" onSubmit={handleSubmit}>
-          <div className="login-app-icon">
-            {branding?.logoURL ? (
-              <img src={branding.logoURL} alt="Logo" />
-            ) : (
-              <Car size={44} strokeWidth={1.65} />
-            )}
-            <span className="login-badge">
-              <ShieldCheck size={14} strokeWidth={2} />
-            </span>
-          </div>
-
-          <h2>Welcome Back!</h2>
-          <p className="login-subtitle">Please sign in to continue to the system</p>
-
-          {error && (
-            <div className="login-error">
-              <AlertTriangle size={18} strokeWidth={1.8} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div className="login-field">
-            <label htmlFor="login-email">Email Address</label>
-            <div className="login-input">
-              <Mail size={18} strokeWidth={1.7} />
-              <input
-                id="login-email"
-                type="email"
-                placeholder="Enter your email"
-                autoComplete="username"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="login-field">
-            <label htmlFor="login-password">Password</label>
-            <div className="login-input">
-              <Lock size={18} strokeWidth={1.7} />
-              <input
-                id="login-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="login-eye"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-          </div>
-
-          <button className="login-signin" type="submit" disabled={loading}>
-            <LogIn size={19} strokeWidth={2} />
-            <span>{loading ? "Signing in..." : "Sign In"}</span>
-          </button>
-
-          <div className="login-divider">
-            <span />
-            <ShieldCheck size={19} strokeWidth={1.7} />
-            <span />
-          </div>
-
-          <div className="login-notice">
-            <ShieldCheck size={26} strokeWidth={1.8} />
-            <p>
-              This system is for authorized personnel only.
-              <br />
-              All activities are monitored and recorded.
+            <p className="login-hero-desc">
+              A unified, secure platform for tracking vehicles, assigning drivers,
+              and managing trip requests in real time.
             </p>
+
+            <div className="login-hero-features">
+              <div className="login-hero-feature-item">
+                <div className="login-hero-feature-icon">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <span className="login-hero-feature-title">Role-Based Security</span>
+                  <span className="login-hero-feature-sub">Super admin, admin &amp; driver workflows</span>
+                </div>
+              </div>
+
+              <div className="login-hero-feature-item">
+                <div className="login-hero-feature-icon">
+                  <Truck size={18} />
+                </div>
+                <div>
+                  <span className="login-hero-feature-title">Real-Time Allocation</span>
+                  <span className="login-hero-feature-sub">Permanent assignments &amp; calendar availability</span>
+                </div>
+              </div>
+
+              <div className="login-hero-feature-item">
+                <div className="login-hero-feature-icon">
+                  <FileSpreadsheet size={18} />
+                </div>
+                <div>
+                  <span className="login-hero-feature-title">Trip Ticket Generation</span>
+                  <span className="login-hero-feature-sub">Instant printable travel authorizations</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="login-footer">
-            © {new Date().getFullYear()} Vehicle Monitoring &amp; Management System
-            <br />
-            All rights reserved.
+          <div className="login-hero-footer">
+            <span>Authorized Agency Personnel Only</span>
+            <span className="login-hero-footer-divider">•</span>
+            <span>All activities logged</span>
           </div>
-        </form>
-      </section>
-    </main>
+        </section>
+
+        {/* Right / Login Form Panel */}
+        <section className="login-form-panel">
+          <div className="login-form-card">
+            <div className="login-form-header">
+              <div className="login-mobile-logo">
+                {branding?.logoURL ? (
+                  <img src={branding.logoURL} alt="Logo" />
+                ) : (
+                  <Truck size={24} />
+                )}
+              </div>
+              <h2 className="login-title">Sign In</h2>
+              <p className="login-subtitle">
+                Enter your account credentials to access your dashboard
+              </p>
+            </div>
+
+            {error && (
+              <div className="login-alert" role="alert">
+                <AlertTriangle size={17} className="login-alert-icon" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="login-input-group">
+                <label htmlFor="login-email">Email address</label>
+                <div className="login-input-wrapper">
+                  <Mail size={17} className="login-input-icon" />
+                  <input
+                    id="login-email"
+                    type="email"
+                    placeholder="name@agency.gov.ph"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="login-input-group">
+                <div className="login-label-row">
+                  <label htmlFor="login-password">Password</label>
+                </div>
+                <div className="login-input-wrapper">
+                  <Lock size={17} className="login-input-icon" />
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••••••"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="login-toggle-pw"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !email.trim() || !password}
+                className="login-submit-btn"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={17} className="spin" />
+                    <span>Signing in…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue to Dashboard</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Public Quick Actions Section */}
+            <div className="login-public-section">
+              <div className="login-divider-row">
+                <span className="login-divider-line" />
+                <span className="login-divider-text">Public Staff Portals</span>
+                <span className="login-divider-line" />
+              </div>
+
+              <div className="login-public-links">
+                <Link to="/request-vehicle" className="login-public-btn">
+                  <Truck size={15} />
+                  <span>Request a Vehicle</span>
+                </Link>
+
+                <Link to="/check-status" className="login-public-btn">
+                  <Search size={15} />
+                  <span>Check Request Status</span>
+                </Link>
+              </div>
+            </div>
+
+            <footer className="login-card-footer">
+              <div className="login-security-note">
+                <ShieldCheck size={14} />
+                <span>Encrypted &amp; Protected Session</span>
+              </div>
+              <p className="login-copyright">
+                &copy; {new Date().getFullYear()} Vehicle Monitoring &amp; Management System
+              </p>
+            </footer>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }

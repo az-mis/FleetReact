@@ -34,9 +34,10 @@ import {
   Building2,
   Users,
   AlertTriangle,
+  LucideIcon,
 } from "lucide-react";
 
-const STATUS_BADGE_STYLE: Record<VehicleRequestStatus, { bg: string; border: string; color: string; icon: React.ComponentType<{ size?: number }> }> = {
+const STATUS_BADGE_STYLE: Record<VehicleRequestStatus, { bg: string; border: string; color: string; icon: LucideIcon }> = {
   pending: { bg: "#ffe8b3", border: "#ffcf66", color: "#8a5a00", icon: Clock },
   approved: { bg: "#d9f5e5", border: "#a9e6c4", color: "#0f7a44", icon: CheckCircle2 },
   declined: { bg: "#fdd9d9", border: "#f7b8b8", color: "#a11e1e", icon: XCircle },
