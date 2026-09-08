@@ -36,7 +36,7 @@ function BrandLogo({ size }: { size: number }) {
       <img
         src={branding.logoURL}
         alt="Logo"
-        style={{ width: size, height: size, borderRadius: size * 0.24, objectFit: "cover", flexShrink: 0 }}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
       />
     );
   }
@@ -106,7 +106,7 @@ export default function Layout() {
   // whose children are real routes. The same structure drives both the
   // desktop sidebar and the mobile slide-out drawer (see NavList below).
   const navStructure: NavItem[] = [
-    { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
+    { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
     { type: "link", to: "/my-profile", icon: UserCircle, label: "My Profile", show: true },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
     {
@@ -336,6 +336,18 @@ export default function Layout() {
               <LogOut size={18} style={{ flexShrink: 0 }} />
               Logout
             </button>
+            <div
+              style={{
+                fontSize: "10px",
+                color: "rgba(255,255,255,0.55)",
+                textAlign: "center",
+                marginTop: "10px",
+                fontWeight: 500,
+                letterSpacing: "0.02em",
+              }}
+            >
+              Powered by DA MIMAROPA MIS
+            </div>
           </div>
         </aside>
 
@@ -440,6 +452,20 @@ export default function Layout() {
             <LogOut size={18} style={{ flexShrink: 0 }} />
             {sidebarOpen && "Logout"}
           </button>
+          {sidebarOpen && (
+            <div
+              style={{
+                fontSize: "10px",
+                color: "rgba(255,255,255,0.55)",
+                textAlign: "center",
+                marginTop: "10px",
+                fontWeight: 500,
+                letterSpacing: "0.02em",
+              }}
+            >
+              Powered by DA MIMAROPA MIS
+            </div>
+          )}
         </div>
       </aside>
 
