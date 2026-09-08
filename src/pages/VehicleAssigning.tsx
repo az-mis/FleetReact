@@ -16,6 +16,7 @@ import StatCard from "../components/StatCard";
 import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import DriverSelect from "../components/DriverSelect";
+import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck, AlertTriangle } from "lucide-react";
 import { Avatar } from "../components/Avatar";
@@ -27,6 +28,8 @@ export default function VehicleAssigning() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [confirmUnassign, setConfirmUnassign] = useState<Vehicle | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -80,6 +83,15 @@ export default function VehicleAssigning() {
       )
     );
   }, [vehicles, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   // Unassigning is one accidental dropdown click away from wiping a real
   // permanent assignment, so it goes through a confirmation step first;
@@ -206,7 +218,7 @@ export default function VehicleAssigning() {
             gap: "12px",
           }}
         >
-          {filtered.map((v) => (
+          {paginated.map((v) => (
             <VehicleAssignCard
               key={v.id}
               vehicle={v}
@@ -217,6 +229,21 @@ export default function VehicleAssigning() {
             />
           ))}
         </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          pageSizeOptions={[12, 24, 48, 96]}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          itemLabel="vehicles"
+        />
       )}
 
       {confirmUnassign && (

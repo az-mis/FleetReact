@@ -19,6 +19,7 @@ import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import Pagination from "../components/Pagination";
 import { Avatar } from "../components/Avatar";
 import {
   ClipboardList,
@@ -52,6 +53,8 @@ export default function VehicleRequests() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleRequestStatus | "all">("pending");
   const [reviewing, setReviewing] = useState<VehicleRequest | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     const q = query(collection(db, "vehicleRequests"), orderBy("createdAt", "desc"));
@@ -109,6 +112,15 @@ export default function VehicleRequests() {
     }
     return list;
   }, [requests, statusFilter, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   // Drivers already committed to an *approved* request whose date range
   // overlaps this one are flagged as busy — a basic conflict check for
@@ -446,7 +458,7 @@ export default function VehicleRequests() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => {
+                {paginated.map((r) => {
                   const vehicle = vehicles.find((v) => v.id === requestVehicleId(r));
                   const driverName =
                     r.status === "approved"
@@ -561,6 +573,18 @@ export default function VehicleRequests() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            itemLabel="requests"
+          />
         </>
       )}
 

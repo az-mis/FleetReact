@@ -8,6 +8,7 @@ import { formatTravelDateRange } from "../utils/travelDate";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import {
   History,
@@ -35,6 +36,8 @@ export default function TravelHistory() {
   const [search, setSearch] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "completed" | "upcoming">("upcoming");
   const [selectedTrip, setSelectedTrip] = useState<VehicleRequest | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -150,6 +153,15 @@ export default function TravelHistory() {
 
     return list;
   }, [approvedTrips, completedTrips, upcomingTrips, filterTab, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTab]);
+
+  const paginatedTrips = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTrips.slice(start, start + pageSize);
+  }, [filteredTrips, currentPage, pageSize]);
 
   return (
     <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -338,7 +350,7 @@ export default function TravelHistory() {
                   </td>
                 </tr>
               ) : (
-                filteredTrips.map((trip) => {
+                paginatedTrips.map((trip) => {
                   const isEndPast = (trip.travelDateEnd || trip.travelDate) < todayStr;
                   const isCurrentActive = trip.travelDate <= todayStr && (trip.travelDateEnd || trip.travelDate) >= todayStr;
 
@@ -378,23 +390,41 @@ export default function TravelHistory() {
                           <span
                             style={{
                               display: "inline-block",
-                              marginTop: "3px",
-                              fontSize: "10px",
-                              fontWeight: 700,
-                              color: "#2563eb",
-                              background: "#dbeafe",
-                              padding: "1px 6px",
+                              marginTop: "4px",
+                              padding: "2px 6px",
                               borderRadius: "4px",
+                              background: "#e6fffa",
+                              color: "#234e52",
+                              fontSize: "10.5px",
+                              fontWeight: 700,
                             }}
                           >
                             Active Today
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Truck size={14} color="var(--primary)" />
-                          <span style={{ fontWeight: 700, color: "#2d3748" }}>{trip.vehiclePlateNumber}</span>
+                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <div
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: "8px",
+                              background: "#f1f5f9",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#475569",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Truck size={15} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: "13px", color: "#1a202c" }}>
+                              {trip.vehiclePlateNumber}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
@@ -500,6 +530,20 @@ export default function TravelHistory() {
             </tbody>
           </table>
         </div>
+
+        {filteredTrips.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredTrips.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            itemLabel="trips"
+          />
+        )}
       </div>
 
       {/* Trip Details Modal */}

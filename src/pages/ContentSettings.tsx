@@ -16,6 +16,9 @@ import {
   AlertTriangle,
   Camera,
   Trash2,
+  Database,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -31,6 +34,7 @@ import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../
 import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
 import { connectGoogleDrive } from "../lib/googleDrive";
 import { CAR_ANIMATION_STORAGE_KEY, toggleCarAnimation } from "../components/FooterDrivingCar";
+import { seed100Records, clearSeededRecords } from "../lib/seeder";
 
 const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -48,6 +52,11 @@ export default function ContentSettings() {
   const [confirmReplaceLogoFile, setConfirmReplaceLogoFile] = useState<File | null>(null);
   const [removingLogo, setRemovingLogo] = useState(false);
   const [confirmSwitchDriveOpen, setConfirmSwitchDriveOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [clearingSeed, setClearingSeed] = useState(false);
+  const [seedProgress, setSeedProgress] = useState("");
+  const [confirmSeedOpen, setConfirmSeedOpen] = useState(false);
+  const [confirmClearSeedOpen, setConfirmClearSeedOpen] = useState(false);
   const [carAnimationEnabled, setCarAnimationEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem(CAR_ANIMATION_STORAGE_KEY);
     return saved === null ? true : saved === "true";
@@ -388,6 +397,154 @@ export default function ContentSettings() {
           />
         )}
       </div>
+
+      {/* Row 3: Super Admin Database Seeder & Demo Records */}
+      {isSuperAdmin && (
+        <div style={{ marginBottom: "16px" }}>
+          <Section
+            icon={Database}
+            title="Database Seeder & Demonstration Records"
+            description="Generate or clean 100 realistic dummy records for Drivers, Vehicles, and Vehicle Requests (Pending, Approved, Declined) with authentic MIMAROPA locations and assignments."
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "4px" }}>
+              <div
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "10px",
+                  padding: "12px 14px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                }}
+              >
+                <Sparkles size={18} style={{ color: "#16a34a", flexShrink: 0, marginTop: "2px" }} />
+                <div style={{ fontSize: "12.5px", color: "#166534", lineHeight: 1.5 }}>
+                  <b>100 Sample Data Seeder:</b> Generates 100 Drivers (with Filipino names, license expirations, birthdates), 100 Vehicles (Hilux, Ranger, D-Max, HiAce, etc. with assigned drivers), and 100 Vehicle Requests (mixed: 45 Pending, 40 Approved, 15 Declined) across different date ranges.
+                </div>
+              </div>
+
+              {seedProgress && (
+                <div
+                  style={{
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                    color: "#1e40af",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{seedProgress}</span>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  disabled={seeding || clearingSeed}
+                  onClick={() => setConfirmSeedOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: seeding || clearingSeed ? "#cbd5e1" : "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                    color: "#ffffff",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: seeding || clearingSeed ? "not-allowed" : "pointer",
+                    boxShadow: "0 2px 6px rgba(22, 163, 74, 0.25)",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Database size={15} />
+                  {seeding ? "Seeding Records…" : "Seed 100 Sample Records"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={seeding || clearingSeed}
+                  onClick={() => setConfirmClearSeedOpen(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "#ffffff",
+                    color: "var(--danger)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: seeding || clearingSeed ? "not-allowed" : "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Trash2 size={15} />
+                  {clearingSeed ? "Clearing…" : "Clear Seeded Records"}
+                </button>
+              </div>
+            </div>
+          </Section>
+        </div>
+      )}
+
+      {/* Confirm Seed Dialog */}
+      <ConfirmDialog
+        open={confirmSeedOpen}
+        title="Seed 100 Sample Records?"
+        message="This will insert 100 Drivers, 100 Vehicles, and 100 Requests in various statuses (Pending, Approved, Declined) into Firestore. This makes it easy to test pagination, filtering, and role workflows."
+        confirmLabel="Start Seeding"
+        confirmingLabel="Seeding…"
+        danger={false}
+        loading={seeding}
+        onCancel={() => setConfirmSeedOpen(false)}
+        onConfirm={async () => {
+          setConfirmSeedOpen(false);
+          setSeeding(true);
+          try {
+            await seed100Records((msg) => setSeedProgress(msg));
+            showSuccess("Successfully seeded 100 records!");
+          } catch (err: any) {
+            showError(err.message || "Failed to seed records.");
+          } finally {
+            setSeeding(false);
+            setSeedProgress("");
+          }
+        }}
+      />
+
+      {/* Confirm Clear Seed Dialog */}
+      <ConfirmDialog
+        open={confirmClearSeedOpen}
+        title="Clear all seeded test records?"
+        message="This will delete only dummy records that were tagged as seeded by this tool. Real user accounts and configurations will remain untouched."
+        confirmLabel="Clear Dummy Data"
+        confirmingLabel="Clearing…"
+        danger={true}
+        loading={clearingSeed}
+        onCancel={() => setConfirmClearSeedOpen(false)}
+        onConfirm={async () => {
+          setConfirmClearSeedOpen(false);
+          setClearingSeed(true);
+          try {
+            await clearSeededRecords((msg) => setSeedProgress(msg));
+            showSuccess("Seeded dummy records successfully removed.");
+          } catch (err: any) {
+            showError(err.message || "Failed to clear records.");
+          } finally {
+            setClearingSeed(false);
+            setSeedProgress("");
+          }
+        }}
+      />
 
       {confirmRemoveLogoOpen && (
         <Modal title="Remove logo?" onClose={() => !removingLogo && setConfirmRemoveLogoOpen(false)}>

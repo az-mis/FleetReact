@@ -68,17 +68,18 @@ service cloud.firestore {
           resource.data.confirmedDriverId == request.auth.uid ||
           resource.data.defaultDriverId == request.auth.uid
         ));
-      allow create: if requestCreateFields()
-        && request.resource.data.status == 'pending'
-        && request.resource.data.requesterName is string
-        && request.resource.data.requesterName.size() > 0
-        && request.resource.data.vehicleId is string
-        && request.resource.data.purpose is string
-        && request.resource.data.destination is string
-        && request.resource.data.travelDate is string
-        && request.resource.data.vehiclePlateNumber == referencedVehicle().plateNumber
-        && matchesOrBothEmpty(request.resource.data.defaultDriverId, referencedVehicle().assignedDriverId)
-        && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName);
+      allow create: if isAdmin()
+        || (requestCreateFields()
+          && request.resource.data.status == 'pending'
+          && request.resource.data.requesterName is string
+          && request.resource.data.requesterName.size() > 0
+          && request.resource.data.vehicleId is string
+          && request.resource.data.purpose is string
+          && request.resource.data.destination is string
+          && request.resource.data.travelDate is string
+          && request.resource.data.vehiclePlateNumber == referencedVehicle().plateNumber
+          && matchesOrBothEmpty(request.resource.data.defaultDriverId, referencedVehicle().assignedDriverId)
+          && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName));
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
