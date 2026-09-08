@@ -46,11 +46,6 @@ export default function ContentSettings() {
   const [confirmRemoveLogoOpen, setConfirmRemoveLogoOpen] = useState(false);
   const [confirmReplaceLogoFile, setConfirmReplaceLogoFile] = useState<File | null>(null);
   const [removingLogo, setRemovingLogo] = useState(false);
-  const [bgUploading, setBgUploading] = useState(false);
-  const [bgError, setBgError] = useState("");
-  const [confirmRemoveBgOpen, setConfirmRemoveBgOpen] = useState(false);
-  const [confirmReplaceBgFile, setConfirmReplaceBgFile] = useState<File | null>(null);
-  const [removingBg, setRemovingBg] = useState(false);
   const [confirmSwitchDriveOpen, setConfirmSwitchDriveOpen] = useState(false);
 
   // Generic toggle confirmation state
@@ -146,93 +141,7 @@ export default function ContentSettings() {
     }
   }
 
-  /** Same flow as handleLogoSelect, for the Login screen's background photo. */
-  async function performBgUpload(file: File) {
-    setBgError("");
-    if (!file.type.startsWith("image/")) {
-      setBgError("Please choose an image file.");
-      return;
-    }
-    if (file.size > MAX_LOGO_SIZE) {
-      setBgError("Image is too large. Please choose one under 5MB.");
-      return;
-    }
-    if (!driveConfig) {
-      setBgError("Connect Google Drive above first.");
-      return;
-    }
-    setBgUploading(true);
-    try {
-      const blob = await compressImageToBlob(file);
-      const { fileId, url } = await uploadPhotoToDrive(
-        blob,
-        `login-background-${Date.now()}.jpg`,
-        driveConfig.rootFolderId,
-        driveConfig.connectedByEmail
-      );
-      await setDoc(
-        doc(db, ...BRANDING_DOC_PATH),
-        {
-          loginBackgroundURL: url,
-          loginBackgroundDriveFileId: fileId,
-          updatedAt: serverTimestamp(),
-          updatedByName: profile?.name || null,
-        },
-        { merge: true }
-      );
-      if (branding?.loginBackgroundDriveFileId)
-        deletePhotoFromDrive(branding.loginBackgroundDriveFileId, driveConfig.connectedByEmail); // best-effort
-      showSuccess("Login background updated.");
-    } catch (err: any) {
-      setBgError(err.message || "Couldn't upload that image.");
-      showError(err.message || "Couldn't upload that image.");
-    } finally {
-      setBgUploading(false);
-      setConfirmReplaceBgFile(null);
-    }
-  }
 
-  function handleBgSelect(file: File) {
-    if (branding?.loginBackgroundURL) {
-      setConfirmReplaceBgFile(file);
-    } else {
-      performBgUpload(file);
-    }
-  }
-
-  function handleBgRemove() {
-    setConfirmRemoveBgOpen(true);
-  }
-
-  // Same rationale as handleBeforeLogoPick, for the background photo.
-  function handleBeforeBgPick() {
-    if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
-  }
-
-  async function confirmBgRemove() {
-    setBgError("");
-    setRemovingBg(true);
-    try {
-      await setDoc(
-        doc(db, ...BRANDING_DOC_PATH),
-        {
-          loginBackgroundURL: null,
-          loginBackgroundDriveFileId: null,
-          updatedAt: serverTimestamp(),
-          updatedByName: profile?.name || null,
-        },
-        { merge: true }
-      );
-      if (branding?.loginBackgroundDriveFileId)
-        deletePhotoFromDrive(branding.loginBackgroundDriveFileId, driveConfig?.connectedByEmail); // best-effort
-      showSuccess("Login background removed. The default illustration will show instead.");
-    } catch (err: any) {
-      showError(err.message || "Couldn't remove the background image.");
-    } finally {
-      setRemovingBg(false);
-      setConfirmRemoveBgOpen(false);
-    }
-  }
 
   function handleConnectDriveClick() {
     if (driveConfig) {
@@ -358,29 +267,6 @@ export default function ContentSettings() {
               onSelect={handleLogoSelect}
               onBeforePick={handleBeforeLogoPick}
               onRemove={handleLogoRemove}
-            />
-          </Section>
-
-          <Section
-            icon={ImageIcon}
-            title="Login Background"
-            description="Custom backdrop photo on the portal login screen."
-          >
-            <LogoEditor
-              logoURL={branding?.loginBackgroundURL || null}
-              uploading={bgUploading}
-              disabled={!driveConfig}
-              error={bgError}
-              onSelect={handleBgSelect}
-              onBeforePick={handleBeforeBgPick}
-              onRemove={handleBgRemove}
-              shape="wide"
-              noneLabel="No background set"
-              uploadLabel="Upload Background"
-              replaceLabel="Replace Background"
-              currentLabel="Current background"
-              hint="Landscape photo works best, up to 5MB."
-              visibilityHint="Visible on the login screen behind the card."
             />
           </Section>
         </div>
@@ -556,19 +442,6 @@ export default function ContentSettings() {
         onConfirm={() => confirmReplaceLogoFile && performLogoUpload(confirmReplaceLogoFile)}
       />
 
-      {/* Confirm Replace Background */}
-      <ConfirmDialog
-        open={!!confirmReplaceBgFile}
-        title="Replace login background?"
-        message="Are you sure you want to replace the current login background image? The previous background photo will be replaced."
-        confirmLabel="Replace Background"
-        confirmingLabel="Replacing…"
-        danger={false}
-        loading={bgUploading}
-        onCancel={() => setConfirmReplaceBgFile(null)}
-        onConfirm={() => confirmReplaceBgFile && performBgUpload(confirmReplaceBgFile)}
-      />
-
       {/* Confirm Toggle Modules */}
       <ConfirmDialog
         open={!!confirmToggleData}
@@ -602,17 +475,6 @@ export default function ContentSettings() {
         loading={connectingDrive}
         onCancel={() => setConfirmSwitchDriveOpen(false)}
         onConfirm={performConnectDrive}
-      />
-
-      <ConfirmDialog
-        open={confirmRemoveBgOpen}
-        title="Remove login background?"
-        message="This removes the custom background photo from the Login screen — it'll fall back to the default illustration. This can't be undone; you'll need to upload it again to bring it back."
-        confirmLabel="Remove Background"
-        confirmingLabel="Removing…"
-        loading={removingBg}
-        onCancel={() => setConfirmRemoveBgOpen(false)}
-        onConfirm={confirmBgRemove}
       />
     </div>
   );
