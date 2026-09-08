@@ -190,7 +190,7 @@ export default function Layout() {
     setLoggingOut(true);
     try {
       await logout();
-      navigate("/login");
+      navigate("/");
     } catch (e) {
       console.error(e);
     } finally {
