@@ -30,6 +30,7 @@ import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
 import { connectGoogleDrive } from "../lib/googleDrive";
+import { CAR_ANIMATION_STORAGE_KEY, toggleCarAnimation } from "../components/FooterDrivingCar";
 
 const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -52,6 +53,10 @@ export default function ContentSettings() {
   const [confirmReplaceBgFile, setConfirmReplaceBgFile] = useState<File | null>(null);
   const [removingBg, setRemovingBg] = useState(false);
   const [confirmSwitchDriveOpen, setConfirmSwitchDriveOpen] = useState(false);
+  const [carAnimationEnabled, setCarAnimationEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem(CAR_ANIMATION_STORAGE_KEY);
+    return saved === null ? true : saved === "true";
+  });
 
   // Generic toggle confirmation state
   const [confirmToggleData, setConfirmToggleData] = useState<{
@@ -450,6 +455,25 @@ export default function ContentSettings() {
               checked={flags.driverModules.showAssignedVehicle}
               saving={savingKey === "driver-showAssignedVehicle"}
               onChange={() => requestToggleDriverModule("showAssignedVehicle", "Assigned Vehicle Card")}
+            />
+          </Section>
+
+          <Section
+            icon={Car}
+            title="Visual & UI Effects"
+            description="Toggle interactive visual effects across the portal."
+          >
+            <ToggleRow
+              icon={Car}
+              label="Footer Driving Car"
+              description="Animated SVG vehicle cruising along the bottom of pages."
+              checked={carAnimationEnabled}
+              saving={false}
+              onChange={() => {
+                const next = toggleCarAnimation();
+                setCarAnimationEnabled(next);
+                showSuccess(next ? "Footer car animation enabled." : "Footer car animation hidden.");
+              }}
             />
           </Section>
 
