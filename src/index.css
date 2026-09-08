@@ -236,6 +236,26 @@ textarea::placeholder {
   }
 }
 
+/* Vehicle Requests Responsive Layout Switcher */
+.mobile-requests-grid {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.desktop-requests-table {
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .mobile-requests-grid {
+    display: flex;
+  }
+  .desktop-requests-table {
+    display: none;
+  }
+}
+
 /* ───────────────────────── Deep Emerald Glassmorphism Theme ───────────────────────── */
 .login-container,
 .portal-container {

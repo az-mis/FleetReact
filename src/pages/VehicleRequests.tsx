@@ -231,172 +231,337 @@ export default function VehicleRequests() {
       </div>
 
       <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
-        {(["pending", "approved", "declined", "all"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "999px",
-              border: "1px solid var(--border)",
-              background: statusFilter === s ? "var(--primary)" : "#fff",
-              color: statusFilter === s ? "#fff" : "#2d3748",
-              fontSize: "12.5px",
-              fontWeight: 600,
-              textTransform: "capitalize",
-              cursor: "pointer",
-            }}
-          >
-            {s}
-          </button>
-        ))}
+        {(["pending", "approved", "declined", "all"] as const).map((s) => {
+          const count =
+            s === "all"
+              ? counts.total
+              : counts[s];
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "999px",
+                border: statusFilter === s ? "none" : "1px solid var(--border)",
+                background: statusFilter === s ? "var(--primary)" : "#fff",
+                color: statusFilter === s ? "#fff" : "#4a5568",
+                fontSize: "12.5px",
+                fontWeight: 700,
+                textTransform: "capitalize",
+                cursor: "pointer",
+                boxShadow: statusFilter === s ? "0 2px 8px rgba(26, 107, 60, 0.25)" : "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <span>{s}</span>
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  padding: "1px 6px",
+                  borderRadius: "10px",
+                  background: statusFilter === s ? "rgba(255,255,255,0.25)" : "#edf2f7",
+                  color: statusFilter === s ? "#fff" : "#718096",
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (
         <div
           style={{
             background: "#fff",
-            borderRadius: "12px",
+            borderRadius: "16px",
             border: "1px solid var(--border)",
-            padding: "28px",
+            padding: "48px 24px",
             textAlign: "center",
             color: "var(--text-muted)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
           }}
         >
-          <ClipboardList size={22} style={{ marginBottom: 6 }} />
-          <div>No requests found.</div>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: "50%",
+              background: "#f7fafc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px auto",
+              color: "#a0aec0",
+            }}
+          >
+            <ClipboardList size={24} />
+          </div>
+          <div style={{ fontWeight: 700, fontSize: "14.5px", color: "#2d3748" }}>No requests found</div>
+          <div style={{ fontSize: "12.5px", color: "#718096", marginTop: "4px" }}>
+            {search ? "Try refining your search keyword or clearing filters." : "Requests submitted by staff will appear here."}
+          </div>
         </div>
       ) : (
-        <div className="auth-table-wrap">
-          <table className="auth-table">
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}>Vehicle</th>
-                <th>Plate #</th>
-                <th>Driver</th>
-                <th>Requester</th>
-                <th>Passengers</th>
-                <th>Destination</th>
-                <th>Purpose</th>
-                <th>Status</th>
-                <th style={{ textAlign: "right" }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => {
-                const vehicle = vehicles.find((v) => v.id === requestVehicleId(r));
-                const driverName =
-                  r.status === "approved"
-                    ? r.confirmedDriverName || "Unassigned"
-                    : r.defaultDriverName || "Not assigned";
-                const driverId = r.status === "approved" ? r.confirmedDriverId : r.defaultDriverId;
-                const driver = drivers.find((d) => d.id === driverId);
-                const badge = STATUS_BADGE_STYLE[r.status];
-                const BadgeIcon = badge.icon;
+        <>
+          {/* Responsive Card Layout for Mobile & Compact Screens */}
+          <div className="mobile-requests-grid">
+            {filtered.map((r) => {
+              const vehicle = vehicles.find((v) => v.id === requestVehicleId(r));
+              const driverName =
+                r.status === "approved"
+                  ? r.confirmedDriverName || "Unassigned"
+                  : r.defaultDriverName || "Not assigned";
+              const driverId = r.status === "approved" ? r.confirmedDriverId : r.defaultDriverId;
+              const driver = drivers.find((d) => d.id === driverId);
+              const badge = STATUS_BADGE_STYLE[r.status];
+              const BadgeIcon = badge.icon;
 
-                return (
-                  <tr key={r.id} className="admin-row">
-                    {/* 1. Vehicle Pic */}
-                    <td style={{ width: 44, paddingRight: 0 }}>
-                      <Avatar
-                        photoURL={vehicle?.photoURL}
-                        fallback="icon"
-                        icon={Truck}
-                        size={32}
-                        name={r.vehiclePlateNumber}
-                      />
-                    </td>
-
-                    {/* 2. Plate Number */}
-                    <td style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-                      <div>{r.vehiclePlateNumber}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 400 }}>
-                        {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
+              return (
+                <div
+                  key={r.id}
+                  style={{
+                    background: "#fff",
+                    borderRadius: "14px",
+                    border: "1px solid var(--border)",
+                    padding: "16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Avatar photoURL={vehicle?.photoURL} fallback="icon" icon={Truck} size={36} name={r.vehiclePlateNumber} />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: "14px", color: "#1a202c" }}>{r.vehiclePlateNumber}</div>
+                        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", fontWeight: 500 }}>
+                          🗓 {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
+                        </div>
                       </div>
-                    </td>
+                    </div>
 
-                    {/* 3. Driver Name and Pic */}
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-                        <Avatar photoURL={driver?.photoURL} name={driverName} size={26} />
-                        <span style={{ fontWeight: 600, fontSize: "12.5px", color: "#2d3748", whiteSpace: "nowrap" }}>
-                          {driverName}
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: "999px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        background: badge.bg,
+                        color: badge.color,
+                        border: `1px solid ${badge.border}`,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.03em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <BadgeIcon size={10} />
+                      {r.status}
+                    </span>
+                  </div>
+
+                  <div style={{ height: "1px", background: "#f1f5f9" }} />
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "12px" }}>
+                    <div>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                        Requester
+                      </div>
+                      <div style={{ fontWeight: 600, color: "#2d3748", marginTop: "2px" }}>{r.requesterName}</div>
+                      {r.requesterOffice && <div style={{ fontSize: "11px", color: "#718096" }}>{r.requesterOffice}</div>}
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                        Assigned Driver
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <Avatar photoURL={driver?.photoURL} name={driverName} size={20} />
+                        <span style={{ fontWeight: 600, color: "#2d3748" }}>{driverName}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "12px" }}>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                      Destination &amp; Purpose
+                    </div>
+                    <div style={{ fontWeight: 700, color: "#166534", marginTop: "2px" }}>📍 {r.destination}</div>
+                    {r.purpose && <div style={{ fontSize: "11.5px", color: "#4a5568", marginTop: "1px" }}>{r.purpose}</div>}
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: "3px" }}>
+                      Passengers
+                    </div>
+                    <PassengersCell request={r} />
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                    <button
+                      onClick={() => setReviewing(r)}
+                      style={{
+                        width: "100%",
+                        padding: "8px 14px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                        color: r.status === "pending" ? "#fff" : "#2d3748",
+                        fontSize: "13px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
+                      }}
+                    >
+                      {r.status === "pending" ? "Review Request" : "View Details"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Table View for Desktop / Large Screens */}
+          <div className="desktop-requests-table auth-table-wrap">
+            <table className="auth-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 48 }}>Vehicle</th>
+                  <th style={{ minWidth: 130 }}>Plate &amp; Travel Date</th>
+                  <th style={{ minWidth: 140 }}>Driver</th>
+                  <th style={{ minWidth: 150 }}>Requester</th>
+                  <th style={{ minWidth: 160 }}>Passengers</th>
+                  <th style={{ minWidth: 140 }}>Destination</th>
+                  <th style={{ minWidth: 130 }}>Purpose</th>
+                  <th style={{ minWidth: 100 }}>Status</th>
+                  <th style={{ textAlign: "right", minWidth: 90 }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => {
+                  const vehicle = vehicles.find((v) => v.id === requestVehicleId(r));
+                  const driverName =
+                    r.status === "approved"
+                      ? r.confirmedDriverName || "Unassigned"
+                      : r.defaultDriverName || "Not assigned";
+                  const driverId = r.status === "approved" ? r.confirmedDriverId : r.defaultDriverId;
+                  const driver = drivers.find((d) => d.id === driverId);
+                  const badge = STATUS_BADGE_STYLE[r.status];
+                  const BadgeIcon = badge.icon;
+
+                  return (
+                    <tr key={r.id} className="admin-row">
+                      {/* 1. Vehicle Pic */}
+                      <td style={{ width: 48, paddingRight: 0 }}>
+                        <Avatar
+                          photoURL={vehicle?.photoURL}
+                          fallback="icon"
+                          icon={Truck}
+                          size={34}
+                          name={r.vehiclePlateNumber}
+                        />
+                      </td>
+
+                      {/* 2. Plate Number & Date */}
+                      <td style={{ fontWeight: 700 }}>
+                        <div style={{ color: "#1a202c", fontSize: "13.5px" }}>{r.vehiclePlateNumber}</div>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500, marginTop: "1px" }}>
+                          {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
+                        </div>
+                      </td>
+
+                      {/* 3. Driver Name and Pic */}
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Avatar photoURL={driver?.photoURL} name={driverName} size={26} />
+                          <span style={{ fontWeight: 600, fontSize: "12.5px", color: "#2d3748" }}>
+                            {driverName}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* 4. Requester Name */}
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: "12.5px", color: "#2d3748" }}>{r.requesterName}</div>
+                        {r.requesterOffice && (
+                          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{r.requesterOffice}</div>
+                        )}
+                      </td>
+
+                      {/* 5. Passengers */}
+                      <td>
+                        <PassengersCell request={r} />
+                      </td>
+
+                      {/* 6. Destination */}
+                      <td>
+                        <div style={{ fontWeight: 600, color: "#166534", fontSize: "12.5px" }}>📍 {r.destination}</div>
+                      </td>
+
+                      {/* 7. Purpose */}
+                      <td style={{ color: "var(--text-muted)", fontSize: "12px" }}>
+                        {r.purpose || "—"}
+                      </td>
+
+                      {/* 8. Status */}
+                      <td>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "3.5px 9px",
+                            borderRadius: "999px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            background: badge.bg,
+                            color: badge.color,
+                            border: `1px solid ${badge.border}`,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.03em",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <BadgeIcon size={10} />
+                          {r.status}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* 4. Requester Name */}
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: "12.5px" }}>{r.requesterName}</div>
-                      {r.requesterOffice && (
-                        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{r.requesterOffice}</div>
-                      )}
-                    </td>
-
-                    {/* 5. Passengers */}
-                    <td style={{ maxWidth: 190 }}>
-                      <PassengersCell request={r} />
-                    </td>
-
-                    {/* 6. Destination */}
-                    <td style={{ color: "var(--text-muted)", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {r.destination}
-                    </td>
-
-                    {/* 7. Purpose */}
-                    <td style={{ color: "var(--text-muted)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {r.purpose || "—"}
-                    </td>
-
-                    {/* 8. Status */}
-                    <td>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          background: badge.bg,
-                          color: badge.color,
-                          border: `1px solid ${badge.border}`,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.03em",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <BadgeIcon size={10} />
-                        {r.status}
-                      </span>
-                    </td>
-
-                    {/* 9. Action button review/view */}
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button
-                        onClick={() => setReviewing(r)}
-                        style={{
-                          padding: "5px 12px",
-                          borderRadius: "7px",
-                          border: "none",
-                          background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
-                          color: r.status === "pending" ? "#fff" : "#2d3748",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
-                        }}
-                      >
-                        {r.status === "pending" ? "Review" : "View"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {/* 9. Action button review/view */}
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                        <button
+                          onClick={() => setReviewing(r)}
+                          style={{
+                            padding: "6px 14px",
+                            borderRadius: "8px",
+                            border: "none",
+                            background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                            color: r.status === "pending" ? "#fff" : "#2d3748",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {r.status === "pending" ? "Review" : "View"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {reviewing && (
