@@ -32,7 +32,242 @@ export default function FooterDrivingCar() {
   return (
     <div id="fleet-car-footer-wrapper" aria-hidden="true">
       <div className="fleet-road-line" />
+
+      {/* ========================================================
+          CENTER CHECKPOINT: OFFICER PATROL & CHAT BUBBLE
+          ======================================================== */}
+      <div className="fleet-checkpoint-officer-wrap">
+        {/* Officer Speech Bubble: "Approved ba TO mo?" */}
+        <div className="fleet-speech-bubble fleet-bubble-officer">
+          <span>Approved ba TO mo?</span>
+          <div className="fleet-bubble-tail-officer" />
+        </div>
+
+        {/* Animated Walking/Waiting Officer SVG */}
+        <div className="fleet-officer-body">
+          <svg
+            viewBox="-25 0 85 90"
+            width="100%"
+            height="100%"
+            fill="none"
+            style={{ overflow: "visible" }}
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Ground Contact Shadow */}
+            <ellipse cx="27" cy="86" rx="20" ry="2.8" fill="rgba(0,0,0,0.3)" />
+
+            {/* Dark Navy Uniform Trousers / Legs (Standing Stance) */}
+            <path
+              d="M 18 56
+                 L 12 80
+                 L 8 82
+                 L 8 85
+                 L 22 85
+                 L 25 58
+                 Z"
+              fill="#2c3e50"
+            />
+            {/* Left Leg */}
+            <path
+              d="M 28 56
+                 L 33 80
+                 L 40 82
+                 L 40 85
+                 L 26 85
+                 L 25 58
+                 Z"
+              fill="#243342"
+            />
+            {/* Black Uniform Service Boots */}
+            <path d="M 8 82 C 7 83, 7 85.5, 9 86 L 22 86 L 22 81 Z" fill="#0f172a" />
+            <path d="M 40 82 C 41 83, 41 85.5, 39 86 L 26 86 L 26 81 Z" fill="#0f172a" />
+
+            {/* Duty Belt, Holster, Pouch, Handcuffs & Baton */}
+            {/* Police Duty Baton / Nightstick hanging behind */}
+            <line x1="36" y1="56" x2="43" y2="76" stroke="#0f172a" strokeWidth="2.8" strokeLinecap="round" />
+            {/* Main Black Leather Duty Belt */}
+            <rect x="15" y="52" width="22" height="4.5" rx="1" fill="#1e293b" />
+            {/* Heavy Duty Chrome Belt Buckle */}
+            <rect x="23" y="51.5" width="6" height="5.5" rx="0.8" fill="#94a3b8" stroke="#334155" strokeWidth="0.6" />
+            <rect x="24.8" y="53" width="2.4" height="2.5" fill="#1e293b" />
+            {/* Holster on side */}
+            <rect x="14" y="52" width="3.5" height="9" rx="1" fill="#0f172a" />
+
+            {/* Light Blue Police Shirt Torso */}
+            <path
+              d="M 16 33
+                 L 35 33
+                 C 37 33, 38 35, 37.5 38
+                 L 36 53
+                 L 15 53
+                 L 14 38
+                 C 14 35, 15 33, 16 33
+                 Z"
+              fill="#5dade2"
+            />
+
+            {/* Dark Blue Necktie */}
+            <polygon points="23,34 28,34 26.5,41 27.5,51 25.5,53 23.5,51 24.5,41" fill="#1e293b" />
+
+            {/* Crisp Shirt Collar */}
+            <polygon points="17,33 24,33 22,37" fill="#85c1e9" stroke="#3498db" strokeWidth="0.4" />
+            <polygon points="34,33 27,33 29,37" fill="#85c1e9" stroke="#3498db" strokeWidth="0.4" />
+
+            {/* Dark Navy Shoulder Epaulets */}
+            <polygon points="15,33 20,33 19,35 14,35" fill="#1e293b" />
+            <polygon points="36,33 31,33 32,35 37,35" fill="#1e293b" />
+
+            {/* Shirt Pockets */}
+            <rect x="16.5" y="41" width="5.5" height="5" rx="0.6" fill="#4fa7db" stroke="#3498db" strokeWidth="0.4" />
+            <rect x="29" y="41" width="5.5" height="5" rx="0.6" fill="#4fa7db" stroke="#3498db" strokeWidth="0.4" />
+
+            {/* Gold Police Shield Badge on Chest */}
+            <path
+              d="M 17.5 37
+                 L 21 37
+                 L 21.5 40
+                 L 19.2 42.5
+                 L 17 40
+                 Z"
+              fill="#f1c40f"
+              stroke="#d4ac0d"
+              strokeWidth="0.4"
+            />
+
+            {/* Left Arm: Resting on Hip/Belt */}
+            <g>
+              <path
+                d="M 36 34
+                   L 44 43
+                   C 45 44.5, 45 47, 43 49
+                   L 37 53
+                   L 33 49
+                   L 37 45
+                   L 33 36
+                   Z"
+                fill="#5dade2"
+              />
+              {/* Police Star Shoulder Patch */}
+              <ellipse cx="40" cy="41" rx="3.5" ry="4" fill="#1e293b" stroke="#f1c40f" strokeWidth="0.5" />
+              <polygon points="40,38 41,40.5 43.5,41 41.5,42.5 42,45 40,43.5 38,45 38.5,42.5 36.5,41 39,40.5" fill="#f1c40f" />
+              {/* Fist on Hip */}
+              <circle cx="34" cy="53" r="3.2" fill="#f5b041" />
+            </g>
+
+            {/* Right Arm: Hanging straight down naturally at side, lifts up to flag down/stop car when near */}
+            <g className="fleet-officer-waving-hand">
+              {/* Sleeve hanging straight down from shoulder (pivot point ~15, 34) */}
+              <path
+                d="M 16 34
+                   L 10 37
+                   L 8 48
+                   L 7 53
+                   L 13 53
+                   L 14 47
+                   L 17 38
+                   Z"
+                fill="#5dade2"
+                stroke="#3498db"
+                strokeWidth="0.3"
+              />
+              {/* Officer White Duty Glove / Hand with clearly visible Open Palm STOP sign */}
+              {/* Hand Palm */}
+              <ellipse cx="9.5" cy="57" rx="3.8" ry="4" fill="#f8fafc" stroke="#64748b" strokeWidth="0.5" />
+              {/* 4 Extended STOP Fingers */}
+              <rect x="6.2" y="56" width="1.8" height="6.5" rx="0.9" fill="#f8fafc" stroke="#64748b" strokeWidth="0.4" />
+              <rect x="8.3" y="56" width="1.8" height="7.2" rx="0.9" fill="#f8fafc" stroke="#64748b" strokeWidth="0.4" />
+              <rect x="10.4" y="56" width="1.8" height="6.8" rx="0.9" fill="#f8fafc" stroke="#64748b" strokeWidth="0.4" />
+              <rect x="12.3" y="56.5" width="1.6" height="5.5" rx="0.8" fill="#f8fafc" stroke="#64748b" strokeWidth="0.4" />
+              {/* Thumb */}
+              <path d="M 6.8 55.5 C 5 56.5, 4.8 59, 6.5 60 Z" fill="#f8fafc" stroke="#64748b" strokeWidth="0.4" />
+              {/* Palm inner crease line for 3D depth */}
+              <line x1="7.5" y1="57" x2="12.5" y2="57" stroke="#cbd5e1" strokeWidth="0.6" />
+            </g>
+
+            {/* Friendly Face, Cheerful Smile & Hair */}
+            {/* Neck */}
+            <rect x="22" y="30" width="6.5" height="4.5" fill="#f5b041" />
+            {/* Head Shape */}
+            <path
+              d="M 16 19
+                 C 16 14, 21 11, 26 11
+                 C 31 11, 35 14, 35 19
+                 C 35 27, 30 32, 26 32
+                 C 21 32, 16 27, 16 19
+                 Z"
+              fill="#f5b041"
+            />
+            {/* Brown Hair & Sideburns */}
+            <path d="M 16 17 L 34 17 C 35 18, 36 21, 34 23 L 33 19 L 17 19 L 16 23 Z" fill="#873600" />
+            {/* Big Friendly Eyes */}
+            <ellipse cx="20.5" cy="21" rx="2" ry="2.5" fill="#ffffff" />
+            <circle cx="21" cy="21.5" r="1.3" fill="#6e2c00" />
+            <circle cx="21.5" cy="20.8" r="0.5" fill="#ffffff" />
+
+            <ellipse cx="29.5" cy="21" rx="2" ry="2.5" fill="#ffffff" />
+            <circle cx="29" cy="21.5" r="1.3" fill="#6e2c00" />
+            <circle cx="28.5" cy="20.8" r="0.5" fill="#ffffff" />
+
+            {/* Cheerful Open Smile */}
+            <path
+              d="M 22 26
+                 Q 25.5 30 29 26
+                 Z"
+              fill="#c0392b"
+            />
+            <path d="M 23.5 26.2 Q 25.5 27.5 27.5 26.2 Z" fill="#ffffff" />
+
+            {/* Cute Nose */}
+            <path d="M 25 21 L 24 23.5 L 26 23.5" stroke="#d35400" strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+            {/* Cute Police Visor Cap with Gold Star Shield Badge */}
+            {/* Cap Crown (Navy Blue) */}
+            <path
+              d="M 14 14
+                 C 14 7, 20 4, 26 4
+                 C 32 4, 38 7, 38 14
+                 Z"
+              fill="#1b4f72"
+            />
+            {/* Cap Band */}
+            <rect x="13.5" y="13" width="24" height="3" rx="0.5" fill="#154360" />
+            <line x1="14" y1="15.5" x2="37" y2="15.5" stroke="#f1c40f" strokeWidth="0.8" />
+            {/* Glossy Black Visor / Bill */}
+            <path
+              d="M 13.5 15.5
+                 C 18 19, 33 19, 37.5 15.5
+                 L 35 13.5
+                 L 16 13.5
+                 Z"
+              fill="#0f172a"
+            />
+            {/* Large Gold Police Badge on Cap Crown */}
+            <path
+              d="M 22.5 5.5
+                 L 28.5 5.5
+                 L 29.5 9
+                 L 25.5 12
+                 L 21.5 9
+                 Z"
+              fill="#f1c40f"
+              stroke="#d4ac0d"
+              strokeWidth="0.5"
+            />
+            <polygon points="25.5,6.5 26.5,8.5 28.5,8.5 27,9.8 27.5,11.5 25.5,10.5 23.5,11.5 24,9.8 22.5,8.5 24.5,8.5" fill="#d4ac0d" />
+          </svg>
+        </div>
+      </div>
+
+      {/* ========================================================
+          MOVING 4x4 TRUCK + CHAT BUBBLE
+          ======================================================== */}
       <div className="fleet-car-track">
+        {/* Car Speech Bubble: "Opo." */}
+        <div className="fleet-speech-bubble fleet-bubble-car">
+          <span>Opo.</span>
+          <div className="fleet-bubble-tail-car" />
+        </div>
+
         <svg
           viewBox="0 0 130 62"
           width="100%"

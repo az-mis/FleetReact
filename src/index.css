@@ -1453,7 +1453,7 @@ textarea::placeholder {
 }
 
 /* =========================================================
-   ANIMATED FOOTER DRIVING CAR
+   ANIMATED FOOTER: 4x4 TRUCK + INSPECTING OFFICER CONVO
    ========================================================= */
 :root {
   --car-primary: #1a6b3c;
@@ -1463,7 +1463,7 @@ textarea::placeholder {
   --car-rim: #e2e8f0;
   --car-hub: #64748b;
   --car-road: rgba(26, 107, 60, 0.22);
-  --car-anim-duration: 9.5s;
+  --fleet-scene-duration: 13s;
 }
 
 #fleet-car-footer-wrapper {
@@ -1471,10 +1471,10 @@ textarea::placeholder {
   bottom: 0;
   left: 0;
   width: 100vw;
-  height: 85px;
-  overflow: hidden;
+  height: 120px;
+  overflow: visible;
   pointer-events: none;
-  z-index: 40;
+  z-index: 9999;
 }
 
 .fleet-road-line {
@@ -1493,54 +1493,156 @@ textarea::placeholder {
   opacity: 0.5;
 }
 
+/* =========================================================
+   OFFICER CHECKPOINT (STANDING IN THE MIDDLE WAITING)
+   ========================================================= */
+.fleet-checkpoint-officer-wrap {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 10001;
+  overflow: visible;
+}
+
+.fleet-officer-body {
+  width: 48px;
+  height: 80px;
+  transform-origin: center bottom;
+  animation: officerStandingIdle 2.5s ease-in-out infinite alternate;
+}
+
+/* Officer stands stationed in the middle with gentle idle breathing */
+@keyframes officerStandingIdle {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  100% {
+    transform: translateY(-1.2px) scale(1.01);
+  }
+}
+
+/* Officer Hand Gesture:
+   - Arm rests down at his side while waiting for oncoming traffic (0% - 17%)
+   - Spots the incoming 4x4 on the left and firmly raises arm OUTWARD TO THE LEFT to command STOP (18% - 24%)
+   - Holds firm raised STOP palm facing left towards the truck (36% - 71%)
+   - Lowers arm back down (all-clear signal) as car departs (74% - 100%) */
+.fleet-officer-waving-hand {
+  transform-box: fill-box;
+  transform-origin: 80% 8%;
+  animation: officerStopSignalingLeft var(--fleet-scene-duration) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes officerStopSignalingLeft {
+  0%, 17% {
+    /* Arm resting straight down at side */
+    transform: rotate(0deg);
+  }
+  22% {
+    /* Raises arm up and to the left (pointing toward approaching truck) */
+    transform: rotate(78deg);
+  }
+  25%, 35% {
+    /* High firm STOP hand gesture pointing to the left */
+    transform: rotate(88deg);
+  }
+  36%, 71% {
+    /* Holds STOP hand pointing to the left right in front of truck */
+    transform: rotate(84deg);
+  }
+  74% {
+    /* Lowers arm back down */
+    transform: rotate(20deg);
+  }
+  77%, 100% {
+    /* Arm completely back down at side */
+    transform: rotate(0deg);
+  }
+}
+
+/* =========================================================
+   CAR TRAVEL: DRIVES, SEES STOP SIGNAL, BRAKES, STOPS, SPEEDS OFF
+   ========================================================= */
 .fleet-car-track {
   position: absolute;
   bottom: 8px;
   left: 0;
   width: 155px;
   height: 74px;
-  animation: driveAcross var(--car-anim-duration) linear infinite;
+  animation: carDriveStopResume var(--fleet-scene-duration) cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
   will-change: transform;
+  z-index: 10000;
+  overflow: visible;
 }
 
-@keyframes driveAcross {
+@keyframes carDriveStopResume {
   0% {
     transform: translateX(-180px);
+  }
+  22% {
+    /* Officer raises hand at 18%-22%: Car sees the gesture and begins braking */
+    transform: translateX(calc(25vw - 120px));
+  }
+  36% {
+    /* Car comes to a full stop right before the officer's raised hand */
+    transform: translateX(calc(50vw - 150px));
+  }
+  73% {
+    /* Holds position during inspection conversation */
+    transform: translateX(calc(50vw - 150px));
+  }
+  77% {
+    /* Accelerates away after officer lowers hand */
+    transform: translateX(calc(50vw - 110px));
   }
   100% {
     transform: translateX(100vw);
   }
 }
 
+/* Suspension Bounce */
 .fleet-car-chassis-group {
-  animation: suspensionBounce 0.38s ease-in-out infinite alternate;
+  animation: suspensionBounceWithStop var(--fleet-scene-duration) ease-in-out infinite;
   transform-origin: center bottom;
 }
 
-@keyframes suspensionBounce {
-  0% {
+@keyframes suspensionBounceWithStop {
+  0%, 33% {
+    transform: translateY(0.4px) rotate(0.2deg);
+  }
+  35%, 73% {
     transform: translateY(0px) rotate(0deg);
   }
-  50% {
-    transform: translateY(-0.8px) rotate(-0.3deg);
-  }
-  100% {
-    transform: translateY(0.4px) rotate(0.3deg);
+  75%, 100% {
+    transform: translateY(0.4px) rotate(0.2deg);
   }
 }
 
+/* Wheel rotation */
 .fleet-car-wheel-rim {
   transform-box: fill-box;
   transform-origin: center;
-  animation: spinWheel 0.45s linear infinite;
+  animation: spinWheelWithStop var(--fleet-scene-duration) linear infinite;
 }
 
-@keyframes spinWheel {
+@keyframes spinWheelWithStop {
   0% {
     transform: rotate(0deg);
   }
+  35% {
+    transform: rotate(1440deg);
+  }
+  73% {
+    transform: rotate(1440deg);
+  }
   100% {
-    transform: rotate(360deg);
+    transform: rotate(2880deg);
   }
 }
 
@@ -1557,14 +1659,128 @@ textarea::placeholder {
   }
 }
 
-@media (max-width: 640px) {
-  #fleet-car-footer-wrapper {
-    height: 64px;
+/* =========================================================
+   TOP-LAYER CRISP CHAT BUBBLES
+   ========================================================= */
+.fleet-speech-bubble {
+  position: absolute;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 12px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 800;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.22),
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    0 0 0 1.5px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10005;
+}
+
+/* Officer Speech Bubble ("Approved ba TO mo?") */
+.fleet-bubble-officer {
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.7);
+  animation: officerBubblePop var(--fleet-scene-duration) ease-in-out infinite;
+}
+
+.fleet-bubble-tail-officer {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 9px;
+  height: 9px;
+  background: #ffffff;
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes officerBubblePop {
+  0%, 36% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6) translateY(6px);
   }
-  .fleet-car-track {
-    width: 120px;
-    height: 57px;
-    bottom: 6px;
+  39%, 53% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+  56%, 100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.6) translateY(-4px);
   }
 }
+
+/* Car Speech Bubble ("Opo.") */
+.fleet-bubble-car {
+  bottom: 78px;
+  right: 28px;
+  background: #1a6b3c;
+  color: #ffffff;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 0 0 1.5px rgba(255, 255, 255, 0.25);
+  animation: carBubblePop var(--fleet-scene-duration) ease-in-out infinite;
+}
+
+.fleet-bubble-tail-car {
+  position: absolute;
+  bottom: -5px;
+  right: 14px;
+  transform: rotate(45deg);
+  width: 9px;
+  height: 9px;
+  background: #1a6b3c;
+}
+
+@keyframes carBubblePop {
+  0%, 55% {
+    opacity: 0;
+    transform: scale(0.6) translateY(6px);
+  }
+  58%, 71% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  74%, 100% {
+    opacity: 0;
+    transform: scale(0.6) translateY(-4px);
+  }
+}
+
+@media (max-width: 640px) {
+  #fleet-car-footer-wrapper {
+    height: 95px;
+  }
+  .fleet-checkpoint-officer-wrap {
+    height: 68px;
+    bottom: 6px;
+  }
+  .fleet-officer-body {
+    width: 36px;
+    height: 60px;
+  }
+  .fleet-car-track {
+    width: 125px;
+    height: 60px;
+    bottom: 6px;
+  }
+  .fleet-speech-bubble {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  .fleet-bubble-officer {
+    bottom: 72px;
+  }
+  .fleet-bubble-car {
+    bottom: 66px;
+    right: 18px;
+  }
+}
+
 
