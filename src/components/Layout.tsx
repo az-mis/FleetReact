@@ -19,6 +19,7 @@ import {
   Megaphone,
   Lock,
   UserCircle,
+  History,
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
@@ -108,6 +109,7 @@ export default function Layout() {
   const navStructure: NavItem[] = [
     { type: "link", to: "/", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
     { type: "link", to: "/my-profile", icon: UserCircle, label: "My Profile", show: true },
+    { type: "link", to: "/travel-history", icon: History, label: "History of Travel", show: isDriver },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
     {
       type: "link",

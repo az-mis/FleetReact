@@ -1,4 +1,4 @@
-import React, { useRef, useState, FormEvent } from "react";
+import React, { useRef, useState, FormEvent, useMemo } from "react";
 import { doc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -6,22 +6,25 @@ import { useToast } from "../contexts/ToastContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
 import PageHeader from "../components/PageHeader";
 import { AvatarPicker } from "../components/Avatar";
-import { UserCircle } from "lucide-react";
+import {
+  UserCircle,
+  Mail,
+  User,
+  Calendar,
+  MapPin,
+  Award,
+  ShieldCheck,
+  ShieldAlert,
+  Clock,
+  Lock,
+  CheckCircle2,
+} from "lucide-react";
 import { USER_ROLE_LABEL, USER_ROLE_COLOR } from "../types";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
-/**
- * Lets whoever is logged in (super admin, admin, or driver) update their own
- * name, photo, and — for drivers — their birth date and address. Everyone
- * only ever edits their own doc here (users/{currentUser.uid}), so unlike
- * Admins.tsx / Drivers.tsx this never needs a role check or a picker for
- * *which* record to edit. Email/role/license expiry stay read-only: email is
- * tied to the Firebase Auth identity, and role/license are things only an
- * admin should be able to change.
- */
 export default function MyProfile() {
   const { currentUser, profile, role, isDriver } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -68,12 +71,6 @@ export default function MyProfile() {
     setPhotoURL(preview);
   }
 
-  // Fired on the click that OPENS the file picker (see AvatarPicker's
-  // onBeforePick), not after a file is chosen. Browsers only allow opening
-  // a new popup window during a fresh, unbroken click, and the OS-native
-  // file dialog can stay open for any length of time — so kicking off
-  // Drive's consent popup here, instead of in handlePhotoSelect's onChange,
-  // is what keeps it from being silently blocked.
   function handleBeforePhotoPick() {
     if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
@@ -109,7 +106,7 @@ export default function MyProfile() {
             driveConfig.connectedByEmail
           );
           if (originalPhotoRef.current.fileId)
-            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail); // best-effort
+            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail);
           finalPhotoURL = url;
           finalPhotoDriveFileId = fileId;
         } catch (err: any) {
@@ -119,7 +116,7 @@ export default function MyProfile() {
         }
       } else if (photoRemovedRef.current) {
         if (originalPhotoRef.current.fileId)
-          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail); // best-effort
+          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail);
         finalPhotoURL = null;
         finalPhotoDriveFileId = null;
       }
@@ -137,8 +134,6 @@ export default function MyProfile() {
 
       await updateDoc(doc(db, "users", currentUser.uid), updates);
 
-      // Keep vehicles.assignedDriverName (a denormalized copy) in sync, same
-      // as Drivers.tsx does when an admin renames a driver.
       if (isDriver && name !== profile.name) {
         const assignedVehicles = await getDocs(
           query(collection(db, "vehicles"), where("assignedDriverId", "==", currentUser.uid))
@@ -163,18 +158,42 @@ export default function MyProfile() {
     }
   }
 
+  // License status check
+  const licenseInfo = useMemo(() => {
+    if (!profile?.licenseExpirationDate) return null;
+    const exp = new Date(profile.licenseExpirationDate);
+    const now = new Date();
+    const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      return { status: "expired", label: "Expired", bg: "#fdd9d9", color: "#a11e1e", border: "#f7b8b8", icon: ShieldAlert };
+    }
+    if (diffDays <= 30) {
+      return { status: "expiring_soon", label: `Expires in ${diffDays}d`, bg: "#fff3cd", color: "#856404", border: "#ffeeba", icon: Clock };
+    }
+    return { status: "valid", label: "Valid", bg: "#d9f5e5", color: "#0f7a44", border: "#a9e6c4", icon: ShieldCheck };
+  }, [profile?.licenseExpirationDate]);
+
   if (!profile) return null;
 
   const roleColor = USER_ROLE_COLOR[profile.role];
 
   return (
     <div className="fade-in">
-      <PageHeader icon={UserCircle} title="My Profile" subtitle="Update your personal details and avatar." />
+      <PageHeader icon={UserCircle} title="My Profile" subtitle="Manage your personal account settings and credentials." />
 
-      <div className="profile-card fade-in" style={{ maxWidth: "600px", margin: "0 auto", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-        <div className="profile-cover" style={{ height: "68px" }} />
+      <div className="profile-card fade-in" style={{ maxWidth: "680px", margin: "0 auto", borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
+        {/* Banner Cover */}
+        <div
+          className="profile-cover"
+          style={{
+            height: "80px",
+            background: "linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%)",
+            position: "relative",
+          }}
+        />
 
-        <div className="profile-identity" style={{ marginTop: "-38px", padding: "0 18px 14px" }}>
+        {/* Identity Section */}
+        <div className="profile-identity" style={{ marginTop: "-44px", padding: "0 24px 16px" }}>
           <div className="profile-avatar-ring">
             <AvatarPicker
               inputId="my-profile-photo-input"
@@ -185,20 +204,56 @@ export default function MyProfile() {
               onRemove={handlePhotoRemove}
               error={photoError}
               label={photoUploading ? "Uploading to Drive…" : "Photo (max 5MB)"}
-              size={76}
+              size={84}
             />
           </div>
-          <div className="profile-name-display" style={{ fontSize: "16px", marginTop: "8px" }}>{name || "Unnamed"}</div>
-          <span className="profile-role-chip" style={{ background: roleColor + "1a", color: roleColor, fontSize: "11px", padding: "2px 10px", marginTop: "4px" }}>
-            {USER_ROLE_LABEL[profile.role]}
-          </span>
+          <div className="profile-name-display" style={{ fontSize: "17px", fontWeight: 800, marginTop: "8px", color: "#1a202c" }}>
+            {name || "Unnamed"}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+            <span
+              className="profile-role-chip"
+              style={{
+                background: roleColor + "18",
+                color: roleColor,
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 10px",
+                borderRadius: "999px",
+                border: `1px solid ${roleColor}33`,
+              }}
+            >
+              {USER_ROLE_LABEL[profile.role]}
+            </span>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>•</span>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{profile.email}</span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="profile-form" style={{ padding: "4px 18px 20px", gap: "14px" }}>
-          <div className="profile-grid" style={{ gap: "14px" }}>
-            <section className="profile-section" style={{ gap: "10px" }}>
-              <h3 style={{ fontSize: "11.5px" }}>Account Credentials</h3>
-              <Field label="Full Name" required>
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="profile-form" style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="profile-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+            
+            {/* Account Credentials Column */}
+            <section
+              style={{
+                background: "#f8fafc",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
+                padding: "16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
+                <User size={14} style={{ color: "var(--primary)" }} />
+                <h3 style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "#2d3748", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                  Account Credentials
+                </h3>
+              </div>
+
+              <Field label="Full Name" icon={User} required>
                 <input
                   className="auth-input"
                   required
@@ -207,16 +262,45 @@ export default function MyProfile() {
                   placeholder="Your full name"
                 />
               </Field>
-              <Field label="Email Address">
-                <input className="auth-input" type="email" disabled value={profile.email} style={{ background: "#f8fafc", color: "var(--text-muted)" }} />
-                <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>Email changes require a backend administrator.</small>
+
+              <Field label="Email Address" icon={Mail}>
+                <div style={{ position: "relative" }}>
+                  <input
+                    className="auth-input"
+                    type="email"
+                    disabled
+                    value={profile.email}
+                    style={{ background: "#edf2f7", color: "#4a5568", paddingRight: "28px", cursor: "not-allowed" }}
+                  />
+                  <Lock size={13} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#a0aec0" }} />
+                </div>
+                <small style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
+                  Account email is managed by your administrator.
+                </small>
               </Field>
             </section>
 
+            {/* Driver Details Column */}
             {isDriver && (
-              <section className="profile-section" style={{ gap: "10px" }}>
-                <h3 style={{ fontSize: "11.5px" }}>Driver Details</h3>
-                <Field label="Birth Date">
+              <section
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
+                  <Award size={14} style={{ color: "var(--primary)" }} />
+                  <h3 style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "#2d3748", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    Driver Details
+                  </h3>
+                </div>
+
+                <Field label="Birth Date" icon={Calendar}>
                   <input
                     className="auth-input"
                     type="date"
@@ -224,46 +308,116 @@ export default function MyProfile() {
                     onChange={(e) => setBirthDate(e.target.value)}
                   />
                 </Field>
-                <Field label="Residential Address">
-                  <input className="auth-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. Calapan City" />
+
+                <Field label="Residential Address" icon={MapPin}>
+                  <input
+                    className="auth-input"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. Calapan City, Oriental Mindoro"
+                  />
+                </Field>
+
+                <Field label="Driver's License Expiration" icon={Award}>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      className="auth-input"
+                      disabled
+                      value={profile.licenseExpirationDate || "No expiration date on file"}
+                      style={{
+                        background: "#edf2f7",
+                        color: "#4a5568",
+                        paddingRight: licenseInfo ? "96px" : "28px",
+                        cursor: "not-allowed",
+                        fontWeight: 600,
+                      }}
+                    />
+                    {licenseInfo ? (
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: licenseInfo.bg,
+                          color: licenseInfo.color,
+                          border: `1px solid ${licenseInfo.border}`,
+                          fontSize: "10.5px",
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: "6px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                        }}
+                      >
+                        <licenseInfo.icon size={11} />
+                        {licenseInfo.label}
+                      </span>
+                    ) : (
+                      <Lock size={13} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#a0aec0" }} />
+                    )}
+                  </div>
+                  <small style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
+                    Managed and verified by your fleet administrator.
+                  </small>
                 </Field>
               </section>
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={saving || photoUploading}
-            style={{
-              height: "38px",
-              marginTop: "6px",
-              borderRadius: "9px",
-              border: "none",
-              background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: "13px",
-              cursor: saving || photoUploading ? "not-allowed" : "pointer",
-              boxShadow: "0 4px 12px rgba(0, 168, 107, 0.35)",
-              transition: "all 0.15s ease",
-            }}
-          >
-            {photoUploading ? "Uploading photo..." : saving ? "Saving..." : "Save Changes"}
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: "14px" }}>
+            <button
+              type="submit"
+              disabled={saving || photoUploading}
+              style={{
+                height: "40px",
+                padding: "0 22px",
+                borderRadius: "9px",
+                border: "none",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: saving || photoUploading ? "not-allowed" : "pointer",
+                boxShadow: "0 3px 10px rgba(0, 179, 119, 0.3)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <CheckCircle2 size={15} />
+              {photoUploading ? "Uploading photo..." : saving ? "Saving changes..." : "Save Changes"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  icon: Icon,
+  required,
+  children,
+}: {
+  label: string;
+  icon?: any;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
+      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568", display: "flex", alignItems: "center", gap: "5px" }}>
+        {Icon && <Icon size={12} style={{ color: "var(--text-muted)" }} />}
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
     </label>
   );
 }
+
 
