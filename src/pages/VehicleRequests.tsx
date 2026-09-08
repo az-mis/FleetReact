@@ -93,11 +93,19 @@ export default function VehicleRequests() {
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     const s = search.trim().toLowerCase();
     if (s) {
-      list = list.filter((r) =>
-        [r.requesterName, r.vehiclePlateNumber, r.destination, r.defaultDriverName].some((f) =>
-          (f || "").toLowerCase().includes(s)
-        )
-      );
+      list = list.filter((r) => {
+        const passList = [
+          ...(r.requesterIsPassenger ? [r.requesterName] : []),
+          ...(r.passengers || []),
+        ];
+        return [
+          r.requesterName,
+          r.vehiclePlateNumber,
+          r.destination,
+          r.defaultDriverName,
+          ...passList,
+        ].some((f) => (f || "").toLowerCase().includes(s));
+      });
     }
     return list;
   }, [requests, statusFilter, search]);
@@ -267,6 +275,7 @@ export default function VehicleRequests() {
                 <th>Plate #</th>
                 <th>Driver</th>
                 <th>Requester</th>
+                <th>Passengers</th>
                 <th>Destination</th>
                 <th>Purpose</th>
                 <th>Status</th>
@@ -324,17 +333,22 @@ export default function VehicleRequests() {
                       )}
                     </td>
 
-                    {/* 5. Destination */}
-                    <td style={{ color: "var(--text-muted)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {/* 5. Passengers */}
+                    <td style={{ maxWidth: 190 }}>
+                      <PassengersCell request={r} />
+                    </td>
+
+                    {/* 6. Destination */}
+                    <td style={{ color: "var(--text-muted)", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {r.destination}
                     </td>
 
-                    {/* 6. Purpose */}
-                    <td style={{ color: "var(--text-muted)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {/* 7. Purpose */}
+                    <td style={{ color: "var(--text-muted)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {r.purpose || "—"}
                     </td>
 
-                    {/* 7. Status */}
+                    {/* 8. Status */}
                     <td>
                       <span
                         style={{
@@ -358,7 +372,7 @@ export default function VehicleRequests() {
                       </span>
                     </td>
 
-                    {/* 8. Action button review/view */}
+                    {/* 9. Action button review/view */}
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <button
                         onClick={() => setReviewing(r)}
@@ -800,3 +814,95 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
     </div>
   );
 }
+
+function PassengersCell({ request }: { request: VehicleRequest }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const allPassengers = useMemo(() => {
+    const list: string[] = [];
+    if (request.requesterIsPassenger && request.requesterName) {
+      list.push(`${request.requesterName} (Requester)`);
+    }
+    if (request.passengers && Array.isArray(request.passengers)) {
+      request.passengers.forEach((p) => {
+        const trimmed = p?.trim();
+        if (trimmed && !list.some((existing) => existing.startsWith(trimmed))) {
+          list.push(trimmed);
+        }
+      });
+    }
+    return list;
+  }, [request]);
+
+  if (allPassengers.length === 0) {
+    return <span style={{ color: "var(--text-muted)", fontSize: "12.5px" }}>—</span>;
+  }
+
+  if (allPassengers.length === 1) {
+    return (
+      <div style={{ fontSize: "12.5px", color: "#2d3748", fontWeight: 500 }} title={allPassengers[0]}>
+        {allPassengers[0]}
+      </div>
+    );
+  }
+
+  const firstPassenger = allPassengers[0];
+  const remainingCount = allPassengers.length - 1;
+
+  return (
+    <div style={{ fontSize: "12.5px" }}>
+      <div>
+        <span style={{ color: "#2d3748", fontWeight: 500 }}>{firstPassenger}</span>
+        {!expanded && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            style={{
+              marginLeft: "6px",
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "var(--primary)",
+              fontWeight: 600,
+              fontSize: "11.5px",
+              cursor: "pointer",
+              textDecoration: "underline",
+              whiteSpace: "nowrap",
+            }}
+          >
+            +{remainingCount} more
+          </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
+          {allPassengers.slice(1).map((p, idx) => (
+            <div key={idx} style={{ color: "#4a5568", fontSize: "12px" }}>
+              • {p}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            style={{
+              marginTop: "2px",
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "var(--primary)",
+              fontWeight: 600,
+              fontSize: "11px",
+              cursor: "pointer",
+              textAlign: "left",
+              textDecoration: "underline",
+            }}
+          >
+            Show less
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
