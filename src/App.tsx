@@ -22,6 +22,7 @@ import MyProfile from "./pages/MyProfile";
 import TravelHistory from "./pages/TravelHistory";
 import ContentSettings from "./pages/ContentSettings";
 import Unauthorized from "./pages/Unauthorized";
+import FooterDrivingCar from "./components/FooterDrivingCar";
 
 function LoginRoute() {
   const { currentUser } = useAuth();
@@ -41,6 +42,7 @@ function App() {
       <BrandingProvider>
       <ToastProvider>
       <Router>
+        <FooterDrivingCar />
         <Routes>
           {/* Public Landing Page for starter / QR visits */}
           <Route path="/" element={<RootRoute />} />
