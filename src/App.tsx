@@ -15,6 +15,7 @@ import VehicleRequests from "./pages/VehicleRequests";
 import RequestVehicle from "./pages/RequestVehicle";
 import CheckStatus from "./pages/CheckStatus";
 import TripTicket from "./pages/TripTicket";
+import Landing from "./pages/Landing";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import MyProfile from "./pages/MyProfile";
@@ -27,6 +28,11 @@ function LoginRoute() {
   return currentUser ? <Navigate to="/" replace /> : <Login />;
 }
 
+function RootRoute() {
+  const { currentUser } = useAuth();
+  return currentUser ? <Navigate to="/dashboard" replace /> : <Landing />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -36,6 +42,10 @@ function App() {
       <ToastProvider>
       <Router>
         <Routes>
+          {/* Public Landing Page for starter / QR visits */}
+          <Route path="/" element={<RootRoute />} />
+          <Route path="/landing" element={<Landing />} />
+
           <Route path="/login" element={<LoginRoute />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -53,6 +63,7 @@ function App() {
               approved; the requester reaches it from the status page. */}
           <Route path="/trip-ticket/:id" element={<TripTicket />} />
 
+          {/* Authenticated Dashboard and Management Pages */}
           <Route
             path="/"
             element={
@@ -61,7 +72,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
 
             {/* My Profile: every authenticated role (super_admin, admin,
                 driver) can view and update their own personal info here. */}
