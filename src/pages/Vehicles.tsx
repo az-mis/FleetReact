@@ -19,6 +19,7 @@ import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import Pagination from "../components/Pagination";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
@@ -47,6 +48,8 @@ export default function Vehicles() {
   const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [view, setView] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
     return (localStorage.getItem("vehicles:view") as "list" | "grid") || "list";
@@ -99,6 +102,15 @@ export default function Vehicles() {
       )
     );
   }, [vehicles, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   useEffect(() => {
     localStorage.setItem("vehicles:view", view);
@@ -343,7 +355,7 @@ export default function Vehicles() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((v) => (
+              {paginated.map((v) => (
                 <tr key={v.id} className="admin-row">
                   <td style={{ width: 44, paddingRight: 0 }}>
                     <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={30} />
@@ -388,7 +400,7 @@ export default function Vehicles() {
             gap: "12px",
           }}
         >
-          {filtered.map((v) => (
+          {paginated.map((v) => (
             <VehicleCard
               key={v.id}
               vehicle={v}
@@ -398,6 +410,20 @@ export default function Vehicles() {
             />
           ))}
         </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          itemLabel="vehicles"
+        />
       )}
 
       {modalOpen && (

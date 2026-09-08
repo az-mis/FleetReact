@@ -23,6 +23,7 @@ import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, ShieldCheck, List, LayoutGrid, Mail, Crown } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import Pagination from "../components/Pagination";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 
@@ -41,6 +42,8 @@ export default function Admins() {
   const { currentUser } = useAuth();
   const [admins, setAdmins] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [view, setView] = useState<"list" | "grid">(
     () => (localStorage.getItem("admins-view") as "list" | "grid") || "list"
   );
@@ -90,6 +93,15 @@ export default function Admins() {
     if (!s) return admins;
     return admins.filter((a) => [a.name, a.email].some((f) => (f || "").toLowerCase().includes(s)));
   }, [admins, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   function setViewMode(mode: "list" | "grid") {
     setView(mode);
@@ -322,7 +334,7 @@ export default function Admins() {
             gap: "14px",
           }}
         >
-          {filtered.map((a) => (
+          {paginated.map((a) => (
             <div
               key={a.id}
               className="fade-in"
@@ -427,7 +439,7 @@ export default function Admins() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((a) => (
+            {paginated.map((a) => (
               <tr
                 key={a.id}
                 className="admin-row"
@@ -469,6 +481,20 @@ export default function Admins() {
           </tbody>
         </table>
       </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          itemLabel="admins"
+        />
       )}
 
       {modalOpen && (

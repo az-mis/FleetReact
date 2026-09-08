@@ -24,6 +24,7 @@ import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
+import Pagination from "../components/Pagination";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
 
@@ -43,6 +44,8 @@ const emptyForm = {
 export default function Drivers() {
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [view, setView] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "list";
     return (localStorage.getItem("drivers:view") as "list" | "grid") || "list";
@@ -92,15 +95,24 @@ export default function Drivers() {
     return unsub;
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("drivers:view", view);
-  }, [view]);
-
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return drivers;
     return drivers.filter((d) => [d.name, d.email].some((f) => (f || "").toLowerCase().includes(s)));
   }, [drivers, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
+  useEffect(() => {
+    localStorage.setItem("drivers:view", view);
+  }, [view]);
 
   function openCreate() {
     setEditing(null);
@@ -355,7 +367,7 @@ export default function Drivers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((d) => (
+              {paginated.map((d) => (
                 <tr key={d.id} className="admin-row">
                   <td style={{ fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -395,10 +407,24 @@ export default function Drivers() {
             gap: "12px",
           }}
         >
-          {filtered.map((d) => (
+          {paginated.map((d) => (
             <DriverCard key={d.id} driver={d} onEdit={() => openEdit(d)} onDelete={() => handleDelete(d)} />
           ))}
         </div>
+      )}
+
+      {filtered.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          itemLabel="drivers"
+        />
       )}
 
       {modalOpen && (
