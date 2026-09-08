@@ -42,14 +42,14 @@ export default function ConfirmDialog({
 
   return (
     <Modal title={title} onClose={onCancel}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: "10px",
-              background: danger ? "#fff5f5" : "#eef2ff",
+              width: 34,
+              height: 34,
+              borderRadius: "8px",
+              background: danger ? "rgba(229, 62, 62, 0.12)" : "rgba(26, 107, 60, 0.12)",
               color: accent,
               display: "flex",
               alignItems: "center",
@@ -57,23 +57,23 @@ export default function ConfirmDialog({
               flexShrink: 0,
             }}
           >
-            <AlertTriangle size={20} />
+            <AlertTriangle size={18} />
           </div>
-          <div style={{ fontSize: "13.5px", color: "#4a5568", lineHeight: 1.5, marginTop: "6px" }}>{message}</div>
+          <div style={{ fontSize: "12.5px", color: "#4a5568", lineHeight: 1.45, marginTop: "4px" }}>{message}</div>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
           <button
             type="button"
             onClick={onCancel}
             disabled={loading}
             style={{
               flex: 1,
-              padding: "10px",
+              height: "36px",
               borderRadius: "8px",
               border: "1px solid var(--border)",
               background: "#fff",
               color: "#2d3748",
-              fontSize: "14px",
+              fontSize: "12.5px",
               fontWeight: 600,
               cursor: loading ? "default" : "pointer",
             }}
@@ -86,12 +86,12 @@ export default function ConfirmDialog({
             disabled={loading}
             style={{
               flex: 1,
-              padding: "10px",
+              height: "36px",
               borderRadius: "8px",
               border: "none",
               background: accent,
               color: "#fff",
-              fontSize: "14px",
+              fontSize: "12.5px",
               fontWeight: 600,
               cursor: loading ? "default" : "pointer",
             }}

@@ -617,20 +617,21 @@ function ReviewModal({
               )}
             </div>
 
-            <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
               <button
                 type="button"
                 onClick={() => setShowDeclineForm(true)}
                 disabled={saving}
                 style={{
                   flex: 1,
-                  padding: "11px",
+                  height: "38px",
                   borderRadius: "8px",
                   border: "1px solid var(--border)",
                   background: "#fff",
                   color: "var(--danger)",
                   fontWeight: 600,
-                  fontSize: "13.5px",
+                  fontSize: "13px",
+                  cursor: "pointer",
                 }}
               >
                 Decline
@@ -647,13 +648,14 @@ function ReviewModal({
                 title={blockedByConflict ? "Resolve the scheduling conflict above before approving." : undefined}
                 style={{
                   flex: 1,
-                  padding: "11px",
+                  height: "38px",
                   borderRadius: "8px",
                   border: "none",
-                  background: "var(--primary)",
+                  background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: "13.5px",
+                  fontSize: "13px",
+                  boxShadow: "0 2px 8px rgba(0, 179, 119, 0.28)",
                   opacity:
                     driverAvailable === null || (driverAvailable === false && !substituteId) || blockedByConflict
                       ? 0.6
@@ -678,37 +680,40 @@ function ReviewModal({
             }}
           >
             <label style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+              <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
                 Reason (optional)
               </span>
               <textarea
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
                 style={{
-                  padding: "9px 11px",
+                  padding: "8px 11px",
                   borderRadius: "8px",
-                  border: "1px solid var(--border)",
-                  fontSize: "13.5px",
+                  border: "1.5px solid var(--border)",
+                  fontSize: "13px",
                   minHeight: "70px",
+                  outline: "none",
                   resize: "vertical",
+                  fontFamily: "inherit",
                 }}
                 placeholder="e.g. Vehicle already booked that day"
               />
             </label>
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
               <button
                 type="button"
                 onClick={() => setShowDeclineForm(false)}
                 disabled={saving}
                 style={{
                   flex: 1,
-                  padding: "11px",
+                  height: "38px",
                   borderRadius: "8px",
                   border: "1px solid var(--border)",
                   background: "#fff",
                   color: "#2d3748",
                   fontWeight: 600,
-                  fontSize: "13.5px",
+                  fontSize: "13px",
+                  cursor: "pointer",
                 }}
               >
                 Back
@@ -719,13 +724,14 @@ function ReviewModal({
                 disabled={saving}
                 style={{
                   flex: 1,
-                  padding: "11px",
+                  height: "38px",
                   borderRadius: "8px",
                   border: "none",
                   background: "var(--danger)",
                   color: "#fff",
                   fontWeight: 700,
-                  fontSize: "13.5px",
+                  fontSize: "13px",
+                  cursor: "pointer",
                 }}
               >
                 {saving ? "Declining..." : "Confirm Decline"}
@@ -743,9 +749,9 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
     <div style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
       <div
         style={{
-          width: 28,
-          height: 28,
-          borderRadius: "8px",
+          width: 26,
+          height: 26,
+          borderRadius: "6px",
           background: "#f7fafc",
           color: "var(--text-muted)",
           display: "flex",
@@ -754,13 +760,13 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
           flexShrink: 0,
         }}
       >
-        <Icon size={14} />
+        <Icon size={13} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase" }}>
+        <div style={{ fontSize: "10.5px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
           {label}
         </div>
-        <div style={{ fontSize: "13.5px", color: "#2d3748", wordBreak: "break-word" }}>{value}</div>
+        <div style={{ fontSize: "13px", color: "#2d3748", wordBreak: "break-word" }}>{value}</div>
       </div>
     </div>
   );

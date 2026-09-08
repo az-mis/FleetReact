@@ -168,13 +168,13 @@ export default function MyProfile() {
   const roleColor = USER_ROLE_COLOR[profile.role];
 
   return (
-    <div>
-      <PageHeader icon={UserCircle} title="My Profile" subtitle="Update your personal information." />
+    <div className="fade-in">
+      <PageHeader icon={UserCircle} title="My Profile" subtitle="Update your personal details and avatar." />
 
-      <div className="profile-card fade-in">
-        <div className="profile-cover" />
+      <div className="profile-card fade-in" style={{ maxWidth: "600px", margin: "0 auto", borderRadius: "14px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+        <div className="profile-cover" style={{ height: "68px" }} />
 
-        <div className="profile-identity">
+        <div className="profile-identity" style={{ marginTop: "-38px", padding: "0 18px 14px" }}>
           <div className="profile-avatar-ring">
             <AvatarPicker
               inputId="my-profile-photo-input"
@@ -184,53 +184,70 @@ export default function MyProfile() {
               onBeforePick={handleBeforePhotoPick}
               onRemove={handlePhotoRemove}
               error={photoError}
-              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
-              size={92}
+              label={photoUploading ? "Uploading to Drive…" : "Photo (max 5MB)"}
+              size={76}
             />
           </div>
-          <div className="profile-name-display">{name || "Unnamed"}</div>
-          <span className="profile-role-chip" style={{ background: roleColor + "1a", color: roleColor }}>
+          <div className="profile-name-display" style={{ fontSize: "16px", marginTop: "8px" }}>{name || "Unnamed"}</div>
+          <span className="profile-role-chip" style={{ background: roleColor + "1a", color: roleColor, fontSize: "11px", padding: "2px 10px", marginTop: "4px" }}>
             {USER_ROLE_LABEL[profile.role]}
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="profile-form">
-          <div className="profile-grid">
-            <section className="profile-section">
-              <h3>Account</h3>
+        <form onSubmit={handleSubmit} className="profile-form" style={{ padding: "4px 18px 20px", gap: "14px" }}>
+          <div className="profile-grid" style={{ gap: "14px" }}>
+            <section className="profile-section" style={{ gap: "10px" }}>
+              <h3 style={{ fontSize: "11.5px" }}>Account Credentials</h3>
               <Field label="Full Name" required>
                 <input
-                  className="profile-input"
+                  className="auth-input"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
                 />
               </Field>
-              <Field label="Email">
-                <input className="profile-input" type="email" disabled value={profile.email} />
-                <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>
+              <Field label="Email Address">
+                <input className="auth-input" type="email" disabled value={profile.email} style={{ background: "#f8fafc", color: "var(--text-muted)" }} />
+                <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>Email changes require a backend administrator.</small>
               </Field>
             </section>
 
             {isDriver && (
-              <section className="profile-section">
-                <h3>Personal Details</h3>
+              <section className="profile-section" style={{ gap: "10px" }}>
+                <h3 style={{ fontSize: "11.5px" }}>Driver Details</h3>
                 <Field label="Birth Date">
                   <input
-                    className="profile-input"
+                    className="auth-input"
                     type="date"
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
                   />
                 </Field>
-                <Field label="Address">
-                  <input className="profile-input" value={address} onChange={(e) => setAddress(e.target.value)} />
+                <Field label="Residential Address">
+                  <input className="auth-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. Calapan City" />
                 </Field>
               </section>
             )}
           </div>
 
-          <button type="submit" className="profile-save-btn" disabled={saving || photoUploading}>
+          <button
+            type="submit"
+            disabled={saving || photoUploading}
+            style={{
+              height: "38px",
+              marginTop: "6px",
+              borderRadius: "9px",
+              border: "none",
+              background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: "13px",
+              cursor: saving || photoUploading ? "not-allowed" : "pointer",
+              boxShadow: "0 4px 12px rgba(0, 168, 107, 0.35)",
+              transition: "all 0.15s ease",
+            }}
+          >
             {photoUploading ? "Uploading photo..." : saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
@@ -241,8 +258,8 @@ export default function MyProfile() {
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      <span className="profile-field-label">
+    <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}

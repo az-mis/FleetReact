@@ -17,18 +17,18 @@ export default function PageHeader({
       className="page-header"
       style={{
         position: "relative",
-        borderRadius: "20px",
-        padding: "18px 24px",
-        marginBottom: "20px",
+        borderRadius: "14px",
+        padding: "14px 18px",
+        marginBottom: "16px",
         background:
           "linear-gradient(120deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%)",
-        boxShadow: "0 14px 30px -12px rgba(19,77,43,0.45)",
+        boxShadow: "0 8px 20px -8px rgba(19,77,43,0.4)",
         overflow: "hidden",
         display: "flex",
         flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "12px",
+        gap: "10px",
       }}
     >
       {/* decorative pattern */}
@@ -36,34 +36,22 @@ export default function PageHeader({
         aria-hidden
         style={{
           position: "absolute",
-          top: "-50px",
-          right: "-30px",
-          width: "160px",
-          height: "160px",
+          top: "-40px",
+          right: "-20px",
+          width: "120px",
+          height: "120px",
           borderRadius: "50%",
           background: "rgba(255,255,255,0.07)",
         }}
       />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          bottom: "-60px",
-          right: "60px",
-          width: "120px",
-          height: "120px",
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.05)",
-        }}
-      />
 
-      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "12px" }}>
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "10px" }}>
         {Icon && (
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: "12px",
+              width: 34,
+              height: 34,
+              borderRadius: "10px",
               background: "rgba(255,255,255,0.14)",
               display: "flex",
               alignItems: "center",
@@ -72,13 +60,13 @@ export default function PageHeader({
               flexShrink: 0,
             }}
           >
-            <Icon size={20} />
+            <Icon size={18} />
           </div>
         )}
         <div>
           <h2
             style={{
-              fontSize: "18px",
+              fontSize: "16px",
               fontWeight: 800,
               color: "#fff",
               letterSpacing: "-0.01em",
@@ -88,7 +76,7 @@ export default function PageHeader({
             {title}
           </h2>
           {subtitle && (
-            <p style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.8)", marginTop: "2px" }}>
+            <p style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.8)", marginTop: "1px" }}>
               {subtitle}
             </p>
           )}

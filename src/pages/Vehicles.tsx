@@ -295,57 +295,7 @@ export default function Vehicles() {
                 placeholder="Search plate, brand, model..."
               />
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                borderRadius: "8px",
-                padding: "3px",
-                background: "rgba(255,255,255,0.16)",
-                gap: "2px",
-              }}
-            >
-              <button
-                onClick={() => setView("list")}
-                title="List view"
-                aria-pressed={view === "list"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: view === "list" ? "#fff" : "transparent",
-                  color: view === "list" ? "var(--primary)" : "#fff",
-                  boxShadow: view === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                }}
-              >
-                <List size={15} /> List
-              </button>
-              <button
-                onClick={() => setView("grid")}
-                title="Grid view"
-                aria-pressed={view === "grid"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: view === "grid" ? "#fff" : "transparent",
-                  color: view === "grid" ? "var(--primary)" : "#fff",
-                  boxShadow: view === "grid" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                }}
-              >
-                <LayoutGrid size={15} /> Grid
-              </button>
-            </div>
+            <ViewToggle view={view} onChange={(v) => setView(v)} />
             <button
               onClick={openCreate}
               style={{
@@ -359,6 +309,7 @@ export default function Vehicles() {
                 padding: "8px 14px",
                 fontSize: "13px",
                 fontWeight: 700,
+                cursor: "pointer",
               }}
             >
               <Plus size={16} /> Register Vehicle
@@ -373,7 +324,7 @@ export default function Vehicles() {
             background: "#fff",
             borderRadius: "12px",
             border: "1px solid var(--border)",
-            padding: "40px",
+            padding: "28px",
             textAlign: "center",
             color: "var(--text-muted)",
           }}
@@ -382,66 +333,47 @@ export default function Vehicles() {
           <div>No vehicles found.</div>
         </div>
       ) : view === "list" ? (
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "12px",
-            border: "1px solid var(--border)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-            overflow: "auto",
-          }}
-        >
-          <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
+        <div className="auth-table-wrap">
+          <table className="auth-table">
             <thead>
-              <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
+              <tr>
                 {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", ""].map((h, i) => (
-                  <th
-                    key={i}
-                    style={{
-                      padding: "12px 14px",
-                      color: "var(--text-muted)",
-                      fontWeight: 700,
-                      fontSize: "11.5px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      borderBottom: "1px solid var(--border)",
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={i}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((v) => (
-                <tr key={v.id} className="admin-row" style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 14px" }}>
-                    <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={34} />
+                <tr key={v.id} className="admin-row">
+                  <td style={{ width: 44, paddingRight: 0 }}>
+                    <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={30} />
                   </td>
-                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>{v.plateNumber}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>
+                  <td style={{ fontWeight: 600 }}>{v.plateNumber}</td>
+                  <td style={{ color: "var(--text-muted)" }}>
                     {v.brand} {v.model}
                   </td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.year}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.color}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
-                  <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ color: "var(--text-muted)" }}>{v.year}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{v.color}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
+                  <td style={{ color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(v)}
                       className="admin-icon-btn"
-                      style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
+                      style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
                     >
-                      <Pencil size={15} />
+                      <Pencil size={14} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(v)}
-                      className="admin-icon-btn"
-                      style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {isSuperAdmin && (
+                      <button
+                        onClick={() => handleDelete(v)}
+                        className="admin-icon-btn"
+                        style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -452,71 +384,83 @@ export default function Vehicles() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: "14px",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "12px",
           }}
         >
           {filtered.map((v) => (
-            <VehicleCard key={v.id} vehicle={v} onEdit={() => openEdit(v)} onDelete={() => handleDelete(v)} />
+            <VehicleCard
+              key={v.id}
+              vehicle={v}
+              canDelete={isSuperAdmin}
+              onEdit={() => openEdit(v)}
+              onDelete={() => handleDelete(v)}
+            />
           ))}
         </div>
       )}
 
       {modalOpen && (
         <Modal title={editing ? "Edit Vehicle" : "Register Vehicle"} onClose={closeModal}>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {error && (
-              <div style={{ background: "#fff5f5", color: "var(--danger)", padding: "8px 10px", borderRadius: 8, fontSize: 13 }}>
+              <div
+                style={{
+                  background: "#fff5f5",
+                  color: "var(--danger)",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <AvatarPicker
-              inputId="vehicle-photo-input"
-              fallback="icon"
-              icon={Truck}
-              photoURL={form.photoURL}
-              onSelect={handlePhotoSelect}
-              onBeforePick={handleBeforePhotoPick}
-              onRemove={handlePhotoRemove}
-              error={photoError}
-              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
-            />
-
-            <Field label="Plate Number" required>
-              <input
-                required
-                value={form.plateNumber}
-                disabled={!!editing && !isSuperAdmin}
-                onChange={(e) => setForm({ ...form, plateNumber: e.target.value })}
-                style={inputStyle}
+            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+              <AvatarPicker
+                inputId="vehicle-photo-input"
+                photoURL={form.photoURL}
+                name={form.plateNumber || "Vehicle"}
+                fallback="icon"
+                icon={Truck}
+                size={76}
+                onSelect={handlePhotoSelect}
+                onRemove={handlePhotoRemove}
+                onBeforePick={handleBeforePhotoPick}
+                error={photoError}
+                label={photoUploading ? "Uploading to Drive…" : "Vehicle photo (optional, max 5MB)"}
               />
-              {editing && !isSuperAdmin && (
-                <small style={{ color: "var(--text-muted)" }}>Only a Super Admin can change the plate number.</small>
-              )}
-            </Field>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <Field label="Brand" required>
-                <input required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} style={inputStyle} />
-              </Field>
-              <Field label="Model" required>
-                <input required value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} style={inputStyle} />
-              </Field>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <Field label="Chassis Number" required>
+              <Field label="Plate Number" required>
                 <input
                   required
+                  value={form.plateNumber}
+                  onChange={(e) => setForm({ ...form, plateNumber: e.target.value })}
+                  style={inputStyle}
+                />
+              </Field>
+              <Field label="Brand" required>
+                <input required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} style={inputStyle} />
+              </Field>
+            </div>
+
+            <Field label="Model" required>
+              <input required value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} style={inputStyle} />
+            </Field>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <Field label="Chassis Number">
+                <input
                   value={form.chassisNumber}
                   onChange={(e) => setForm({ ...form, chassisNumber: e.target.value })}
                   style={inputStyle}
                 />
               </Field>
-              <Field label="Engine Number" required>
+              <Field label="Engine Number">
                 <input
-                  required
                   value={form.engineNumber}
                   onChange={(e) => setForm({ ...form, engineNumber: e.target.value })}
                   style={inputStyle}
@@ -565,14 +509,16 @@ export default function Vehicles() {
               type="submit"
               disabled={saving || photoUploading}
               style={{
-                marginTop: "8px",
-                padding: "11px",
-                borderRadius: "8px",
+                marginTop: "6px",
+                height: "38px",
+                borderRadius: "9px",
                 border: "none",
-                background: "var(--primary)",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                 color: "#fff",
-                fontWeight: 600,
-                fontSize: "14px",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: saving || photoUploading ? "not-allowed" : "pointer",
+                boxShadow: "0 2px 8px rgba(0, 179, 119, 0.28)",
               }}
             >
               {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Register Vehicle"}
@@ -601,10 +547,12 @@ export default function Vehicles() {
 
 function VehicleCard({
   vehicle,
+  canDelete,
   onEdit,
   onDelete,
 }: {
   vehicle: Vehicle;
+  canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -612,9 +560,9 @@ function VehicleCard({
     <div
       style={{
         background: "#fff",
-        borderRadius: "14px",
+        borderRadius: "12px",
         border: "1px solid var(--border)",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -622,16 +570,16 @@ function VehicleCard({
     >
       <div
         style={{
-          padding: "14px 16px",
+          padding: "12px 14px",
           borderBottom: "1px solid var(--border)",
           display: "flex",
           alignItems: "center",
-          gap: "12px",
+          gap: "10px",
         }}
       >
-        <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={40} />
+        <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={36} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontWeight: 700, fontSize: "13.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {vehicle.plateNumber}
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -642,29 +590,31 @@ function VehicleCard({
           <button
             onClick={onEdit}
             className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
           >
-            <Pencil size={15} />
+            <Pencil size={14} />
           </button>
-          <button
-            onClick={onDelete}
-            className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
-          >
-            <Trash2 size={15} />
-          </button>
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              className="admin-icon-btn"
+              style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 
-      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12.5px", color: "var(--text-muted)" }}>
+      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Palette size={13} style={{ flexShrink: 0 }} /> {vehicle.color}
+          <Palette size={12} style={{ flexShrink: 0 }} /> {vehicle.color}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Gauge size={13} style={{ flexShrink: 0 }} /> {vehicle.odometer.toLocaleString()} km
+          <Gauge size={12} style={{ flexShrink: 0 }} /> {vehicle.odometer.toLocaleString()} km
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <Fuel size={13} style={{ flexShrink: 0 }} />
+          <Fuel size={12} style={{ flexShrink: 0 }} />
           {vehicle.vehicleType || "—"}{vehicle.fuelType ? ` · ${vehicle.fuelType}` : ""}
         </span>
       </div>
@@ -672,10 +622,50 @@ function VehicleCard({
   );
 }
 
+function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "list" | "grid") => void }) {
+  const btn = (mode: "list" | "grid", Icon: any, label: string) => (
+    <button
+      type="button"
+      onClick={() => onChange(mode)}
+      aria-label={label}
+      aria-pressed={view === mode}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 30,
+        height: 30,
+        borderRadius: "6px",
+        border: "none",
+        background: view === mode ? "#fff" : "transparent",
+        color: view === mode ? "var(--primary)" : "rgba(255,255,255,0.85)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+      }}
+    >
+      <Icon size={14} />
+    </button>
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: "2px",
+        padding: "2px",
+        borderRadius: "8px",
+        background: "rgba(255,255,255,0.16)",
+      }}
+    >
+      {btn("list", List, "List view")}
+      {btn("grid", LayoutGrid, "Grid view")}
+    </div>
+  );
+}
+
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
@@ -684,9 +674,11 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "9px 11px",
+  padding: "0 11px",
+  height: "38px",
   borderRadius: "8px",
-  border: "1px solid var(--border)",
-  fontSize: "14px",
+  border: "1.5px solid var(--border)",
+  fontSize: "13px",
   width: "100%",
+  outline: "none",
 };

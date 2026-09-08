@@ -531,14 +531,17 @@ export default function Admins() {
               type="submit"
               disabled={saving || photoUploading}
               style={{
-                marginTop: "8px",
-                padding: "11px",
-                borderRadius: "8px",
+                marginTop: "6px",
+                height: "38px",
+                borderRadius: "9px",
                 border: "none",
-                background: "var(--primary)",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                 color: "#fff",
-                fontWeight: 600,
-                fontSize: "14px",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: saving || photoUploading ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(0, 168, 107, 0.35)",
+                transition: "all 0.15s ease",
               }}
             >
               {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Add Admin"}
@@ -576,9 +579,9 @@ function RoleBadge({ role }: { role: UserRole }) {
         background: USER_ROLE_COLOR[role] + "1a",
         color: USER_ROLE_COLOR[role],
         border: isSuper ? `1px solid ${USER_ROLE_COLOR[role]}40` : "none",
-        padding: isSuper ? "3px 10px 3px 8px" : "3px 9px",
+        padding: isSuper ? "2px 8px 2px 6px" : "2px 8px",
         borderRadius: "999px",
-        fontSize: "11.5px",
+        fontSize: "11px",
         fontWeight: 700,
       }}
     >
@@ -599,16 +602,17 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 32,
-        height: 32,
-        borderRadius: "7px",
+        width: 30,
+        height: 30,
+        borderRadius: "6px",
         border: "none",
         background: view === mode ? "#fff" : "transparent",
         color: view === mode ? "var(--primary)" : "rgba(255,255,255,0.85)",
         cursor: "pointer",
+        transition: "all 0.15s ease",
       }}
     >
-      <Icon size={15} />
+      <Icon size={14} />
     </button>
   );
   return (
@@ -617,7 +621,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
         display: "flex",
         gap: "2px",
         padding: "2px",
-        borderRadius: "9px",
+        borderRadius: "8px",
         background: "rgba(255,255,255,0.16)",
       }}
     >
@@ -630,7 +634,7 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
@@ -639,9 +643,11 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "9px 11px",
+  padding: "0 11px",
+  height: "38px",
   borderRadius: "8px",
-  border: "1px solid var(--border)",
-  fontSize: "14px",
+  border: "1.5px solid var(--border)",
+  fontSize: "13px",
   width: "100%",
+  outline: "none",
 };

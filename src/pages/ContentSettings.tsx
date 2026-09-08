@@ -248,157 +248,173 @@ export default function ContentSettings() {
   }
 
   return (
-    <div>
+    <div className="fade-in">
       <PageHeader
         icon={Settings2}
         title="Content Settings"
         subtitle={
           isSuperAdmin
-            ? "Enable or disable modules and content shown to Admins and Drivers."
+            ? "Configure media storage, system branding, module visibility, and broadcast announcements."
             : "Control what content is shown to Drivers on their Dashboard."
         }
       />
 
+      {/* Row 1: System Branding & Media Storage */}
       {isSuperAdmin && (
-        <Section
-          icon={HardDrive}
-          title="Google Drive (photo storage)"
-          description="Admin, vehicle, and driver photos upload to a Google Drive folder in your account, since Firebase Storage isn't free anymore. Connect once — the folder structure is created automatically."
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "14px",
+            marginBottom: "16px",
+            alignItems: "stretch",
+          }}
         >
-          <DriveConnectionCard
-            driveConfig={driveConfig}
-            connecting={connectingDrive}
-            onConnect={handleConnectDrive}
-          />
-        </Section>
+          <Section
+            icon={HardDrive}
+            title="Google Drive"
+            description="Cloud storage for user photos, vehicles, and branding assets."
+          >
+            <DriveConnectionCard
+              driveConfig={driveConfig}
+              connecting={connectingDrive}
+              onConnect={handleConnectDrive}
+            />
+          </Section>
+
+          <Section
+            icon={ImageIcon}
+            title="App Logo"
+            description="Logo shown across sidebar, header, and login screen."
+          >
+            <LogoEditor
+              logoURL={branding?.logoURL || null}
+              uploading={logoUploading}
+              disabled={!driveConfig}
+              error={logoError}
+              onSelect={handleLogoSelect}
+              onBeforePick={handleBeforeLogoPick}
+              onRemove={handleLogoRemove}
+            />
+          </Section>
+
+          <Section
+            icon={ImageIcon}
+            title="Login Background"
+            description="Custom backdrop photo on the portal login screen."
+          >
+            <LogoEditor
+              logoURL={branding?.loginBackgroundURL || null}
+              uploading={bgUploading}
+              disabled={!driveConfig}
+              error={bgError}
+              onSelect={handleBgSelect}
+              onBeforePick={handleBeforeBgPick}
+              onRemove={handleBgRemove}
+              shape="wide"
+              noneLabel="No background set"
+              uploadLabel="Upload Background"
+              replaceLabel="Replace Background"
+              currentLabel="Current background"
+              hint="Landscape photo works best, up to 5MB."
+              visibilityHint="Visible on the login screen behind the card."
+            />
+          </Section>
+        </div>
       )}
 
-      {isSuperAdmin && (
-        <Section
-          icon={ImageIcon}
-          title="App Logo"
-          description="Shown in the sidebar, header, and login screen across the app. Stored in the same 'FMS Photos' Drive folder as other photos."
-        >
-          <LogoEditor
-            logoURL={branding?.logoURL || null}
-            uploading={logoUploading}
-            disabled={!driveConfig}
-            error={logoError}
-            onSelect={handleLogoSelect}
-            onBeforePick={handleBeforeLogoPick}
-            onRemove={handleLogoRemove}
-          />
-        </Section>
-      )}
-
-      {isSuperAdmin && (
-        <Section
-          icon={ImageIcon}
-          title="Login Background"
-          description="The photo shown behind the branding panel on the Login screen. Leave unset to keep the default illustration."
-        >
-          <LogoEditor
-            logoURL={branding?.loginBackgroundURL || null}
-            uploading={bgUploading}
-            disabled={!driveConfig}
-            error={bgError}
-            onSelect={handleBgSelect}
-            onBeforePick={handleBeforeBgPick}
-            onRemove={handleBgRemove}
-            shape="wide"
-            noneLabel="No background set"
-            uploadLabel="Upload Background"
-            replaceLabel="Replace Background"
-            currentLabel="Current background"
-            hint="Landscape photo works best (e.g. fleet, vehicles, or a facility shot), up to 5MB."
-            visibilityHint="Visible on the logged-out Login screen, behind the branding panel."
-          />
-        </Section>
-      )}
-
-      {isSuperAdmin && (
-        <Section
-          icon={ShieldCheck}
-          title="Admin modules"
-          description="Turn these off to hide the page from the sidebar and block direct navigation — for the admin role only. Super admins always keep full access."
-        >
-          <ToggleRow
-            icon={Truck}
-            label="Vehicles List"
-            description="Vehicle list, records, and details."
-            checked={flags.adminModules.vehicles}
-            saving={savingKey === "admin-vehicles"}
-            onChange={() => toggleAdminModule("vehicles")}
-          />
-          <ToggleRow
-            icon={UserCog}
-            label="Vehicle Assigning"
-            description="Assigning a permanent driver to each vehicle."
-            checked={flags.adminModules.vehicleAssigning}
-            saving={savingKey === "admin-vehicleAssigning"}
-            onChange={() => toggleAdminModule("vehicleAssigning")}
-          />
-          <ToggleRow
-            icon={ClipboardList}
-            label="Vehicle Requests"
-            description="Reviewing and confirming public vehicle requests."
-            checked={flags.adminModules.vehicleRequests}
-            saving={savingKey === "admin-vehicleRequests"}
-            onChange={() => toggleAdminModule("vehicleRequests")}
-          />
-          <ToggleRow
-            icon={Users}
-            label="Drivers"
-            description="Managing driver accounts and records."
-            checked={flags.adminModules.drivers}
-            saving={savingKey === "admin-drivers"}
-            onChange={() => toggleAdminModule("drivers")}
-          />
-        </Section>
-      )}
-
-      <Section
-        icon={Users}
-        title="Driver dashboard content"
-        description="Controls what a signed-in driver sees on their Dashboard."
+      {/* Row 2: Module Visibility & Announcements */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isSuperAdmin ? "repeat(auto-fit, minmax(320px, 1fr))" : "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "14px",
+          marginBottom: "16px",
+          alignItems: "stretch",
+        }}
       >
-        <ToggleRow
-          icon={Car}
-          label="My Assigned Vehicle card"
-          description="Shows the vehicle currently assigned to the signed-in driver."
-          checked={flags.driverModules.showAssignedVehicle}
-          saving={savingKey === "driver-showAssignedVehicle"}
-          onChange={() => toggleDriverModule("showAssignedVehicle")}
-        />
-      </Section>
+        {isSuperAdmin && (
+          <Section
+            icon={ShieldCheck}
+            title="Admin Modules"
+            description="Toggle navigation access for admin accounts."
+          >
+            <ToggleRow
+              icon={Truck}
+              label="Vehicles List"
+              description="Vehicle records and details."
+              checked={flags.adminModules.vehicles}
+              saving={savingKey === "admin-vehicles"}
+              onChange={() => toggleAdminModule("vehicles")}
+            />
+            <ToggleRow
+              icon={UserCog}
+              label="Vehicle Assigning"
+              description="Permanent driver assignments."
+              checked={flags.adminModules.vehicleAssigning}
+              saving={savingKey === "admin-vehicleAssigning"}
+              onChange={() => toggleAdminModule("vehicleAssigning")}
+            />
+            <ToggleRow
+              icon={ClipboardList}
+              label="Vehicle Requests"
+              description="Reviewing public vehicle requests."
+              checked={flags.adminModules.vehicleRequests}
+              saving={savingKey === "admin-vehicleRequests"}
+              onChange={() => toggleAdminModule("vehicleRequests")}
+            />
+            <ToggleRow
+              icon={Users}
+              label="Drivers"
+              description="Driver profiles and licensing."
+              checked={flags.adminModules.drivers}
+              saving={savingKey === "admin-drivers"}
+              onChange={() => toggleAdminModule("drivers")}
+            />
+          </Section>
+        )}
 
-      {isSuperAdmin && (
-        <AnnouncementSection
-          icon={Megaphone}
-          title="Admin announcement"
-          description="A message shown at the top of the Dashboard for admin accounts."
-          flagKey="adminAnnouncement"
-          config={flags.adminAnnouncement}
-          updateFlags={updateFlags}
-          showSuccess={showSuccess}
-          showError={showError}
-        />
-      )}
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <Section
+            icon={Users}
+            title="Driver Dashboard Content"
+            description="Controls what signed-in drivers see on dashboard."
+          >
+            <ToggleRow
+              icon={Car}
+              label="Assigned Vehicle Card"
+              description="Vehicle assigned to the signed-in driver."
+              checked={flags.driverModules.showAssignedVehicle}
+              saving={savingKey === "driver-showAssignedVehicle"}
+              onChange={() => toggleDriverModule("showAssignedVehicle")}
+            />
+          </Section>
 
-      <AnnouncementSection
-        icon={Megaphone}
-        title="Driver announcement"
-        description={
-          isSuperAdmin
-            ? "A message shown at the top of the Dashboard for driver accounts. Admins can also set this one."
-            : "A message shown at the top of the Dashboard for driver accounts."
-        }
-        flagKey="driverAnnouncement"
-        config={flags.driverAnnouncement}
-        updateFlags={updateFlags}
-        showSuccess={showSuccess}
-        showError={showError}
-      />
+          <AnnouncementSection
+            icon={Megaphone}
+            title="Driver Announcement"
+            description="Broadcast alert banner for driver accounts."
+            flagKey="driverAnnouncement"
+            config={flags.driverAnnouncement}
+            updateFlags={updateFlags}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        </div>
+
+        {isSuperAdmin && (
+          <AnnouncementSection
+            icon={Megaphone}
+            title="Admin Announcement"
+            description="Broadcast alert banner for admin accounts."
+            flagKey="adminAnnouncement"
+            config={flags.adminAnnouncement}
+            updateFlags={updateFlags}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        )}
+      </div>
 
       {confirmRemoveLogoOpen && (
         <Modal title="Remove logo?" onClose={() => !removingLogo && setConfirmRemoveLogoOpen(false)}>
@@ -542,43 +558,45 @@ function AnnouncementSection({
     <Section icon={icon} title={title} description={description}>
       <ToggleRow
         icon={Megaphone}
-        label="Show announcement banner"
-        description={config.enabled ? "Currently visible to its audience — preview below." : "Currently hidden."}
+        label="Show banner"
+        description={config.enabled ? "Currently visible to audience" : "Currently hidden"}
         checked={config.enabled}
         saving={savingToggle}
         onChange={toggleEnabled}
       />
 
-      <div style={{ padding: "10px 4px 4px" }}>
+      <div style={{ paddingTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
         <textarea
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
             setDirty(true);
           }}
-          placeholder="e.g. Vehicle Requests will be down for maintenance this Saturday."
+          placeholder="e.g. Maintenance scheduled for Saturday."
           rows={3}
           style={{
             width: "100%",
-            padding: "10px 12px",
-            borderRadius: "10px",
-            border: "1px solid var(--border)",
-            fontSize: "13.5px",
+            padding: "8px 10px",
+            borderRadius: "8px",
+            border: "1.5px solid var(--border)",
+            fontSize: "12.5px",
             fontFamily: "inherit",
             resize: "vertical",
+            outline: "none",
           }}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
             onClick={saveMessage}
             disabled={savingMessage || !dirty}
             style={{
-              padding: "9px 18px",
-              borderRadius: "9px",
+              height: "32px",
+              padding: "0 14px",
+              borderRadius: "7px",
               border: "none",
-              background: dirty ? "var(--primary)" : "var(--border)",
+              background: dirty ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "var(--border)",
               color: "#fff",
-              fontSize: "13.5px",
+              fontSize: "12px",
               fontWeight: 600,
               cursor: dirty ? "pointer" : "default",
             }}
@@ -588,34 +606,34 @@ function AnnouncementSection({
         </div>
 
         {config.enabled && config.message.trim() && (
-          <div style={{ marginTop: "16px" }}>
+          <div style={{ marginTop: "4px" }}>
             <div
               style={{
-                fontSize: "11px",
+                fontSize: "10px",
                 fontWeight: 700,
                 color: "var(--text-muted)",
                 textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                marginBottom: "6px",
+                letterSpacing: "0.04em",
+                marginBottom: "4px",
               }}
             >
-              Preview — this is what they'll see, not shown on your own Dashboard
+              Live Preview
             </div>
             <div
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "10px",
+                gap: "8px",
                 background: "#fffbeb",
                 border: "1px solid #fbd38d",
                 color: "#7b5b0a",
-                borderRadius: "12px",
-                padding: "12px 14px",
-                fontSize: "13px",
-                lineHeight: 1.5,
+                borderRadius: "8px",
+                padding: "8px 10px",
+                fontSize: "12px",
+                lineHeight: 1.4,
               }}
             >
-              <Megaphone size={17} style={{ flexShrink: 0, marginTop: "1px" }} />
+              <Megaphone size={14} style={{ flexShrink: 0, marginTop: "1px" }} />
               <span style={{ whiteSpace: "pre-wrap" }}>{draft.trim() ? draft : config.message}</span>
             </div>
           </div>
@@ -625,10 +643,6 @@ function AnnouncementSection({
   );
 }
 
-// Same left-tile / right-details layout as LogoEditor, for visual
-// consistency between the two "external service" cards at the top of this
-// page. Left: a big status tile (green + check when connected, dashed +
-// HardDrive icon when not). Right: connection details/actions.
 function DriveConnectionCard({
   driveConfig,
   connecting,
@@ -640,14 +654,14 @@ function DriveConnectionCard({
 }) {
   const connected = !!driveConfig;
   return (
-    <div style={{ padding: "6px 4px 4px" }}>
-      <div style={{ display: "flex", alignItems: "stretch", gap: "20px" }}>
+    <div style={{ paddingTop: "4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
         <div
           style={{
-            width: 116,
-            height: 116,
+            width: 72,
+            height: 72,
             flexShrink: 0,
-            borderRadius: "18px",
+            borderRadius: "14px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -656,31 +670,31 @@ function DriveConnectionCard({
             color: connected ? "var(--primary)" : "#a0aec0",
           }}
         >
-          {connected ? <CheckCircle2 size={40} strokeWidth={1.6} /> : <HardDrive size={34} strokeWidth={1.6} />}
+          {connected ? <CheckCircle2 size={32} strokeWidth={1.6} /> : <HardDrive size={28} strokeWidth={1.6} />}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
-              {connected ? `Connected by ${driveConfig!.connectedByName}` : "Not connected"}
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a202c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {connected ? `${driveConfig!.connectedByName}` : "Not connected"}
             </div>
             {connected && driveConfig!.connectedByEmail && (
-              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "1px" }}>
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {driveConfig!.connectedByEmail}
               </div>
             )}
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>
               {connected ? (
                 <a
                   href={`https://drive.google.com/drive/folders/${driveConfig!.rootFolderId}`}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--text-muted)" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--primary)" }}
                 >
-                  Open "FMS Photos" folder in Drive <ExternalLink size={12} />
+                  Open "FMS Photos" folder <ExternalLink size={11} />
                 </a>
               ) : (
-                "Photo uploads (Admins, Drivers, Vehicles, App Logo) won't work until this is set up."
+                "Connect to enable photo storage."
               )}
             </div>
           </div>
@@ -691,27 +705,27 @@ function DriveConnectionCard({
               onClick={onConnect}
               disabled={connecting}
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                gap: "7px",
-                padding: "9px 16px",
-                borderRadius: "9px",
+                gap: "5px",
+                padding: "6px 12px",
+                borderRadius: "7px",
                 border: "none",
-                background: "var(--primary)",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                 color: "#fff",
-                fontSize: "13px",
+                fontSize: "12px",
                 fontWeight: 600,
                 cursor: connecting ? "default" : "pointer",
               }}
             >
-              <HardDrive size={14} />
+              <HardDrive size={13} />
               {connected
                 ? connecting
                   ? "Reconnecting…"
-                  : "Reconnect / switch account"
+                  : "Switch account"
                 : connecting
                 ? "Connecting…"
-                : "Connect Google Drive"}
+                : "Connect Drive"}
             </button>
           </div>
         </div>
@@ -720,11 +734,6 @@ function DriveConnectionCard({
   );
 }
 
-// Left: large square preview of the current logo (or an empty state) that
-// doubles as the "change logo" click target. Right: status text + explicit
-// Upload/Replace and Remove buttons — bigger, more legible target than the
-// small AvatarPicker used for per-record photos elsewhere, since this is a
-// one-off, high-visibility setting rather than a repeated list-row action.
 function LogoEditor({
   logoURL,
   uploading,
@@ -736,22 +745,16 @@ function LogoEditor({
   shape = "square",
   noneLabel = "No logo set",
   uploadLabel = "Upload Logo",
-  replaceLabel = "Replace Logo",
+  replaceLabel = "Replace",
   currentLabel = "Current logo",
-  hint = "PNG or JPG, square works best, up to 5MB.",
-  visibilityHint = "Visible to everyone across the app, including logged-out visitors on the Login screen.",
+  hint = "PNG/JPG up to 5MB.",
+  visibilityHint = "Visible across the app.",
 }: {
   logoURL: string | null;
   uploading: boolean;
   disabled: boolean;
   error?: string;
   onSelect: (file: File) => void;
-  /** Called synchronously when the tile/button is clicked — BEFORE the
-   *  OS-native file dialog opens, not after a file is chosen. Browsers only
-   *  allow opening a new popup window during a fresh, unbroken click, and
-   *  the native dialog can stay open for any length of time, so this is
-   *  where Drive's consent popup needs to be kicked off (see
-   *  preauthorizeDrive) rather than in onSelect's onChange. */
   onBeforePick?: () => void;
   onRemove: () => void;
   shape?: "square" | "wide";
@@ -763,7 +766,7 @@ function LogoEditor({
   visibilityHint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const tileSize = shape === "wide" ? { width: 176, height: 116 } : { width: 116, height: 116 };
+  const tileSize = shape === "wide" ? { width: 100, height: 72 } : { width: 72, height: 72 };
 
   function openPicker() {
     if (disabled || uploading) return;
@@ -772,8 +775,8 @@ function LogoEditor({
   }
 
   return (
-    <div style={{ padding: "6px 4px 4px" }}>
-      <div style={{ display: "flex", alignItems: "stretch", gap: "20px", flexWrap: "wrap" }}>
+    <div style={{ paddingTop: "4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
         <div
           onClick={openPicker}
           role="button"
@@ -783,7 +786,7 @@ function LogoEditor({
             width: tileSize.width,
             height: tileSize.height,
             flexShrink: 0,
-            borderRadius: "18px",
+            borderRadius: "14px",
             overflow: "hidden",
             cursor: disabled || uploading ? "default" : "pointer",
             background: logoURL ? "#f7fafc" : "rgba(26,107,60,0.06)",
@@ -803,12 +806,12 @@ function LogoEditor({
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "6px",
+                gap: "4px",
                 color: "var(--primary)",
               }}
             >
-              <ImageIcon size={30} strokeWidth={1.6} />
-              <span style={{ fontSize: "10.5px", fontWeight: 600, textAlign: "center", padding: "0 8px", color: "var(--text-muted)" }}>
+              <ImageIcon size={22} strokeWidth={1.6} />
+              <span style={{ fontSize: "9.5px", fontWeight: 600, textAlign: "center", padding: "0 4px", color: "var(--text-muted)" }}>
                 {noneLabel}
               </span>
             </div>
@@ -818,55 +821,55 @@ function LogoEditor({
             <div
               style={{
                 position: "absolute",
-                bottom: 6,
-                right: 6,
-                width: 28,
-                height: 28,
+                bottom: 4,
+                right: 4,
+                width: 22,
+                height: 22,
                 borderRadius: "50%",
                 background: "var(--primary)",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                border: "2px solid #fff",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                border: "1.5px solid #fff",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
               }}
             >
-              <Camera size={13} />
+              <Camera size={11} />
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: "10px" }}>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "6px" }}>
           <div>
-            <div style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#1a202c" }}>
               {logoURL ? currentLabel : noneLabel}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {disabled ? "Connect Google Drive above first." : uploading ? "Uploading to Drive…" : logoURL ? visibilityHint : hint}
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "1px" }}>
+              {disabled ? "Connect Drive first." : uploading ? "Uploading…" : logoURL ? visibilityHint : hint}
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
             <button
               type="button"
               onClick={openPicker}
               disabled={disabled || uploading}
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                gap: "7px",
-                padding: "9px 16px",
-                borderRadius: "9px",
+                gap: "5px",
+                padding: "6px 12px",
+                borderRadius: "7px",
                 border: "none",
-                background: disabled || uploading ? "var(--border)" : "var(--primary)",
+                background: disabled || uploading ? "var(--border)" : "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                 color: "#fff",
-                fontSize: "13px",
+                fontSize: "12px",
                 fontWeight: 600,
                 cursor: disabled || uploading ? "default" : "pointer",
               }}
             >
-              <Camera size={14} />
+              <Camera size={12} />
               {logoURL ? replaceLabel : uploadLabel}
             </button>
 
@@ -876,26 +879,26 @@ function LogoEditor({
                 onClick={onRemove}
                 disabled={uploading}
                 style={{
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: "7px",
-                  padding: "9px 16px",
-                  borderRadius: "9px",
+                  gap: "4px",
+                  padding: "6px 10px",
+                  borderRadius: "7px",
                   border: "1px solid var(--border)",
                   background: "#fff",
                   color: "var(--danger)",
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   cursor: uploading ? "default" : "pointer",
                 }}
               >
-                <Trash2 size={14} />
+                <Trash2 size={12} />
                 Remove
               </button>
             )}
           </div>
 
-          {error && <div style={{ fontSize: "12px", color: "var(--danger)" }}>{error}</div>}
+          {error && <div style={{ fontSize: "11px", color: "var(--danger)" }}>{error}</div>}
         </div>
       </div>
 
@@ -927,24 +930,24 @@ function Section({
 }) {
   return (
     <div
-      className="fade-in"
       style={{
         background: "#fff",
-        borderRadius: "16px",
-        border: "1px solid rgba(226,232,240,0.8)",
-        boxShadow: "0 2px 8px rgba(15,23,42,0.05)",
-        padding: "18px 20px",
-        marginBottom: "18px",
+        borderRadius: "12px",
+        border: "1px solid var(--border)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        padding: "14px 16px",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-        <Icon size={17} style={{ color: "var(--primary)" }} />
-        <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#1a202c" }}>{title}</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+        <Icon size={15} style={{ color: "var(--primary)" }} />
+        <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#1a202c" }}>{title}</h3>
       </div>
       {description && (
-        <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "14px" }}>{description}</p>
+        <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginBottom: "10px" }}>{description}</p>
       )}
-      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>{children}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>{children}</div>
     </div>
   );
 }
@@ -969,16 +972,16 @@ function ToggleRow({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "12px",
-        padding: "10px 4px",
+        gap: "10px",
+        padding: "8px 2px",
         borderBottom: "1px solid var(--border, #edf2f7)",
       }}
     >
       <div
         style={{
-          width: 34,
-          height: 34,
-          borderRadius: "9px",
+          width: 30,
+          height: 30,
+          borderRadius: "7px",
           background: checked ? "rgba(26,107,60,0.1)" : "rgba(160,174,192,0.15)",
           color: checked ? "var(--primary)" : "#718096",
           display: "flex",
@@ -987,12 +990,14 @@ function ToggleRow({
           flexShrink: 0,
         }}
       >
-        <Icon size={16} />
+        <Icon size={14} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "13.5px", fontWeight: 600, color: "#1a202c" }}>{label}</div>
+        <div style={{ fontSize: "12.5px", fontWeight: 600, color: "#1a202c" }}>{label}</div>
         {description && (
-          <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "1px" }}>{description}</div>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {description}
+          </div>
         )}
       </div>
       <Switch checked={checked} disabled={saving} onChange={onChange} />
@@ -1016,8 +1021,8 @@ function Switch({
       disabled={disabled}
       onClick={onChange}
       style={{
-        width: 42,
-        height: 24,
+        width: 38,
+        height: 22,
         borderRadius: "999px",
         border: "none",
         background: checked ? "var(--primary)" : "#cbd5e0",
@@ -1032,9 +1037,9 @@ function Switch({
         style={{
           position: "absolute",
           top: 3,
-          left: checked ? 21 : 3,
-          width: 18,
-          height: 18,
+          left: checked ? 19 : 3,
+          width: 16,
+          height: 16,
           borderRadius: "50%",
           background: "#fff",
           boxShadow: "0 1px 3px rgba(0,0,0,0.3)",

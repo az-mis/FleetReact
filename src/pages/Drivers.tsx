@@ -307,57 +307,7 @@ export default function Drivers() {
                 placeholder="Search name or email..."
               />
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                borderRadius: "8px",
-                padding: "3px",
-                background: "rgba(255,255,255,0.16)",
-                gap: "2px",
-              }}
-            >
-              <button
-                onClick={() => setView("list")}
-                title="List view"
-                aria-pressed={view === "list"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: view === "list" ? "#fff" : "transparent",
-                  color: view === "list" ? "var(--primary)" : "#fff",
-                  boxShadow: view === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                }}
-              >
-                <List size={15} /> List
-              </button>
-              <button
-                onClick={() => setView("grid")}
-                title="Grid view"
-                aria-pressed={view === "grid"}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "none",
-                  background: view === "grid" ? "#fff" : "transparent",
-                  color: view === "grid" ? "var(--primary)" : "#fff",
-                  boxShadow: view === "grid" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                }}
-              >
-                <LayoutGrid size={15} /> Grid
-              </button>
-            </div>
+            <ViewToggle view={view} onChange={(v) => setView(v)} />
             <button
               onClick={openCreate}
               style={{
@@ -371,6 +321,7 @@ export default function Drivers() {
                 padding: "8px 14px",
                 fontSize: "13px",
                 fontWeight: 700,
+                cursor: "pointer",
               }}
             >
               <Plus size={16} /> Add Driver
@@ -385,7 +336,7 @@ export default function Drivers() {
             background: "#fff",
             borderRadius: "12px",
             border: "1px solid var(--border)",
-            padding: "40px",
+            padding: "28px",
             textAlign: "center",
             color: "var(--text-muted)",
           }}
@@ -394,49 +345,28 @@ export default function Drivers() {
           <div>No drivers found.</div>
         </div>
       ) : view === "list" ? (
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "12px",
-            border: "1px solid var(--border)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-            overflow: "auto",
-          }}
-        >
-          <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
+        <div className="auth-table-wrap">
+          <table className="auth-table">
             <thead>
-              <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
+              <tr>
                 {["Name", "Email", "Address", "License Expiry", ""].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 14px",
-                      color: "var(--text-muted)",
-                      fontWeight: 700,
-                      fontSize: "11.5px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      borderBottom: "1px solid var(--border)",
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((d) => (
-                <tr key={d.id} className="admin-row" style={{ borderTop: "1px solid var(--border)" }}>
-                  <td style={{ padding: "12px 14px", fontWeight: 600 }}>
+                <tr key={d.id} className="admin-row">
+                  <td style={{ fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <Avatar name={d.name} photoURL={d.photoURL} size={32} />
+                      <Avatar name={d.name} photoURL={d.photoURL} size={30} />
                       <span>{d.name}</span>
                     </div>
                   </td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.email}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.address || "—"}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{d.licenseExpirationDate || "—"}</td>
-                  <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                  <td style={{ color: "var(--text-muted)" }}>{d.email}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{d.address || "—"}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{d.licenseExpirationDate || "—"}</td>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(d)}
                       className="admin-icon-btn"
@@ -461,8 +391,8 @@ export default function Drivers() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: "14px",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "12px",
           }}
         >
           {filtered.map((d) => (
@@ -473,29 +403,45 @@ export default function Drivers() {
 
       {modalOpen && (
         <Modal title={editing ? "Edit Driver" : "Add Driver"} onClose={closeModal}>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {error && (
-              <div style={{ background: "#fff5f5", color: "var(--danger)", padding: "8px 10px", borderRadius: 8, fontSize: 13 }}>
+              <div
+                style={{
+                  background: "#fff5f5",
+                  color: "var(--danger)",
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <AvatarPicker
-              inputId="driver-photo-input"
-              name={form.name}
-              photoURL={form.photoURL}
-              onSelect={handlePhotoSelect}
-              onBeforePick={handleBeforePhotoPick}
-              onRemove={handlePhotoRemove}
-              error={photoError}
-              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
-            />
+            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+              <AvatarPicker
+                inputId="driver-photo-input"
+                photoURL={form.photoURL}
+                name={form.name}
+                size={76}
+                onSelect={handlePhotoSelect}
+                onRemove={handlePhotoRemove}
+                onBeforePick={handleBeforePhotoPick}
+                error={photoError}
+                label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
+              />
+            </div>
 
             <Field label="Full Name" required>
-              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                style={inputStyle}
+              />
             </Field>
 
-            <Field label="Email" required>
+            <Field label="Email Address" required>
               <input
                 type="email"
                 required
@@ -504,7 +450,7 @@ export default function Drivers() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 style={inputStyle}
               />
-              {editing && <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>}
+              {editing && <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>Email changes require a backend admin action.</small>}
             </Field>
 
             {!editing && (
@@ -547,14 +493,16 @@ export default function Drivers() {
               type="submit"
               disabled={saving || photoUploading}
               style={{
-                marginTop: "8px",
-                padding: "11px",
-                borderRadius: "8px",
+                marginTop: "6px",
+                height: "38px",
+                borderRadius: "9px",
                 border: "none",
-                background: "var(--primary)",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
                 color: "#fff",
-                fontWeight: 600,
-                fontSize: "14px",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: saving || photoUploading ? "not-allowed" : "pointer",
+                boxShadow: "0 2px 8px rgba(0, 179, 119, 0.28)",
               }}
             >
               {photoUploading ? "Uploading photo..." : saving ? "Saving..." : editing ? "Save Changes" : "Add Driver"}
@@ -595,9 +543,9 @@ function DriverCard({
     <div
       style={{
         background: "#fff",
-        borderRadius: "14px",
+        borderRadius: "12px",
         border: "1px solid var(--border)",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -605,16 +553,16 @@ function DriverCard({
     >
       <div
         style={{
-          padding: "14px 16px",
+          padding: "12px 14px",
           borderBottom: "1px solid var(--border)",
           display: "flex",
           alignItems: "center",
-          gap: "12px",
+          gap: "10px",
         }}
       >
-        <Avatar name={driver.name} photoURL={driver.photoURL} size={40} />
+        <Avatar name={driver.name} photoURL={driver.photoURL} size={36} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontWeight: 700, fontSize: "13.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {driver.name}
           </div>
           <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Driver</div>
@@ -623,29 +571,29 @@ function DriverCard({
           <button
             onClick={onEdit}
             className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--info)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
           >
-            <Pencil size={15} />
+            <Pencil size={14} />
           </button>
           <button
             onClick={onDelete}
             className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--danger)", padding: "6px", borderRadius: "7px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
 
-      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12.5px", color: "var(--text-muted)" }}>
+      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Mail size={13} style={{ flexShrink: 0 }} /> {driver.email}
+          <Mail size={12} style={{ flexShrink: 0 }} /> {driver.email}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <MapPin size={13} style={{ flexShrink: 0 }} /> {driver.address || "No address on file"}
+          <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.address || "No address on file"}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <BadgeCheck size={13} style={{ flexShrink: 0 }} />
+          <BadgeCheck size={12} style={{ flexShrink: 0 }} />
           {driver.licenseExpirationDate ? `License exp: ${driver.licenseExpirationDate}` : "No license expiry on file"}
         </span>
       </div>
@@ -653,10 +601,50 @@ function DriverCard({
   );
 }
 
+function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "list" | "grid") => void }) {
+  const btn = (mode: "list" | "grid", Icon: any, label: string) => (
+    <button
+      type="button"
+      onClick={() => onChange(mode)}
+      aria-label={label}
+      aria-pressed={view === mode}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 30,
+        height: 30,
+        borderRadius: "6px",
+        border: "none",
+        background: view === mode ? "#fff" : "transparent",
+        color: view === mode ? "var(--primary)" : "rgba(255,255,255,0.85)",
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+      }}
+    >
+      <Icon size={14} />
+    </button>
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: "2px",
+        padding: "2px",
+        borderRadius: "8px",
+        background: "rgba(255,255,255,0.16)",
+      }}
+    >
+      {btn("list", List, "List view")}
+      {btn("grid", LayoutGrid, "Grid view")}
+    </div>
+  );
+}
+
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568" }}>
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
@@ -665,9 +653,11 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: "9px 11px",
+  padding: "0 11px",
+  height: "38px",
   borderRadius: "8px",
-  border: "1px solid var(--border)",
-  fontSize: "14px",
+  border: "1.5px solid var(--border)",
+  fontSize: "13px",
   width: "100%",
+  outline: "none",
 };

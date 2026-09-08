@@ -189,7 +189,7 @@ export default function VehicleAssigning() {
             background: "#fff",
             borderRadius: "12px",
             border: "1px solid var(--border)",
-            padding: "40px",
+            padding: "28px",
             textAlign: "center",
             color: "var(--text-muted)",
           }}
@@ -203,7 +203,7 @@ export default function VehicleAssigning() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "14px",
+            gap: "12px",
           }}
         >
           {filtered.map((v) => (
@@ -221,12 +221,12 @@ export default function VehicleAssigning() {
 
       {confirmUnassign && (
         <Modal title="Remove permanent driver?" onClose={() => setConfirmUnassign(null)}>
-          <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "18px" }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: "10px",
+                width: 34,
+                height: 34,
+                borderRadius: "8px",
                 background: "#fff8e6",
                 color: "var(--warning)",
                 display: "flex",
@@ -235,19 +235,19 @@ export default function VehicleAssigning() {
                 flexShrink: 0,
               }}
             >
-              <AlertTriangle size={18} />
+              <AlertTriangle size={16} />
             </div>
-            <div style={{ fontSize: "13.5px", color: "#2d3748", lineHeight: 1.5 }}>
+            <div style={{ fontSize: "13px", color: "#2d3748", lineHeight: 1.5 }}>
               <b>{confirmUnassign.assignedDriverName}</b> is currently the permanent driver for{" "}
               <b>{confirmUnassign.plateNumber}</b>. This will unassign them, leaving the vehicle without a
               default driver until someone else is assigned.
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
             <button
               onClick={() => setConfirmUnassign(null)}
               style={{
-                padding: "9px 16px",
+                padding: "8px 14px",
                 borderRadius: "8px",
                 border: "1px solid var(--border)",
                 background: "#fff",
@@ -266,7 +266,7 @@ export default function VehicleAssigning() {
                 if (vehicle) handleAssign(vehicle, "");
               }}
               style={{
-                padding: "9px 16px",
+                padding: "8px 14px",
                 borderRadius: "8px",
                 border: "1px solid var(--danger)",
                 background: "var(--danger)",
@@ -304,33 +304,33 @@ function VehicleAssignCard({
     <div
       style={{
         background: "#fff",
-        borderRadius: "14px",
+        borderRadius: "12px",
         border: "1px solid var(--border)",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         display: "flex",
         flexDirection: "column",
       }}
     >
       <div
         style={{
-          padding: "14px 16px",
+          padding: "12px 14px",
           borderBottom: "1px solid var(--border)",
-          borderTopLeftRadius: "14px",
-          borderTopRightRadius: "14px",
+          borderTopLeftRadius: "12px",
+          borderTopRightRadius: "12px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "10px",
+          gap: "8px",
           background: vehicle.assignedDriverId ? undefined : "#fffaf0",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
-          <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={40} name={vehicle.plateNumber} />
+          <Avatar photoURL={vehicle.photoURL} fallback="icon" icon={Truck} size={36} name={vehicle.plateNumber} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontWeight: 700, fontSize: "13.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {vehicle.plateNumber}
             </div>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {vehicle.brand} {vehicle.model}
             </div>
           </div>
@@ -338,28 +338,28 @@ function VehicleAssignCard({
         <span
           style={{
             flexShrink: 0,
-            fontSize: "11.5px",
+            fontSize: "11px",
             fontWeight: 700,
-            padding: "5px 12px",
+            padding: "4px 10px",
             borderRadius: "999px",
             display: "inline-flex",
             alignItems: "center",
-            gap: "5px",
+            gap: "4px",
             textTransform: "uppercase",
-            letterSpacing: "0.3px",
+            letterSpacing: "0.2px",
             background: vehicle.assignedDriverId ? "#d9f5e5" : "#ffe8b3",
             color: vehicle.assignedDriverId ? "#0f7a44" : "#8a5a00",
             border: `1px solid ${vehicle.assignedDriverId ? "#a9e6c4" : "#ffcf66"}`,
           }}
         >
-          {vehicle.assignedDriverId ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />}
+          {vehicle.assignedDriverId ? <CheckCircle2 size={12} /> : <CircleDashed size={12} />}
           {vehicle.assignedDriverId ? "Assigned" : "Unassigned"}
         </span>
       </div>
 
-      <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)" }}>
+          <span style={{ fontSize: "11px", fontWeight: 700, color: "#4a5568" }}>
             PERMANENT DRIVER
           </span>
           <DriverSelect
@@ -377,17 +377,17 @@ function VehicleAssignCard({
         </div>
 
         {saving ? (
-          <div style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>Saving...</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Saving...</div>
         ) : assignedDriver ? (
           <DriverInfo driver={assignedDriver} />
         ) : (
           <div
             style={{
-              fontSize: "12.5px",
+              fontSize: "12px",
               color: "var(--text-muted)",
               border: "1px dashed var(--border)",
               borderRadius: "8px",
-              padding: "10px",
+              padding: "8px 10px",
               textAlign: "center",
             }}
           >
@@ -401,8 +401,6 @@ function VehicleAssignCard({
 
 function DriverInfo({ driver }: { driver: AppUser | null }) {
   if (!driver) {
-    // Assigned driver's profile isn't loaded yet (or was removed) — avoid
-    // showing stale/blank info.
     return null;
   }
 
@@ -413,24 +411,24 @@ function DriverInfo({ driver }: { driver: AppUser | null }) {
         gap: "10px",
         background: "#f7fafc",
         border: "1px solid var(--border)",
-        borderRadius: "10px",
-        padding: "10px",
+        borderRadius: "8px",
+        padding: "8px 10px",
       }}
     >
-      <Avatar photoURL={driver.photoURL} name={driver.name || driver.email} size={34} />
-      <div style={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0, fontSize: "12px", color: "var(--text-muted)" }}>
-        <span style={{ fontWeight: 700, fontSize: "13px", color: "#2d3748" }}>{driver.name}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: "5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Mail size={12} style={{ flexShrink: 0 }} /> {driver.email}
+      <Avatar photoURL={driver.photoURL} name={driver.name || driver.email} size={32} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, fontSize: "11.5px", color: "var(--text-muted)" }}>
+        <span style={{ fontWeight: 700, fontSize: "12.5px", color: "#2d3748" }}>{driver.name}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Mail size={11} style={{ flexShrink: 0 }} /> {driver.email}
         </span>
         {driver.address && (
-          <span style={{ display: "flex", alignItems: "center", gap: "5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.address}
+          <span style={{ display: "flex", alignItems: "center", gap: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <MapPin size={11} style={{ flexShrink: 0 }} /> {driver.address}
           </span>
         )}
         {driver.licenseExpirationDate && (
-          <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-            <BadgeCheck size={12} style={{ flexShrink: 0 }} /> License exp: {driver.licenseExpirationDate}
+          <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <BadgeCheck size={11} style={{ flexShrink: 0 }} /> Exp: {driver.licenseExpirationDate}
           </span>
         )}
       </div>
