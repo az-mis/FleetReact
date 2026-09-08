@@ -23,9 +23,15 @@ import {
   User,
   Activity,
   AlertCircle,
+  AlertTriangle,
   Check,
   ChevronRight,
   TrendingUp,
+  Navigation,
+  FileCheck2,
+  CalendarCheck,
+  ShieldAlert,
+  Edit3,
 } from "lucide-react";
 import { USER_ROLE_LABEL, Vehicle, VehicleRequest, AppUser } from "../types";
 import { formatTravelDateRange } from "../utils/travelDate";
@@ -87,25 +93,40 @@ export default function Dashboard() {
     return unsub;
   }, [isAdmin]);
 
-  // All roles: Vehicle Requests stream
+  // Driver query: fetch all trips where the driver is assigned (confirmed or default)
   useEffect(() => {
     if (isDriver && currentUser) {
-      // Driver sees requests assigned to them
       const q = query(
         collection(db, "vehicleRequests"),
-        where("confirmedDriverId", "==", currentUser.uid),
-        orderBy("travelDate", "desc"),
-        limit(20)
+        where("confirmedDriverId", "==", currentUser.uid)
       );
       const unsub = onSnapshot(
         q,
-        (snap) => setRequests(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as VehicleRequest))),
-        (err) => {
-          // fallback query without compound index
-          const qFallback = query(collection(db, "vehicleRequests"), where("confirmedDriverId", "==", currentUser.uid));
-          return onSnapshot(qFallback, (s) =>
-            setRequests(s.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as VehicleRequest)))
+        (snap) => {
+          const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as VehicleRequest));
+          // If defaultDriverId matches but confirmedDriverId is not yet set (or matches default)
+          const qDefault = query(
+            collection(db, "vehicleRequests"),
+            where("defaultDriverId", "==", currentUser.uid)
           );
+          onSnapshot(qDefault, (snapDefault) => {
+            const defaultList = snapDefault.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as VehicleRequest));
+            const map = new Map<string, VehicleRequest>();
+            list.forEach((r) => map.set(r.id, r));
+            defaultList.forEach((r) => {
+              // Only include if no different confirmed driver was assigned
+              if (!r.confirmedDriverId || r.confirmedDriverId === currentUser.uid) {
+                map.set(r.id, r);
+              }
+            });
+            const combined = Array.from(map.values()).sort((a, b) => (b.travelDate || "").localeCompare(a.travelDate || ""));
+            setRequests(combined);
+          }, (err) => {
+            setRequests(list);
+          });
+        },
+        (err) => {
+          console.error("Error fetching driver vehicle requests:", err);
         }
       );
       return unsub;
@@ -144,6 +165,68 @@ export default function Dashboard() {
       .sort((a, b) => a.travelDate.localeCompare(b.travelDate))
       .slice(0, 5);
   }, [requests, todayStr]);
+
+  // Driver-specific KPIs
+  const driverMetrics = useMemo(() => {
+    if (!isDriver) return null;
+
+    const completed = requests.filter((r) => {
+      if (r.status !== "approved") return false;
+      const end = r.travelDateEnd || r.travelDate;
+      return end < todayStr;
+    });
+
+    const activeToday = requests.filter((r) => {
+      if (r.status !== "approved") return false;
+      const start = r.travelDate;
+      const end = r.travelDateEnd || r.travelDate;
+      return start <= todayStr && end >= todayStr;
+    });
+
+    const future = requests.filter((r) => {
+      if (r.status !== "approved") return false;
+      const end = r.travelDateEnd || r.travelDate;
+      return r.travelDate > todayStr || end >= todayStr;
+    });
+
+    // Profile missing fields check
+    const missing: string[] = [];
+    if (!profile?.photoURL) missing.push("Profile Photo");
+    if (!profile?.birthDate) missing.push("Birth Date");
+    if (!profile?.address) missing.push("Residential Address");
+    if (!profile?.licenseExpirationDate) missing.push("License Expiration Date");
+
+    // License expiry warning
+    let licenseStatus: "valid" | "expiring_soon" | "expired" | "none" = "none";
+    let daysUntilExpiry: number | null = null;
+    if (profile?.licenseExpirationDate) {
+      const exp = new Date(profile.licenseExpirationDate);
+      const now = new Date(todayStr);
+      const diffTime = exp.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysUntilExpiry = diffDays;
+      if (diffDays < 0) {
+        licenseStatus = "expired";
+      } else if (diffDays <= 30) {
+        licenseStatus = "expiring_soon";
+      } else {
+        licenseStatus = "valid";
+      }
+    }
+
+    return {
+      totalAssigned: requests.length,
+      completedTrips: completed.length,
+      activeTodayCount: activeToday.length,
+      futureTripsCount: future.length,
+      futureTrips: future.sort((a, b) => a.travelDate.localeCompare(b.travelDate)),
+      completedTripsList: completed,
+      activeTodayList: activeToday,
+      missingFields: missing,
+      licenseStatus,
+      daysUntilExpiry,
+    };
+  }, [isDriver, requests, todayStr, profile]);
 
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -570,149 +653,403 @@ export default function Dashboard() {
         </>
       ) : (
         /* Driver Dashboard View */
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid var(--border)",
-              borderRadius: "14px",
-              padding: "18px 20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "14px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          {/* 1. Missing Profile Information Alert Banner */}
+          {driverMetrics && driverMetrics.missingFields.length > 0 && (
             <div
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, var(--primary), var(--primary-light))",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                flexShrink: 0,
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "14px",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                background: "#fffaf0",
+                border: "1.5px solid #fbd38d",
+                boxShadow: "0 2px 6px rgba(221, 107, 32, 0.08)",
+                flexWrap: "wrap",
               }}
             >
-              <UserCircle size={24} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "14px", color: "#1a202c" }}>
-                {profile?.name}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", minWidth: "260px", flex: 1 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "8px",
+                    background: "rgba(221, 107, 32, 0.15)",
+                    color: "#c05621",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#9c4221" }}>
+                    Profile Incomplete ({driverMetrics.missingFields.length} missing {driverMetrics.missingFields.length === 1 ? "item" : "items"})
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#7b341e", marginTop: "2px", lineHeight: 1.4 }}>
+                    Please complete your driver details: <b>{driverMetrics.missingFields.join(", ")}</b>.
+                  </div>
+                </div>
               </div>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "1px" }}>
-                Driver portal: view your assigned vehicle and dispatch schedule.
-              </div>
+              <Link
+                to="/my-profile"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "7px 14px",
+                  borderRadius: "8px",
+                  background: "#dd6b20",
+                  color: "#fff",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  alignSelf: "center",
+                  boxShadow: "0 2px 6px rgba(221, 107, 32, 0.3)",
+                }}
+              >
+                <Edit3 size={13} />
+                <span>Complete Profile</span>
+              </Link>
             </div>
-          </div>
+          )}
 
-          {flags.driverModules.showAssignedVehicle && assignedVehicle && (
+          {/* 2. License Status Warning (if expiring soon or expired) */}
+          {driverMetrics && driverMetrics.licenseStatus === "expiring_soon" && (
             <div
               style={{
-                background: "#fff",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                background: "#fffaf0",
+                border: "1px solid #fbd38d",
+                color: "#c05621",
+                fontSize: "12.5px",
+                fontWeight: 600,
+              }}
+            >
+              <Clock size={18} />
+              <span>
+                Your driver's license will expire in <b>{driverMetrics.daysUntilExpiry} days</b> ({profile?.licenseExpirationDate}). Please prepare your renewal documents.
+              </span>
+            </div>
+          )}
+
+          {driverMetrics && driverMetrics.licenseStatus === "expired" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                background: "#fff5f5",
+                border: "1px solid #feb2b2",
+                color: "var(--danger)",
+                fontSize: "12.5px",
+                fontWeight: 600,
+              }}
+            >
+              <ShieldAlert size={18} />
+              <span>
+                Your driver's license expired on <b>{profile?.licenseExpirationDate}</b>. Please contact the administrator.
+              </span>
+            </div>
+          )}
+
+          {/* 3. Driver KPI Stat Cards Grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            <StatCard
+              icon={Navigation}
+              label="Completed Travels"
+              value={driverMetrics?.completedTrips ?? 0}
+              color="var(--primary)"
+              sublabel="Past trips finished"
+            />
+            <StatCard
+              icon={CalendarCheck}
+              label="Future Assigned Trips"
+              value={driverMetrics?.futureTripsCount ?? 0}
+              color="var(--info)"
+              sublabel="Scheduled ahead"
+            />
+            <StatCard
+              icon={Activity}
+              label="Active Trips Today"
+              value={driverMetrics?.activeTodayCount ?? 0}
+              color="var(--warning)"
+              sublabel="Happening now"
+            />
+            <StatCard
+              icon={ClipboardList}
+              label="Total Dispatches"
+              value={driverMetrics?.totalAssigned ?? 0}
+              color="#7e57c2"
+              sublabel="All time trips"
+            />
+          </div>
+
+          {/* 4. Assigned Vehicle Info Card */}
+          {flags.driverModules.showAssignedVehicle && (
+            assignedVehicle ? (
+              <div
+                style={{
+                  background: "#fff",
+                  border: "1px solid var(--border)",
+                  borderRadius: "14px",
+                  padding: "16px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "14px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <Avatar
+                    photoURL={assignedVehicle.photoURL}
+                    fallback="icon"
+                    icon={Car}
+                    size={46}
+                    name={assignedVehicle.plateNumber}
+                  />
+                  <div>
+                    <div style={{ fontSize: "10.5px", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      My Permanent Assigned Vehicle
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: "15px", color: "#1a202c", marginTop: "2px" }}>
+                      {assignedVehicle.brand} {assignedVehicle.model} — {assignedVehicle.plateNumber}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                      Color: <b>{assignedVehicle.color}</b> · Year: <b>{assignedVehicle.year}</b> {assignedVehicle.vehicleType ? `· Type: ${assignedVehicle.vehicleType}` : ""}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    background: "#e6f7ee",
+                    color: "var(--primary)",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Check size={14} /> Ready for Dispatch
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "#fff",
+                  border: "1px dashed var(--border)",
+                  borderRadius: "14px",
+                  padding: "14px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  color: "var(--text-muted)",
+                  fontSize: "12.5px",
+                }}
+              >
+                <Car size={20} />
+                <span>No vehicle permanently assigned to you yet. You can still be assigned to individual trip dispatches.</span>
+              </div>
+            )
+          )}
+
+          {/* 5. Main 2-Column Schedule & Travel History */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {/* Left Column: Future / Upcoming Travels */}
+            <div
+              style={{
+                background: "#ffffff",
                 border: "1px solid var(--border)",
                 borderRadius: "14px",
                 padding: "16px 18px",
                 display: "flex",
-                alignItems: "center",
-                gap: "14px",
+                flexDirection: "column",
+                gap: "12px",
                 boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
               }}
             >
-              <Avatar
-                photoURL={assignedVehicle.photoURL}
-                fallback="icon"
-                icon={Car}
-                size={42}
-                name={assignedVehicle.plateNumber}
-              />
-              <div>
-                <div style={{ fontSize: "10.5px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  My Assigned Vehicle
-                </div>
-                <div style={{ fontWeight: 700, fontSize: "14px", color: "#1a202c", marginTop: "2px" }}>
-                  {assignedVehicle.brand} {assignedVehicle.model} — {assignedVehicle.plateNumber}
-                </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "1px" }}>
-                  Color: {assignedVehicle.color} · Year: {assignedVehicle.year}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <CalendarDays size={16} color="var(--info)" />
+                  <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#1a202c" }}>
+                    Future Assigned Travels ({driverMetrics?.futureTripsCount ?? 0})
+                  </h3>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Driver Trip History / Schedule */}
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid var(--border)",
-              borderRadius: "14px",
-              padding: "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <CalendarDays size={16} color="var(--primary)" />
-              <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#1a202c" }}>
-                My Assigned Trips ({requests.length})
-              </h3>
-            </div>
-
-            {requests.length === 0 ? (
-              <div style={{ padding: "16px 0", textAlign: "center", color: "var(--text-muted)", fontSize: "12px" }}>
-                No trips have been assigned to you yet.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {requests.map((trip) => (
-                  <div
-                    key={trip.id}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: "10px",
-                      background: "#f8fafc",
-                      border: "1px solid var(--border)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "10px",
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: "12.5px", color: "#2d3748" }}>
-                        {trip.destination}
+              {(!driverMetrics || driverMetrics.futureTrips.length === 0) ? (
+                <div style={{ padding: "24px 0", textAlign: "center", color: "var(--text-muted)", fontSize: "12.5px" }}>
+                  No upcoming scheduled trips.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {driverMetrics.futureTrips.map((trip) => (
+                    <div
+                      key={trip.id}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: "12.5px", color: "#166534" }}>
+                          📍 {trip.destination}
+                        </div>
+                        <div style={{ fontSize: "11.5px", color: "#15803d", marginTop: "2px" }}>
+                          Requester: <b>{trip.requesterName}</b> {trip.requesterOffice ? `(${trip.requesterOffice})` : ""}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "1px" }}>
+                          Vehicle: {trip.vehiclePlateNumber} {trip.purpose ? `· Purpose: ${trip.purpose}` : ""}
+                        </div>
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "1px" }}>
-                        Passenger: {trip.requesterName} {trip.requesterContact ? `(${trip.requesterContact})` : ""}
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: "11.5px", fontWeight: 700, color: "#166534" }}>
+                          {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            display: "inline-block",
+                            marginTop: "3px",
+                            background: "#d9f5e5",
+                            color: "#0f7a44",
+                          }}
+                        >
+                          APPROVED
+                        </span>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--primary)" }}>
-                        {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          padding: "2px 5px",
-                          borderRadius: "4px",
-                          display: "inline-block",
-                          marginTop: "2px",
-                          background: trip.status === "approved" ? "#d9f5e5" : "#ffe8b3",
-                          color: trip.status === "approved" ? "#0f7a44" : "#8a5a00",
-                        }}
-                      >
-                        {trip.status.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Recent Travel History (Past Travels Made) */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid var(--border)",
+                borderRadius: "14px",
+                padding: "16px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Navigation size={16} color="var(--primary)" />
+                  <h3 style={{ fontSize: "13.5px", fontWeight: 700, color: "#1a202c" }}>
+                    Travels Already Made ({driverMetrics?.completedTrips ?? 0})
+                  </h3>
+                </div>
+                <Link
+                  to="/travel-history"
+                  style={{
+                    fontSize: "11.5px",
+                    fontWeight: 600,
+                    color: "var(--primary)",
+                    textDecoration: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "2px",
+                  }}
+                >
+                  View full history <ChevronRight size={13} />
+                </Link>
               </div>
-            )}
+
+              {(!driverMetrics || driverMetrics.completedTripsList.length === 0) ? (
+                <div style={{ padding: "24px 0", textAlign: "center", color: "var(--text-muted)", fontSize: "12.5px" }}>
+                  No completed trips yet.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {driverMetrics.completedTripsList.slice(0, 6).map((trip) => (
+                    <div
+                      key={trip.id}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        background: "#f8fafc",
+                        border: "1px solid var(--border)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: "12.5px", color: "#2d3748" }}>
+                          {trip.destination}
+                        </div>
+                        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                          Passenger: {trip.requesterName} · Plate: {trip.vehiclePlateNumber}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ fontSize: "11px", fontWeight: 600, color: "#4a5568" }}>
+                          {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "9.5px",
+                            fontWeight: 700,
+                            padding: "2px 5px",
+                            borderRadius: "4px",
+                            display: "inline-block",
+                            marginTop: "2px",
+                            background: "#edf2f7",
+                            color: "#4a5568",
+                          }}
+                        >
+                          COMPLETED
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

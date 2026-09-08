@@ -18,6 +18,7 @@ import TripTicket from "./pages/TripTicket";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
 import MyProfile from "./pages/MyProfile";
+import TravelHistory from "./pages/TravelHistory";
 import ContentSettings from "./pages/ContentSettings";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -65,6 +66,16 @@ function App() {
             {/* My Profile: every authenticated role (super_admin, admin,
                 driver) can view and update their own personal info here. */}
             <Route path="my-profile" element={<MyProfile />} />
+
+            {/* Travel History: driver only */}
+            <Route
+              path="travel-history"
+              element={
+                <ProtectedRoute allow={["driver"]}>
+                  <TravelHistory />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Vehicles: admin + super_admin only (drivers have no access) */}
             <Route
