@@ -5,7 +5,13 @@ import { db } from "../firebase";
 import { VehicleRequest } from "../types";
 import { ArrowLeft, Printer, AlertTriangle } from "lucide-react";
 
-type LoadState = "loading" | "not_found" | "not_approved" | "error" | "ready";
+import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
+
+type LoadState = "loading" | "not_found" | "not_approved" | "error" | "ready" | "rate_limited";
+
+const RATE_LIMIT_KEY = "view_trip_ticket";
+const RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 min
 
 /** yyyy-mm-dd -> "July 24, 2026" */
 function longDate(value?: string | null): string {
@@ -40,10 +46,20 @@ export default function TripTicket() {
   const [vehicleLabel, setVehicleLabel] = useState<string>("");
 
   useEffect(() => {
-    if (!id) return;
+    const cleanId = sanitizeInput(id?.trim() || "", 20);
+    if (!cleanId) return;
+
+    const rateCheck = checkRateLimit(RATE_LIMIT_KEY, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+    if (!rateCheck.allowed) {
+      setState("rate_limited");
+      return;
+    }
+
+    recordAttempt(RATE_LIMIT_KEY, RATE_LIMIT_WINDOW_MS);
+
     (async () => {
       try {
-        const snap = await getDoc(doc(db, "vehicleRequests", id));
+        const snap = await getDoc(doc(db, "vehicleRequests", cleanId));
         if (!snap.exists()) {
           setState("not_found");
           return;
@@ -76,6 +92,14 @@ export default function TripTicket() {
 
   if (state === "loading") {
     return <CenteredMessage>Loading trip ticket…</CenteredMessage>;
+  }
+  if (state === "rate_limited") {
+    return (
+      <CenteredMessage icon={AlertTriangle}>
+        Too many requests. Please wait a minute before viewing this trip ticket again.
+        <BackLink />
+      </CenteredMessage>
+    );
   }
   if (state === "not_found") {
     return (
