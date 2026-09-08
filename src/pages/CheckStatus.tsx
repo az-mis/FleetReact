@@ -62,17 +62,8 @@ export default function CheckStatus() {
     lookup(code);
   }
 
-  const hasCustomBg = !!branding?.loginBackgroundURL;
-
   return (
-    <div
-      className={`portal-container${hasCustomBg ? " portal-container--custom-bg" : ""}`}
-      style={
-        hasCustomBg
-          ? ({ "--custom-bg": `url(${branding!.loginBackgroundURL})` } as React.CSSProperties)
-          : undefined
-      }
-    >
+    <div className="portal-container">
       <div className="login-bg-glow" aria-hidden="true" />
 
       <main className="portal-wrapper fade-in">
@@ -139,22 +130,24 @@ export default function CheckStatus() {
           <div
             className="fade-in"
             style={{
-              padding: "20px",
-              background: "#fffaf0",
-              border: "1px solid #feebc8",
-              borderRadius: "14px",
+              padding: "16px",
+              background: "rgba(180, 100, 20, 0.25)",
+              border: "1px solid rgba(237, 137, 54, 0.4)",
+              borderRadius: "12px",
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "8px",
+              gap: "6px",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
             }}
           >
-            <AlertTriangle size={24} color="#dd6b20" />
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "#7b341e" }}>
+            <AlertTriangle size={20} color="#f6ad55" />
+            <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#feebc8" }}>
               No Request Found
             </div>
-            <div style={{ fontSize: "13px", color: "#744210", maxWidth: "360px" }}>
+            <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.8)", maxWidth: "360px" }}>
               We couldn't find a record for reference code <b>"{code}"</b>. Please verify the code and try again.
             </div>
           </div>
@@ -164,18 +157,20 @@ export default function CheckStatus() {
           <div
             className="fade-in"
             style={{
-              padding: "16px 18px",
-              background: "#fff5f5",
-              border: "1px solid #fed7d7",
-              borderRadius: "14px",
-              color: "var(--danger)",
-              fontSize: "13px",
+              padding: "14px 16px",
+              background: "rgba(180, 40, 40, 0.3)",
+              border: "1px solid rgba(245, 101, 101, 0.45)",
+              borderRadius: "12px",
+              color: "#fed7d7",
+              fontSize: "12.5px",
               display: "flex",
               alignItems: "center",
-              gap: "10px",
+              gap: "8px",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
             }}
           >
-            <AlertTriangle size={18} />
+            <AlertTriangle size={16} />
             <span>Something went wrong looking up your request. Please try again.</span>
           </div>
         )}
@@ -211,25 +206,25 @@ const STATUS_META: Record<
 > = {
   pending: {
     label: "Pending Review",
-    color: "#b7791f",
-    bg: "#fffbea",
-    border: "#fef3c7",
+    color: "#f6ad55",
+    bg: "rgba(221, 107, 32, 0.22)",
+    border: "rgba(237, 137, 54, 0.4)",
     icon: Clock,
-    desc: "Your request is in the admin queue awaiting review and vehicle assignment.",
+    desc: "Your request is in the queue awaiting review and vehicle assignment.",
   },
   approved: {
     label: "Trip Approved",
-    color: "#1a6b3c",
-    bg: "#e6f7ee",
-    border: "#c6f6d5",
+    color: "#72ebb0",
+    bg: "rgba(72, 187, 120, 0.22)",
+    border: "rgba(72, 187, 120, 0.45)",
     icon: CheckCircle2,
-    desc: "Your trip has been officially approved. You may now download and print your Trip Ticket.",
+    desc: "Your trip is approved. You may now download and print your Trip Ticket.",
   },
   declined: {
     label: "Request Declined",
-    color: "#c53030",
-    bg: "#fff5f5",
-    border: "#fed7d7",
+    color: "#fc8181",
+    bg: "rgba(229, 62, 62, 0.22)",
+    border: "rgba(245, 101, 101, 0.4)",
     icon: XCircle,
     desc: "This request could not be approved at this time.",
   },
@@ -246,27 +241,29 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "16px",
+        gap: "12px",
       }}
     >
       <div
         style={{
           display: "flex",
           alignItems: "flex-start",
-          gap: "12px",
-          padding: "16px",
-          borderRadius: "14px",
+          gap: "10px",
+          padding: "12px 14px",
+          borderRadius: "12px",
           background: meta.bg,
           border: `1px solid ${meta.border}`,
           color: meta.color,
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
         }}
       >
         <div style={{ marginTop: "2px" }}>
-          <StatusIcon size={20} />
+          <StatusIcon size={18} />
         </div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: "15px" }}>{meta.label}</div>
-          <div style={{ fontSize: "12.5px", marginTop: "2px", opacity: 0.9 }}>
+          <div style={{ fontWeight: 800, fontSize: "14px" }}>{meta.label}</div>
+          <div style={{ fontSize: "12px", marginTop: "2px", opacity: 0.95, color: "rgba(255, 255, 255, 0.85)" }}>
             {meta.desc}
           </div>
         </div>
@@ -275,12 +272,12 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
       {request.status === "declined" && request.declineReason && (
         <div
           style={{
-            fontSize: "13px",
-            color: "#742a2a",
-            background: "#fff5f5",
-            border: "1px solid #fed7d7",
+            fontSize: "12px",
+            color: "#fed7d7",
+            background: "rgba(180, 40, 40, 0.3)",
+            border: "1px solid rgba(245, 101, 101, 0.4)",
             borderRadius: "10px",
-            padding: "12px 14px",
+            padding: "10px 12px",
           }}
         >
           <b>Reason for decline:</b> {request.declineReason}
@@ -289,13 +286,15 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
 
       <div
         style={{
-          background: "#f8fafc",
-          border: "1px solid var(--border)",
-          borderRadius: "14px",
-          padding: "16px",
+          background: "rgba(0, 0, 0, 0.22)",
+          border: "1px solid rgba(255, 255, 255, 0.14)",
+          borderRadius: "12px",
+          padding: "14px",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "14px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "12px",
         }}
       >
         <DetailItem icon={Truck} label="Vehicle" value={request.vehiclePlateNumber} />
@@ -320,7 +319,7 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
           className="portal-submit-btn"
           style={{ textDecoration: "none" }}
         >
-          <Printer size={16} />
+          <Printer size={15} />
           <span>Download / Print Trip Ticket</span>
         </Link>
       )}
@@ -330,28 +329,29 @@ function RequestStatusCard({ request }: { request: VehicleRequest }) {
 
 function DetailItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
       <div
         style={{
-          width: "28px",
-          height: "28px",
-          borderRadius: "8px",
-          background: "#edf2f7",
-          color: "var(--primary)",
+          width: "26px",
+          height: "26px",
+          borderRadius: "7px",
+          background: "rgba(72, 187, 120, 0.18)",
+          color: "#72ebb0",
+          border: "1px solid rgba(72, 187, 120, 0.3)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
-          marginTop: "2px",
+          marginTop: "1px",
         }}
       >
-        <Icon size={14} />
+        <Icon size={13} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>
+        <div style={{ fontSize: "10.5px", fontWeight: 700, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase" }}>
           {label}
         </div>
-        <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#2d3748", marginTop: "1px", wordBreak: "break-word" }}>
+        <div style={{ fontWeight: 600, fontSize: "12.5px", color: "#ffffff", marginTop: "1px", wordBreak: "break-word" }}>
           {value}
         </div>
       </div>

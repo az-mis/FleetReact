@@ -162,54 +162,52 @@ export default function RequestVehicle() {
     }
   }
 
-  const hasCustomBg = !!branding?.loginBackgroundURL;
-
   if (submitted) {
     return (
-      <PageShell hasCustomBg={hasCustomBg} bgUrl={branding?.loginBackgroundURL}>
-        <div className="fade-in" style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "16px", padding: "12px 0" }}>
+      <PageShell>
+        <div className="fade-in" style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "14px", padding: "8px 0" }}>
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: 52,
+              height: 52,
               borderRadius: "50%",
-              background: "var(--accent)",
-              color: "var(--primary)",
+              background: "rgba(72, 187, 120, 0.18)",
+              color: "#72ebb0",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto",
-              border: "1px solid rgba(26, 107, 60, 0.2)",
-              boxShadow: "0 8px 24px -6px rgba(26, 107, 60, 0.2)",
+              border: "1px solid rgba(72, 187, 120, 0.4)",
+              boxShadow: "0 0 20px rgba(72, 187, 120, 0.25)",
             }}
           >
-            <CheckCircle2 size={34} />
+            <CheckCircle2 size={28} />
           </div>
 
           <div>
             <h2 className="portal-title">Request Submitted!</h2>
-            <p className="portal-subtitle" style={{ maxWidth: "420px", margin: "6px auto 0" }}>
+            <p className="portal-subtitle" style={{ maxWidth: "420px", margin: "4px auto 0" }}>
               Your vehicle request is now pending admin review. Please copy and save your reference code below to track approval status.
             </p>
           </div>
 
           <div
             style={{
-              background: "#f8fafc",
-              border: "1.5px dashed var(--border)",
-              borderRadius: "14px",
-              padding: "18px 20px",
-              margin: "8px 0",
+              background: "rgba(0, 0, 0, 0.25)",
+              border: "1.5px dashed rgba(72, 187, 120, 0.4)",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              margin: "4px 0",
               display: "flex",
               flexDirection: "column",
-              gap: "8px",
+              gap: "6px",
             }}
           >
-            <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div style={{ fontSize: "10.5px", fontWeight: 700, color: "rgba(255, 255, 255, 0.6)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
               Your Unique Reference Code
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
-              <span style={{ fontSize: "26px", fontWeight: 900, letterSpacing: "3px", color: "var(--primary)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+              <span style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "2.5px", color: "#72ebb0" }}>
                 {referenceCode}
               </span>
               <button
@@ -221,36 +219,35 @@ export default function RequestVehicle() {
                 }}
                 title="Copy reference code"
                 style={{
-                  border: "1px solid var(--border)",
-                  background: "#ffffff",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  background: "rgba(255, 255, 255, 0.1)",
                   borderRadius: "8px",
-                  padding: "8px",
+                  padding: "7px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  color: "#4a5568",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                  color: "#ffffff",
                   transition: "all 0.15s ease",
                 }}
               >
-                <Copy size={16} />
+                <Copy size={15} />
               </button>
             </div>
             {copied && (
-              <div className="fade-in" style={{ fontSize: "11.5px", color: "var(--primary)", fontWeight: 700 }}>
+              <div className="fade-in" style={{ fontSize: "11px", color: "#72ebb0", fontWeight: 700 }}>
                 ✓ Copied to clipboard!
               </div>
             )}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <Link
               to={`/check-status?code=${referenceCode}`}
               className="portal-submit-btn"
               style={{ textDecoration: "none" }}
             >
-              <Search size={16} />
+              <Search size={15} />
               <span>Check Request Status</span>
             </Link>
 
@@ -261,14 +258,15 @@ export default function RequestVehicle() {
                 setSubmitted(false);
               }}
               style={{
-                height: "44px",
+                height: "38px",
                 borderRadius: "10px",
-                border: "1px solid var(--border)",
-                background: "#ffffff",
-                color: "#2d3748",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                background: "rgba(0, 0, 0, 0.2)",
+                color: "rgba(255, 255, 255, 0.85)",
                 fontWeight: 600,
-                fontSize: "13.5px",
+                fontSize: "12.5px",
                 cursor: "pointer",
+                transition: "all 0.15s ease",
               }}
             >
               Submit Another Request
@@ -280,7 +278,7 @@ export default function RequestVehicle() {
   }
 
   return (
-    <PageShell hasCustomBg={hasCustomBg} bgUrl={branding?.loginBackgroundURL}>
+    <PageShell>
       <form onSubmit={handleSubmit} className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
         {error && (
           <div className="login-alert" role="alert">
@@ -521,19 +519,20 @@ export default function RequestVehicle() {
                     aria-label="Remove passenger"
                     style={{
                       flexShrink: 0,
-                      width: "44px",
-                      height: "44px",
+                      width: "40px",
+                      height: "40px",
                       borderRadius: "10px",
-                      border: "1px solid var(--border)",
-                      background: "#fff",
-                      color: "var(--danger)",
+                      border: "1px solid rgba(245, 101, 101, 0.4)",
+                      background: "rgba(180, 40, 40, 0.25)",
+                      color: "#fc8181",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
-                    <X size={16} />
+                    <X size={15} />
                   </button>
                 )}
               </div>
@@ -600,24 +599,13 @@ export default function RequestVehicle() {
 
 function PageShell({
   children,
-  hasCustomBg,
-  bgUrl,
 }: {
   children: React.ReactNode;
-  hasCustomBg?: boolean;
-  bgUrl?: string | null;
 }) {
   const { branding } = useBranding();
 
   return (
-    <div
-      className={`portal-container${hasCustomBg ? " portal-container--custom-bg" : ""}`}
-      style={
-        hasCustomBg
-          ? ({ "--custom-bg": `url(${bgUrl})` } as React.CSSProperties)
-          : undefined
-      }
-    >
+    <div className="portal-container">
       <div className="login-bg-glow" aria-hidden="true" />
 
       <main className="portal-wrapper fade-in">
@@ -749,59 +737,63 @@ function VehicleBookingCalendar({
   return (
     <div
       style={{
-        border: "1px solid var(--border)",
-        borderRadius: "14px",
-        padding: "14px",
-        background: "#fcfdfc",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
+        borderRadius: "12px",
+        padding: "12px",
+        background: "rgba(0, 0, 0, 0.22)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
         <button
           type="button"
           onClick={() => changeMonth(-1)}
           aria-label="Previous month"
           style={{
-            border: "1px solid var(--border)",
-            background: "#ffffff",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            background: "rgba(255, 255, 255, 0.08)",
             borderRadius: "6px",
             cursor: "pointer",
-            fontSize: "14px",
-            color: "var(--text-muted)",
-            width: "28px",
-            height: "28px",
+            fontSize: "13px",
+            color: "#ffffff",
+            width: "26px",
+            height: "26px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            transition: "all 0.15s ease",
           }}
         >
           ‹
         </button>
-        <span style={{ fontSize: "13px", fontWeight: 700, color: "#1a202c" }}>{monthLabel}</span>
+        <span style={{ fontSize: "12px", fontWeight: 700, color: "#ffffff" }}>{monthLabel}</span>
         <button
           type="button"
           onClick={() => changeMonth(1)}
           aria-label="Next month"
           style={{
-            border: "1px solid var(--border)",
-            background: "#ffffff",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            background: "rgba(255, 255, 255, 0.08)",
             borderRadius: "6px",
             cursor: "pointer",
-            fontSize: "14px",
-            color: "var(--text-muted)",
-            width: "28px",
-            height: "28px",
+            fontSize: "13px",
+            color: "#ffffff",
+            width: "26px",
+            height: "26px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            transition: "all 0.15s ease",
           }}
         >
           ›
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", textAlign: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "3px", textAlign: "center" }}>
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div key={i} style={{ fontSize: "10px", fontWeight: 700, color: "var(--text-muted)", padding: "2px 0" }}>
+          <div key={i} style={{ fontSize: "9.5px", fontWeight: 700, color: "rgba(255, 255, 255, 0.5)", padding: "2px 0" }}>
             {d}
           </div>
         ))}
@@ -810,20 +802,20 @@ function VehicleBookingCalendar({
           const key = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const status = bookedDays.get(key);
           const isSelected = selectedDays.has(key);
-          const bg = status === "approved" ? "#48bb78" : status === "pending" ? "#ed8936" : "transparent";
-          const color = status ? "#fff" : "#2d3748";
+          const bg = status === "approved" ? "#2f855a" : status === "pending" ? "#dd6b20" : "transparent";
+          const color = status || isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.8)";
           return (
             <div
               key={i}
               title={status ? (status === "approved" ? "Approved trip" : "Pending request") : undefined}
               style={{
-                fontSize: "12px",
-                padding: "6px 0",
-                borderRadius: "6px",
+                fontSize: "11px",
+                padding: "4px 0",
+                borderRadius: "5px",
                 background: bg,
                 color,
                 fontWeight: status || isSelected ? 800 : 500,
-                boxShadow: isSelected ? "inset 0 0 0 2px var(--primary)" : "none",
+                boxShadow: isSelected ? "inset 0 0 0 1.5px #72ebb0" : "none",
               }}
             >
               {day}
@@ -838,34 +830,34 @@ function VehicleBookingCalendar({
           style={{
             display: "flex",
             alignItems: "flex-start",
-            gap: "8px",
-            marginTop: "12px",
-            background: conflict === "approved" ? "#fed7d7" : "#feebc8",
-            color: conflict === "approved" ? "#742a2a" : "#7b341e",
-            border: `1px solid ${conflict === "approved" ? "#f56565" : "#ed8936"}`,
-            borderRadius: "10px",
-            padding: "10px 12px",
-            fontSize: "12.5px",
+            gap: "7px",
+            marginTop: "10px",
+            background: conflict === "approved" ? "rgba(180, 40, 40, 0.35)" : "rgba(180, 100, 20, 0.35)",
+            color: conflict === "approved" ? "#fed7d7" : "#feebc8",
+            border: `1px solid ${conflict === "approved" ? "rgba(245, 101, 101, 0.5)" : "rgba(237, 137, 54, 0.5)"}`,
+            borderRadius: "8px",
+            padding: "8px 10px",
+            fontSize: "11.5px",
             fontWeight: 600,
-            lineHeight: 1.45,
+            lineHeight: 1.4,
           }}
         >
-          <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "1px" }} />
+          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: "1px" }} />
           <span>
             {conflict === "approved"
-              ? "This vehicle already has an APPROVED trip during your selected date(s). Please choose a different vehicle or date."
-              : "This vehicle already has a PENDING request during your selected date(s) — it may not be available."}
+              ? "This vehicle has an APPROVED trip on selected date(s)."
+              : "This vehicle has a PENDING request on selected date(s)."}
           </span>
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "11.5px", color: "#4a5568", fontWeight: 600 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#48bb78", display: "inline-block" }} />
+      <div style={{ display: "flex", gap: "12px", marginTop: "10px", fontSize: "10.5px", color: "rgba(255, 255, 255, 0.6)", fontWeight: 600 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: "#2f855a", display: "inline-block" }} />
           Approved Trip
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#ed8936", display: "inline-block" }} />
+        <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, background: "#dd6b20", display: "inline-block" }} />
           Pending Request
         </span>
       </div>

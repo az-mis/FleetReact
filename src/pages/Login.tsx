@@ -40,17 +40,8 @@ export default function Login() {
     }
   }
 
-  const hasCustomBg = !!branding?.loginBackgroundURL;
-
   return (
-    <div
-      className={`login-container${hasCustomBg ? " login-container--custom-bg" : ""}`}
-      style={
-        hasCustomBg
-          ? ({ "--custom-bg": `url(${branding!.loginBackgroundURL})` } as React.CSSProperties)
-          : undefined
-      }
-    >
+    <div className="login-container">
       {/* Ambient background decoration */}
       <div className="login-bg-glow" aria-hidden="true" />
 
