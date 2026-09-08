@@ -250,7 +250,7 @@ export default function VehicleRequests() {
             background: "#fff",
             borderRadius: "12px",
             border: "1px solid var(--border)",
-            padding: "40px",
+            padding: "28px",
             textAlign: "center",
             color: "var(--text-muted)",
           }}
@@ -259,10 +259,129 @@ export default function VehicleRequests() {
           <div>No requests found.</div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {filtered.map((r) => (
-            <RequestRow key={r.id} request={r} vehicles={vehicles} drivers={drivers} onReview={() => setReviewing(r)} />
-          ))}
+        <div className="auth-table-wrap">
+          <table className="auth-table">
+            <thead>
+              <tr>
+                <th style={{ width: 44 }}>Vehicle</th>
+                <th>Plate #</th>
+                <th>Driver</th>
+                <th>Requester</th>
+                <th>Destination</th>
+                <th>Purpose</th>
+                <th>Status</th>
+                <th style={{ textAlign: "right" }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => {
+                const vehicle = vehicles.find((v) => v.id === requestVehicleId(r));
+                const driverName =
+                  r.status === "approved"
+                    ? r.confirmedDriverName || "Unassigned"
+                    : r.defaultDriverName || "Not assigned";
+                const driverId = r.status === "approved" ? r.confirmedDriverId : r.defaultDriverId;
+                const driver = drivers.find((d) => d.id === driverId);
+                const badge = STATUS_BADGE_STYLE[r.status];
+                const BadgeIcon = badge.icon;
+
+                return (
+                  <tr key={r.id} className="admin-row">
+                    {/* 1. Vehicle Pic */}
+                    <td style={{ width: 44, paddingRight: 0 }}>
+                      <Avatar
+                        photoURL={vehicle?.photoURL}
+                        fallback="icon"
+                        icon={Truck}
+                        size={32}
+                        name={r.vehiclePlateNumber}
+                      />
+                    </td>
+
+                    {/* 2. Plate Number */}
+                    <td style={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <div>{r.vehiclePlateNumber}</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 400 }}>
+                        {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
+                      </div>
+                    </td>
+
+                    {/* 3. Driver Name and Pic */}
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                        <Avatar photoURL={driver?.photoURL} name={driverName} size={26} />
+                        <span style={{ fontWeight: 600, fontSize: "12.5px", color: "#2d3748", whiteSpace: "nowrap" }}>
+                          {driverName}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 4. Requester Name */}
+                    <td>
+                      <div style={{ fontWeight: 600, fontSize: "12.5px" }}>{r.requesterName}</div>
+                      {r.requesterOffice && (
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{r.requesterOffice}</div>
+                      )}
+                    </td>
+
+                    {/* 5. Destination */}
+                    <td style={{ color: "var(--text-muted)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.destination}
+                    </td>
+
+                    {/* 6. Purpose */}
+                    <td style={{ color: "var(--text-muted)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.purpose || "—"}
+                    </td>
+
+                    {/* 7. Status */}
+                    <td>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "3px 8px",
+                          borderRadius: "999px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          background: badge.bg,
+                          color: badge.color,
+                          border: `1px solid ${badge.border}`,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <BadgeIcon size={10} />
+                        {r.status}
+                      </span>
+                    </td>
+
+                    {/* 8. Action button review/view */}
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <button
+                        onClick={() => setReviewing(r)}
+                        style={{
+                          padding: "5px 12px",
+                          borderRadius: "7px",
+                          border: "none",
+                          background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                          color: r.status === "pending" ? "#fff" : "#2d3748",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
+                        }}
+                      >
+                        {r.status === "pending" ? "Review" : "View"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -286,98 +405,8 @@ export default function VehicleRequests() {
   );
 }
 
-function RequestRow({
-  request,
-  vehicles,
-  drivers,
-  onReview,
-}: {
-  request: VehicleRequest;
-  vehicles: Vehicle[];
-  drivers: AppUser[];
-  onReview: () => void;
-}) {
-  const vehicle = vehicles.find((v) => v.id === request.vehicleId);
-  const driverName =
-    request.status === "approved"
-      ? request.confirmedDriverName || "Unassigned"
-      : request.defaultDriverName || "Not yet assigned";
-  const driverId = request.status === "approved" ? request.confirmedDriverId : request.defaultDriverId;
-  const driver = drivers.find((d) => d.id === driverId);
-  const badge = STATUS_BADGE_STYLE[request.status];
-  const BadgeIcon = badge.icon;
-
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: "10px",
-        border: "1px solid var(--border)",
-        padding: "9px 14px",
-        display: "grid",
-        gridTemplateColumns: "32px minmax(0, 1.6fr) minmax(0, 1fr) 76px",
-        alignItems: "center",
-        gap: "12px",
-      }}
-    >
-      <Avatar photoURL={vehicle?.photoURL} fallback="icon" icon={Truck} size={32} name={request.vehiclePlateNumber} />
-
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-          <span style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {request.requesterName}
-          </span>
-          <span
-            style={{
-              fontSize: "9.5px",
-              fontWeight: 700,
-              padding: "2px 7px",
-              borderRadius: "999px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "3px",
-              flexShrink: 0,
-              background: badge.bg,
-              color: badge.color,
-              border: `1px solid ${badge.border}`,
-              textTransform: "uppercase",
-              letterSpacing: "0.03em",
-            }}
-          >
-            <BadgeIcon size={9} />
-            {request.status}
-          </span>
-        </div>
-        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {request.vehiclePlateNumber} · {request.destination} · {formatTravelDateRange(request.travelDate, request.travelDateEnd)}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, fontSize: "12px", color: "var(--text-muted)" }}>
-        <Avatar photoURL={driver?.photoURL} name={driverName} size={20} />
-        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          <b style={{ color: "#2d3748" }}>{driverName}</b>
-        </span>
-      </div>
-
-      <button
-        onClick={onReview}
-        style={{
-          justifySelf: "end",
-          padding: "6px 12px",
-          borderRadius: "7px",
-          border: "1px solid var(--border)",
-          background: request.status === "pending" ? "var(--primary)" : "#fff",
-          color: request.status === "pending" ? "#fff" : "#2d3748",
-          fontSize: "12.5px",
-          fontWeight: 600,
-          cursor: "pointer",
-        }}
-      >
-        {request.status === "pending" ? "Review" : "View"}
-      </button>
-    </div>
-  );
+function requestVehicleId(request: VehicleRequest): string {
+  return request.vehicleId;
 }
 
 function ReviewModal({
