@@ -44,17 +44,30 @@ export default function ContentSettings() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState("");
   const [confirmRemoveLogoOpen, setConfirmRemoveLogoOpen] = useState(false);
+  const [confirmReplaceLogoFile, setConfirmReplaceLogoFile] = useState<File | null>(null);
   const [removingLogo, setRemovingLogo] = useState(false);
   const [bgUploading, setBgUploading] = useState(false);
   const [bgError, setBgError] = useState("");
   const [confirmRemoveBgOpen, setConfirmRemoveBgOpen] = useState(false);
+  const [confirmReplaceBgFile, setConfirmReplaceBgFile] = useState<File | null>(null);
   const [removingBg, setRemovingBg] = useState(false);
+  const [confirmSwitchDriveOpen, setConfirmSwitchDriveOpen] = useState(false);
+
+  // Generic toggle confirmation state
+  const [confirmToggleData, setConfirmToggleData] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   /** Compresses, uploads to the "FMS Photos" root folder, saves the new URL
    *  to settings/appBranding, and best-effort deletes the old Drive file —
    *  mirrors the photo-save step in Vehicles.tsx/Drivers.tsx, just without
    *  a surrounding form since this is a single always-on setting. */
-  async function handleLogoSelect(file: File) {
+  async function performLogoUpload(file: File) {
     setLogoError("");
     if (!file.type.startsWith("image/")) {
       setLogoError("Please choose an image file.");
@@ -89,6 +102,15 @@ export default function ContentSettings() {
       showError(err.message || "Couldn't upload that logo.");
     } finally {
       setLogoUploading(false);
+      setConfirmReplaceLogoFile(null);
+    }
+  }
+
+  function handleLogoSelect(file: File) {
+    if (branding?.logoURL) {
+      setConfirmReplaceLogoFile(file);
+    } else {
+      performLogoUpload(file);
     }
   }
 
@@ -125,7 +147,7 @@ export default function ContentSettings() {
   }
 
   /** Same flow as handleLogoSelect, for the Login screen's background photo. */
-  async function handleBgSelect(file: File) {
+  async function performBgUpload(file: File) {
     setBgError("");
     if (!file.type.startsWith("image/")) {
       setBgError("Please choose an image file.");
@@ -166,6 +188,15 @@ export default function ContentSettings() {
       showError(err.message || "Couldn't upload that image.");
     } finally {
       setBgUploading(false);
+      setConfirmReplaceBgFile(null);
+    }
+  }
+
+  function handleBgSelect(file: File) {
+    if (branding?.loginBackgroundURL) {
+      setConfirmReplaceBgFile(file);
+    } else {
+      performBgUpload(file);
     }
   }
 
@@ -203,7 +234,16 @@ export default function ContentSettings() {
     }
   }
 
-  async function handleConnectDrive() {
+  function handleConnectDriveClick() {
+    if (driveConfig) {
+      // It's a "Switch account" action - ask for confirmation first
+      setConfirmSwitchDriveOpen(true);
+    } else {
+      performConnectDrive();
+    }
+  }
+
+  async function performConnectDrive() {
     setConnectingDrive(true);
     try {
       await connectGoogleDrive(profile?.name || "Unknown admin");
@@ -216,31 +256,54 @@ export default function ContentSettings() {
       showError(err.message || "Couldn't connect to Google Drive.");
     } finally {
       setConnectingDrive(false);
+      setConfirmSwitchDriveOpen(false);
     }
   }
 
-  async function toggleAdminModule(key: keyof AdminModuleFlags) {
-    setSavingKey(`admin-${key}`);
-    try {
-      await updateFlags({ adminModules: { [key]: !flags.adminModules[key] } });
-      showSuccess("Updated. Admins will see this take effect immediately.");
-    } catch (e: any) {
-      showError(e.message || "Couldn't save that change.");
-    } finally {
-      setSavingKey(null);
-    }
+  function requestToggleAdminModule(key: keyof AdminModuleFlags, label: string) {
+    const willEnable = !flags.adminModules[key];
+    setConfirmToggleData({
+      title: willEnable ? `Enable ${label}?` : `Disable ${label}?`,
+      message: willEnable
+        ? `Admins will immediately regain access to the ${label} module in the navigation.`
+        : `Admins will immediately lose access to the ${label} module in the navigation. (Super Admins retain access).`,
+      confirmLabel: willEnable ? "Enable Module" : "Disable Module",
+      danger: !willEnable,
+      onConfirm: async () => {
+        setSavingKey(`admin-${key}`);
+        try {
+          await updateFlags({ adminModules: { [key]: willEnable } });
+          showSuccess("Updated. Admins will see this take effect immediately.");
+        } catch (e: any) {
+          showError(e.message || "Couldn't save that change.");
+        } finally {
+          setSavingKey(null);
+        }
+      },
+    });
   }
 
-  async function toggleDriverModule(key: keyof DriverModuleFlags) {
-    setSavingKey(`driver-${key}`);
-    try {
-      await updateFlags({ driverModules: { [key]: !flags.driverModules[key] } });
-      showSuccess("Updated. Drivers will see this take effect immediately.");
-    } catch (e: any) {
-      showError(e.message || "Couldn't save that change.");
-    } finally {
-      setSavingKey(null);
-    }
+  function requestToggleDriverModule(key: keyof DriverModuleFlags, label: string) {
+    const willEnable = !flags.driverModules[key];
+    setConfirmToggleData({
+      title: willEnable ? `Enable ${label}?` : `Disable ${label}?`,
+      message: willEnable
+        ? `Signed-in drivers will now see the ${label} on their dashboard.`
+        : `Signed-in drivers will no longer see the ${label} on their dashboard.`,
+      confirmLabel: willEnable ? "Enable" : "Disable",
+      danger: !willEnable,
+      onConfirm: async () => {
+        setSavingKey(`driver-${key}`);
+        try {
+          await updateFlags({ driverModules: { [key]: willEnable } });
+          showSuccess("Updated. Drivers will see this take effect immediately.");
+        } catch (e: any) {
+          showError(e.message || "Couldn't save that change.");
+        } finally {
+          setSavingKey(null);
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -278,7 +341,7 @@ export default function ContentSettings() {
             <DriveConnectionCard
               driveConfig={driveConfig}
               connecting={connectingDrive}
-              onConnect={handleConnectDrive}
+              onConnect={handleConnectDriveClick}
             />
           </Section>
 
@@ -345,7 +408,7 @@ export default function ContentSettings() {
               description="Vehicle records and details."
               checked={flags.adminModules.vehicles}
               saving={savingKey === "admin-vehicles"}
-              onChange={() => toggleAdminModule("vehicles")}
+              onChange={() => requestToggleAdminModule("vehicles", "Vehicles List")}
             />
             <ToggleRow
               icon={UserCog}
@@ -353,7 +416,7 @@ export default function ContentSettings() {
               description="Permanent driver assignments."
               checked={flags.adminModules.vehicleAssigning}
               saving={savingKey === "admin-vehicleAssigning"}
-              onChange={() => toggleAdminModule("vehicleAssigning")}
+              onChange={() => requestToggleAdminModule("vehicleAssigning", "Vehicle Assigning")}
             />
             <ToggleRow
               icon={ClipboardList}
@@ -361,7 +424,7 @@ export default function ContentSettings() {
               description="Reviewing public vehicle requests."
               checked={flags.adminModules.vehicleRequests}
               saving={savingKey === "admin-vehicleRequests"}
-              onChange={() => toggleAdminModule("vehicleRequests")}
+              onChange={() => requestToggleAdminModule("vehicleRequests", "Vehicle Requests")}
             />
             <ToggleRow
               icon={Users}
@@ -369,7 +432,7 @@ export default function ContentSettings() {
               description="Driver profiles and licensing."
               checked={flags.adminModules.drivers}
               saving={savingKey === "admin-drivers"}
-              onChange={() => toggleAdminModule("drivers")}
+              onChange={() => requestToggleAdminModule("drivers", "Drivers")}
             />
           </Section>
         )}
@@ -386,7 +449,7 @@ export default function ContentSettings() {
               description="Vehicle assigned to the signed-in driver."
               checked={flags.driverModules.showAssignedVehicle}
               saving={savingKey === "driver-showAssignedVehicle"}
-              onChange={() => toggleDriverModule("showAssignedVehicle")}
+              onChange={() => requestToggleDriverModule("showAssignedVehicle", "Assigned Vehicle Card")}
             />
           </Section>
 
@@ -480,6 +543,67 @@ export default function ContentSettings() {
         </Modal>
       )}
 
+      {/* Confirm Replace Logo */}
+      <ConfirmDialog
+        open={!!confirmReplaceLogoFile}
+        title="Replace app logo?"
+        message="Are you sure you want to replace the current app logo with this new image? The previous logo will be overwritten."
+        confirmLabel="Replace Logo"
+        confirmingLabel="Replacing…"
+        danger={false}
+        loading={logoUploading}
+        onCancel={() => setConfirmReplaceLogoFile(null)}
+        onConfirm={() => confirmReplaceLogoFile && performLogoUpload(confirmReplaceLogoFile)}
+      />
+
+      {/* Confirm Replace Background */}
+      <ConfirmDialog
+        open={!!confirmReplaceBgFile}
+        title="Replace login background?"
+        message="Are you sure you want to replace the current login background image? The previous background photo will be replaced."
+        confirmLabel="Replace Background"
+        confirmingLabel="Replacing…"
+        danger={false}
+        loading={bgUploading}
+        onCancel={() => setConfirmReplaceBgFile(null)}
+        onConfirm={() => confirmReplaceBgFile && performBgUpload(confirmReplaceBgFile)}
+      />
+
+      {/* Confirm Toggle Modules */}
+      <ConfirmDialog
+        open={!!confirmToggleData}
+        title={confirmToggleData?.title || "Confirm change?"}
+        message={confirmToggleData?.message || ""}
+        confirmLabel={confirmToggleData?.confirmLabel || "Confirm"}
+        confirmingLabel="Updating…"
+        danger={confirmToggleData?.danger ?? false}
+        loading={toggling}
+        onCancel={() => setConfirmToggleData(null)}
+        onConfirm={async () => {
+          if (!confirmToggleData) return;
+          setToggling(true);
+          try {
+            await confirmToggleData.onConfirm();
+          } finally {
+            setToggling(false);
+            setConfirmToggleData(null);
+          }
+        }}
+      />
+
+      {/* Confirm Switch Google Drive Account */}
+      <ConfirmDialog
+        open={confirmSwitchDriveOpen}
+        title="Switch Google Drive account?"
+        message={`Currently connected as ${driveConfig?.connectedByName || "an admin"} (${driveConfig?.connectedByEmail || ""}). Switching accounts will reauthorize Google Drive with a different Google account.`}
+        confirmLabel="Switch Account"
+        confirmingLabel="Connecting…"
+        danger={false}
+        loading={connectingDrive}
+        onCancel={() => setConfirmSwitchDriveOpen(false)}
+        onConfirm={performConnectDrive}
+      />
+
       <ConfirmDialog
         open={confirmRemoveBgOpen}
         title="Remove login background?"
@@ -523,12 +647,14 @@ function AnnouncementSection({
   const [savingToggle, setSavingToggle] = useState(false);
   const [savingMessage, setSavingMessage] = useState(false);
 
+  const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+
   useEffect(() => {
     if (!dirty) setDraft(config.message);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.message]);
 
-  async function toggleEnabled() {
+  async function performToggle() {
     setSavingToggle(true);
     try {
       const next = !config.enabled;
@@ -538,6 +664,7 @@ function AnnouncementSection({
       showError(e.message || "Couldn't save that change.");
     } finally {
       setSavingToggle(false);
+      setConfirmToggleOpen(false);
     }
   }
 
@@ -554,6 +681,9 @@ function AnnouncementSection({
     }
   }
 
+  const audienceLabel = flagKey === "adminAnnouncement" ? "admins" : "drivers";
+  const willEnable = !config.enabled;
+
   return (
     <Section icon={icon} title={title} description={description}>
       <ToggleRow
@@ -562,7 +692,23 @@ function AnnouncementSection({
         description={config.enabled ? "Currently visible to audience" : "Currently hidden"}
         checked={config.enabled}
         saving={savingToggle}
-        onChange={toggleEnabled}
+        onChange={() => setConfirmToggleOpen(true)}
+      />
+
+      <ConfirmDialog
+        open={confirmToggleOpen}
+        title={willEnable ? `Show ${title.toLowerCase()}?` : `Hide ${title.toLowerCase()}?`}
+        message={
+          willEnable
+            ? `This banner will become immediately visible to all ${audienceLabel}.`
+            : `This banner will be hidden from all ${audienceLabel}.`
+        }
+        confirmLabel={willEnable ? "Show Banner" : "Hide Banner"}
+        confirmingLabel="Updating…"
+        danger={!willEnable}
+        loading={savingToggle}
+        onCancel={() => setConfirmToggleOpen(false)}
+        onConfirm={performToggle}
       />
 
       <div style={{ paddingTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
