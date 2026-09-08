@@ -131,7 +131,7 @@ export default function Dashboard() {
       );
       return unsub;
     } else if (isAdmin) {
-      const q = query(collection(db, "vehicleRequests"), orderBy("createdAt", "desc"));
+      const q = query(collection(db, "vehicleRequests"), orderBy("createdAt", "desc"), limit(60));
       const unsub = onSnapshot(q, (snap) =>
         setRequests(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as VehicleRequest)))
       );

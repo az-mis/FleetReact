@@ -23,18 +23,44 @@ import {
   LogIn,
 } from "lucide-react";
 
-type LookupState = "idle" | "loading" | "not_found" | "found" | "error";
+import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
+
+type LookupState = "idle" | "loading" | "not_found" | "found" | "error" | "rate_limited";
+
+// Rate limit: Max 12 lookups per minute per client device
+const RATE_LIMIT_KEY = "lookup_status_request";
+const RATE_LIMIT_MAX = 12;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 min
 
 export default function CheckStatus() {
   const [searchParams] = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code")?.toUpperCase() || "");
   const [state, setState] = useState<LookupState>("idle");
+  const [rateLimitWait, setRateLimitWait] = useState(0);
+  const [honeypot, setHoneypot] = useState("");
   const [request, setRequest] = useState<VehicleRequest | null>(null);
   const { branding } = useBranding();
 
   async function lookup(rawCode: string) {
-    const cleaned = rawCode.trim().toUpperCase();
+    // Honeypot check
+    if (honeypot) {
+      setRequest(null);
+      setState("not_found");
+      return;
+    }
+
+    const cleaned = sanitizeInput(rawCode.trim().toUpperCase(), 12);
     if (!cleaned) return;
+
+    // Check rate limit
+    const rateCheck = checkRateLimit(RATE_LIMIT_KEY, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+    if (!rateCheck.allowed) {
+      setRateLimitWait(rateCheck.waitTimeSeconds);
+      setState("rate_limited");
+      return;
+    }
+
+    recordAttempt(RATE_LIMIT_KEY, RATE_LIMIT_WINDOW_MS);
     setState("loading");
     try {
       const snap = await getDoc(doc(db, "vehicleRequests", cleaned));
@@ -98,6 +124,18 @@ export default function CheckStatus() {
         </header>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", gap: "10px" }}>
+          {/* Anti-bot honeypot field */}
+          <div style={{ display: "none", position: "absolute", left: "-9999px" }} aria-hidden="true">
+            <input
+              type="text"
+              name="lookup_hp"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+            />
+          </div>
+
           <div className="portal-input-wrapper" style={{ flex: 1 }}>
             <Search size={17} className="portal-input-icon" />
             <input
@@ -125,6 +163,31 @@ export default function CheckStatus() {
             )}
           </button>
         </form>
+
+        {state === "rate_limited" && (
+          <div
+            className="fade-in"
+            style={{
+              padding: "16px",
+              background: "rgba(220, 38, 38, 0.2)",
+              border: "1px solid rgba(239, 68, 68, 0.4)",
+              borderRadius: "12px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <AlertTriangle size={24} style={{ color: "#f87171" }} />
+            <div style={{ fontWeight: 700, fontSize: "14px", color: "#fecaca" }}>
+              Rate Limit Reached
+            </div>
+            <div style={{ fontSize: "12.5px", color: "rgba(255, 255, 255, 0.75)", maxWidth: "380px" }}>
+              Too many lookup attempts. Please wait {rateLimitWait} seconds before trying again.
+            </div>
+          </div>
+        )}
 
         {state === "not_found" && (
           <div

@@ -63,9 +63,17 @@ const emptyForm = {
   previousTripTicketDate: "",
 };
 
+import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
+
+// Rate limit: Max 4 requests per 5 minutes per client device
+const RATE_LIMIT_KEY = "submit_vehicle_request";
+const RATE_LIMIT_MAX = 4;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 mins
+
 export default function RequestVehicle() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [form, setForm] = useState(emptyForm);
+  const [honeypot, setHoneypot] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -102,6 +110,26 @@ export default function RequestVehicle() {
     e.preventDefault();
     setError("");
 
+    // 1. Honeypot check: If filled, fake successful submission to trick bots
+    if (honeypot) {
+      setSubmitting(true);
+      setTimeout(() => {
+        setSubmitting(false);
+        setReferenceCode("SUCCESS");
+        setSubmitted(true);
+      }, 1000);
+      return;
+    }
+
+    // 2. Client-side Rate limiting check
+    const rateCheck = checkRateLimit(RATE_LIMIT_KEY, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS);
+    if (!rateCheck.allowed) {
+      setError(
+        `Too many request submissions. For security, please wait ${rateCheck.waitTimeSeconds} seconds before submitting again.`
+      );
+      return;
+    }
+
     if (!form.location) {
       setError("Please select a location.");
       return;
@@ -116,26 +144,47 @@ export default function RequestVehicle() {
       return;
     }
 
+    // Sanitize user inputs
+    const sanitizedRequester = sanitizeInput(form.requesterName, 120);
+    const sanitizedOffice = sanitizeInput(form.requesterOffice, 150);
+    const sanitizedContact = sanitizeInput(form.requesterContact, 40);
+    const sanitizedPurpose = sanitizeInput(form.purpose, 500);
+    const sanitizedDestination = sanitizeInput(form.destination, 250);
+    const sanitizedPassengers = form.passengers
+      .map((p) => sanitizeInput(p, 120))
+      .filter(Boolean);
+
+    if (!sanitizedRequester) {
+      setError("Requester name is required.");
+      return;
+    }
+    if (!sanitizedPurpose) {
+      setError("Purpose is required.");
+      return;
+    }
+    if (!sanitizedDestination) {
+      setError("Destination is required.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const code = generateReferenceCode();
       await setDoc(doc(db, "vehicleRequests", code), {
-        requesterName: form.requesterName.trim(),
+        requesterName: sanitizedRequester,
         location: form.location,
-        requesterOffice: form.requesterOffice.trim() || null,
-        requesterContact: form.requesterContact.trim() || null,
+        requesterOffice: sanitizedOffice || null,
+        requesterContact: sanitizedContact || null,
         requesterIsPassenger: form.requesterIsPassenger,
         vehicleId: selectedVehicle!.id,
         vehiclePlateNumber: selectedVehicle!.plateNumber,
         defaultDriverId: selectedVehicle!.assignedDriverId || null,
         defaultDriverName: selectedVehicle!.assignedDriverName || null,
-        purpose: form.purpose.trim(),
-        destination: form.destination.trim(),
+        purpose: sanitizedPurpose,
+        destination: sanitizedDestination,
         travelDate: form.travelDate,
         travelDateEnd: form.travelDateEnd || null,
-        passengers: form.passengers.map((p) => p.trim()).filter(Boolean).length
-          ? form.passengers.map((p) => p.trim()).filter(Boolean)
-          : null,
+        passengers: sanitizedPassengers.length > 0 ? sanitizedPassengers : null,
         previousTripTicketDate: form.previousTripTicketDate || null,
         status: "pending",
         createdAt: serverTimestamp(),
@@ -153,6 +202,7 @@ export default function RequestVehicle() {
         console.error("Couldn't mirror request into vehicleAvailability:", availErr);
       }
 
+      recordAttempt(RATE_LIMIT_KEY, RATE_LIMIT_WINDOW_MS);
       setReferenceCode(code);
       setSubmitted(true);
     } catch (err: any) {
@@ -280,6 +330,18 @@ export default function RequestVehicle() {
   return (
     <PageShell>
       <form onSubmit={handleSubmit} className="fade-in" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+        {/* Anti-bot honeypot field — hidden from genuine users */}
+        <div style={{ display: "none", position: "absolute", left: "-9999px" }} aria-hidden="true">
+          <input
+            type="text"
+            name="website_hp"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         {error && (
           <div className="login-alert" role="alert">
             <AlertTriangle size={17} className="login-alert-icon" />
