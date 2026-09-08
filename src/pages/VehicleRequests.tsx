@@ -81,18 +81,27 @@ export default function VehicleRequests() {
     return unsub;
   }, []);
 
+  // Location-scoped requests: Super Admins see all requests; Admins assigned
+  // to a specific Location / Office Province see only requests originating from that location.
+  const visibleRequests = useMemo(() => {
+    if (profile?.role === "admin" && profile?.location) {
+      return requests.filter((r) => r.location === profile.location);
+    }
+    return requests;
+  }, [requests, profile]);
+
   const counts = useMemo(
     () => ({
-      total: requests.length,
-      pending: requests.filter((r) => r.status === "pending").length,
-      approved: requests.filter((r) => r.status === "approved").length,
-      declined: requests.filter((r) => r.status === "declined").length,
+      total: visibleRequests.length,
+      pending: visibleRequests.filter((r) => r.status === "pending").length,
+      approved: visibleRequests.filter((r) => r.status === "approved").length,
+      declined: visibleRequests.filter((r) => r.status === "declined").length,
     }),
-    [requests]
+    [visibleRequests]
   );
 
   const filtered = useMemo(() => {
-    let list = requests;
+    let list = visibleRequests;
     if (statusFilter !== "all") list = list.filter((r) => r.status === statusFilter);
     const s = search.trim().toLowerCase();
     if (s) {
@@ -106,12 +115,13 @@ export default function VehicleRequests() {
           r.vehiclePlateNumber,
           r.destination,
           r.defaultDriverName,
+          r.location,
           ...passList,
         ].some((f) => (f || "").toLowerCase().includes(s));
       });
     }
     return list;
-  }, [requests, statusFilter, search]);
+  }, [visibleRequests, statusFilter, search]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -404,8 +414,9 @@ export default function VehicleRequests() {
 
                   <div style={{ fontSize: "12px" }}>
                     <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                      Destination &amp; Purpose
+                      Location &amp; Destination
                     </div>
+                    {r.location && <div style={{ fontSize: "11px", color: "#4a5568", fontWeight: 600 }}>🏢 {r.location}</div>}
                     <div style={{ fontWeight: 700, color: "#166534", marginTop: "2px" }}>📍 {r.destination}</div>
                     {r.purpose && <div style={{ fontSize: "11.5px", color: "#4a5568", marginTop: "1px" }}>{r.purpose}</div>}
                   </div>
@@ -448,6 +459,7 @@ export default function VehicleRequests() {
                 <tr>
                   <th style={{ width: 48 }}>Vehicle</th>
                   <th style={{ minWidth: 130 }}>Plate &amp; Travel Date</th>
+                  <th style={{ minWidth: 130 }}>Office Province</th>
                   <th style={{ minWidth: 140 }}>Driver</th>
                   <th style={{ minWidth: 150 }}>Requester</th>
                   <th style={{ minWidth: 160 }}>Passengers</th>
@@ -488,6 +500,11 @@ export default function VehicleRequests() {
                         <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500, marginTop: "1px" }}>
                           {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
                         </div>
+                      </td>
+
+                      {/* 3. Location / Office Province */}
+                      <td style={{ fontSize: "12.5px", fontWeight: 600, color: "#2d3748" }}>
+                        {r.location || "—"}
                       </td>
 
                       {/* 3. Driver Name and Pic */}

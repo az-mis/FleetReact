@@ -29,11 +29,21 @@ import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
+export const LOCATIONS = [
+  "Oriental Mindoro",
+  "Occidental Mindoro",
+  "Marinduque",
+  "Palawan",
+  "Romblon",
+  "Quezon City Satellite Office",
+];
+
 const emptyForm = {
   name: "",
   email: "",
   password: "",
   role: "admin" as UserRole,
+  location: "",
   photoURL: null as string | null,
   photoDriveFileId: null as string | null,
 };
@@ -124,6 +134,7 @@ export default function Admins() {
       email: a.email,
       password: "",
       role: a.role,
+      location: a.location || "",
       photoURL: a.photoURL || null,
       photoDriveFileId: a.photoDriveFileId || null,
     });
@@ -219,6 +230,7 @@ export default function Admins() {
         await updateDoc(doc(db, "users", editing.id), {
           name: form.name,
           role: form.role,
+          location: form.role === "admin" ? (form.location || null) : null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
@@ -233,6 +245,7 @@ export default function Admins() {
           name: form.name,
           email: form.email,
           role: form.role,
+          location: form.role === "admin" ? (form.location || null) : null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
@@ -362,6 +375,12 @@ export default function Admins() {
                 <Mail size={13} style={{ flexShrink: 0 }} />
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.email}</span>
               </div>
+              {a.role === "admin" && (
+                <div style={{ fontSize: "11.5px", color: "#4a5568", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span>📍</span>
+                  <span style={{ fontWeight: 600 }}>{a.location || "All Locations"}</span>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
                 <button
                   onClick={() => openEdit(a)}
@@ -420,7 +439,7 @@ export default function Admins() {
         <table style={{ fontSize: "13px", width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "linear-gradient(180deg, #f7fafc, #f1f5f4)", textAlign: "left" }}>
-              {["Name", "Email", "Role", ""].map((h) => (
+              {["Name", "Email", "Role", "Assigned Location", ""].map((h) => (
                 <th
                   key={h}
                   style={{
@@ -459,6 +478,13 @@ export default function Admins() {
                 <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>{a.email}</td>
                 <td style={{ padding: "12px 14px" }}>
                   <RoleBadge role={a.role} />
+                </td>
+                <td style={{ padding: "12px 14px", color: "#2d3748", fontSize: "12.5px" }}>
+                  {a.role === "super_admin" ? (
+                    <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: "12px" }}>All (Super Admin)</span>
+                  ) : (
+                    <span style={{ fontWeight: 600 }}>{a.location || "All Locations"}</span>
+                  )}
                 </td>
                 <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                   <button
@@ -552,6 +578,26 @@ export default function Admins() {
                 <option value="super_admin">Super Admin</option>
               </select>
             </Field>
+
+            {form.role === "admin" && (
+              <Field label="Assigned Location / Office Province">
+                <select
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">— All Locations (No restriction) —</option>
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+                <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                  Admins assigned to a specific province will only see vehicle requests from that location.
+                </small>
+              </Field>
+            )}
 
             <button
               type="submit"

@@ -30,6 +30,7 @@ export interface AppUser {
   birthDate?: string | null; // yyyy-mm-dd, drivers only
   address?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
+  location?: string | null; // Office/Province assignment for admins & requests
   createdAt?: any; // Firestore Timestamp
   updatedAt?: any; // Firestore Timestamp
 }
