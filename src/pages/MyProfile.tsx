@@ -175,17 +175,19 @@ export default function MyProfile() {
         <div className="profile-cover" />
 
         <div className="profile-identity">
-          <AvatarPicker
-            inputId="my-profile-photo-input"
-            name={name}
-            photoURL={photoURL}
-            onSelect={handlePhotoSelect}
-            onBeforePick={handleBeforePhotoPick}
-            onRemove={handlePhotoRemove}
-            error={photoError}
-            label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
-            size={92}
-          />
+          <div className="profile-avatar-ring">
+            <AvatarPicker
+              inputId="my-profile-photo-input"
+              name={name}
+              photoURL={photoURL}
+              onSelect={handlePhotoSelect}
+              onBeforePick={handleBeforePhotoPick}
+              onRemove={handlePhotoRemove}
+              error={photoError}
+              label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
+              size={92}
+            />
+          </div>
           <div className="profile-name-display">{name || "Unnamed"}</div>
           <span className="profile-role-chip" style={{ background: roleColor + "1a", color: roleColor }}>
             {USER_ROLE_LABEL[profile.role]}
@@ -197,10 +199,15 @@ export default function MyProfile() {
             <section className="profile-section">
               <h3>Account</h3>
               <Field label="Full Name" required>
-                <input required value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+                <input
+                  className="profile-input"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </Field>
               <Field label="Email">
-                <input type="email" disabled value={profile.email} style={inputStyle} />
+                <input className="profile-input" type="email" disabled value={profile.email} />
                 <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>
               </Field>
             </section>
@@ -210,34 +217,20 @@ export default function MyProfile() {
                 <h3>Personal Details</h3>
                 <Field label="Birth Date">
                   <input
+                    className="profile-input"
                     type="date"
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
-                    style={inputStyle}
                   />
                 </Field>
                 <Field label="Address">
-                  <input value={address} onChange={(e) => setAddress(e.target.value)} style={inputStyle} />
+                  <input className="profile-input" value={address} onChange={(e) => setAddress(e.target.value)} />
                 </Field>
               </section>
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={saving || photoUploading}
-            style={{
-              alignSelf: "flex-end",
-              padding: "11px 28px",
-              borderRadius: "8px",
-              border: "none",
-              background: "var(--primary)",
-              color: "#fff",
-              fontWeight: 600,
-              fontSize: "14px",
-              cursor: saving || photoUploading ? "default" : "pointer",
-            }}
-          >
+          <button type="submit" className="profile-save-btn" disabled={saving || photoUploading}>
             {photoUploading ? "Uploading photo..." : saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
@@ -248,8 +241,8 @@ export default function MyProfile() {
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <span className="profile-field-label">
         {label} {required && <span style={{ color: "var(--danger)" }}>*</span>}
       </span>
       {children}
@@ -257,10 +250,3 @@ function Field({ label, required, children }: { label: string; required?: boolea
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: "9px 11px",
-  borderRadius: "8px",
-  border: "1px solid var(--border)",
-  fontSize: "14px",
-  width: "100%",
-};
