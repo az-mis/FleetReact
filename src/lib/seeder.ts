@@ -215,6 +215,7 @@ export async function seed100Records(onProgress?: (msg: string) => void) {
   // 3. Generate 100 Vehicle Requests (Mixed Statuses: 45 Pending, 40 Approved, 15 Declined)
   onProgress?.("Generating 100 Vehicle Requests in various statuses...");
   const requestDocs: any[] = [];
+  const updateRequests: any[] = [];
   const availabilityDocs: any[] = [];
 
   // Distribution:
@@ -274,25 +275,33 @@ export async function seed100Records(onProgress?: (msg: string) => void) {
       vehiclePlateNumber: vehicle.plateNumber,
       defaultDriverId: vehicle.assignedDriverId || null,
       defaultDriverName: vehicle.assignedDriverName || null,
-      confirmedDriverId: status === "approved" ? vehicle.assignedDriverId || assignedDriver.id : null,
-      confirmedDriverName: status === "approved" ? vehicle.assignedDriverName || assignedDriver.name : null,
       purpose,
       destination,
       travelDate: startStr,
       travelDateEnd: endStr,
       passengers: passengers.length > 0 ? passengers : null,
       previousTripTicketDate: null,
-      status,
-      declineReason: status === "declined" ? randomChoice(DECLINE_REASONS) : null,
-      approvedBy: status === "approved" ? "super_admin_seed" : null,
-      approvedByName: status === "approved" ? "Engr. Regional Admin" : null,
-      approvedAt: status === "approved" ? serverTimestamp() : null,
-      isSeeded: true,
-      createdAt: Timestamp.fromDate(new Date(Date.now() - (100 - i) * 3600000 * 4)),
+      status: "pending",
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
 
     requestDocs.push(reqData);
+
+    // If status is approved or declined, prepare the update patch
+    if (status !== "pending") {
+      updateRequests.push({
+        id: requestId,
+        status,
+        confirmedDriverId: status === "approved" ? vehicle.assignedDriverId || assignedDriver.id : null,
+        confirmedDriverName: status === "approved" ? vehicle.assignedDriverName || assignedDriver.name : null,
+        declineReason: status === "declined" ? randomChoice(DECLINE_REASONS) : null,
+        approvedBy: status === "approved" ? "super_admin_seed" : null,
+        approvedByName: status === "approved" ? "Engr. Regional Admin" : null,
+        approvedAt: status === "approved" ? serverTimestamp() : null,
+        updatedAt: serverTimestamp(),
+      });
+    }
 
     if (status === "pending" || status === "approved") {
       availabilityDocs.push({
@@ -300,8 +309,7 @@ export async function seed100Records(onProgress?: (msg: string) => void) {
         vehicleId: vehicle.id,
         travelDate: startStr,
         travelDateEnd: endStr,
-        status,
-        isSeeded: true,
+        status: "pending",
       });
     }
   }
@@ -313,11 +321,18 @@ export async function seed100Records(onProgress?: (msg: string) => void) {
   onProgress?.("Writing Vehicles to database...");
   await commitInBatches("vehicles", vehicleDocs);
 
-  onProgress?.("Writing Vehicle Requests to database...");
+  onProgress?.("Writing Vehicle Requests (1/2)...");
   await commitInBatches("vehicleRequests", requestDocs);
 
-  onProgress?.("Writing Vehicle Availability to database...");
-  await commitInBatches("vehicleAvailability", availabilityDocs);
+  if (updateRequests.length > 0) {
+    onProgress?.("Updating Vehicle Request statuses (Approved / Declined)...");
+    await commitInBatches("vehicleRequests", updateRequests);
+  }
+
+  if (availabilityDocs.length > 0) {
+    onProgress?.("Writing Vehicle Availability to database...");
+    await commitInBatches("vehicleAvailability", availabilityDocs);
+  }
 
   onProgress?.("100 records successfully seeded!");
 }
@@ -342,16 +357,32 @@ export async function clearSeededRecords(onProgress?: (msg: string) => void) {
 
   for (const colName of collectionsToClean) {
     onProgress?.(`Clearing dummy records from ${colName}...`);
+    
+    // 1. Check isSeeded field
     const q = query(collection(db, colName), where("isSeeded", "==", true));
     const snap = await getDocs(q);
 
-    if (!snap.empty) {
-      const docsToDelete = snap.docs;
+    const docMap = new Map<string, any>();
+    snap.docs.forEach((d) => docMap.set(d.id, d.ref));
+
+    // 2. Also find docs starting with 'seed_' (for vehicleRequests and vehicleAvailability)
+    if (colName === "vehicleRequests" || colName === "vehicleAvailability") {
+      const allSnap = await getDocs(collection(db, colName));
+      allSnap.docs.forEach((d) => {
+        if (d.id.startsWith("seed_")) {
+          docMap.set(d.id, d.ref);
+        }
+      });
+    }
+
+    const docsToDelete = Array.from(docMap.values());
+
+    if (docsToDelete.length > 0) {
       const BATCH_SIZE = 100;
       for (let i = 0; i < docsToDelete.length; i += BATCH_SIZE) {
         const chunk = docsToDelete.slice(i, i + BATCH_SIZE);
         const batch = writeBatch(db);
-        chunk.forEach((d) => batch.delete(d.ref));
+        chunk.forEach((ref) => batch.delete(ref));
         await batch.commit();
       }
     }

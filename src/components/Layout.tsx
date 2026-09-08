@@ -286,7 +286,6 @@ export default function Layout() {
               <BrandLogo size={28} />
               <div>
                 <div style={{ fontWeight: 700, fontSize: "13px" }}>Fleet Management</div>
-                <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
               </div>
             </div>
             <button
@@ -397,7 +396,6 @@ export default function Layout() {
               <BrandLogo size={26} />
               <div>
                 <div style={{ fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap" }}>Fleet Management</div>
-                <div style={{ fontSize: "10px", opacity: 0.7 }}>Vehicles &amp; Drivers</div>
               </div>
             </div>
           ) : (
@@ -508,9 +506,7 @@ export default function Layout() {
             <BrandLogo size={30} />
             <div style={{ display: "flex", alignItems: "center", flexDirection: "column" }}>
               <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--primary-dark)" }}>Fleet Management System</h1>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                Vehicles, drivers, and admin accounts.
-              </p>
+              
             </div>
           </div>
 
