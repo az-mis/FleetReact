@@ -139,20 +139,45 @@ export default function Dashboard() {
     }
   }, [isAdmin, isDriver, currentUser]);
 
-  // Computed metrics
-  const pendingRequests = useMemo(() => requests.filter((r) => r.status === "pending"), [requests]);
-  const approvedRequests = useMemo(() => requests.filter((r) => r.status === "approved"), [requests]);
-  const declinedRequests = useMemo(() => requests.filter((r) => r.status === "declined"), [requests]);
+  // Regular admins are scoped to their own assigned location (Super Admins see all)
+  const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
 
-  const assignedVehiclesCount = useMemo(() => vehicles.filter((v) => v.assignedDriverId).length, [vehicles]);
-  const unassignedVehiclesCount = vehicles.length - assignedVehiclesCount;
+  // Scoped datasets based on admin's location
+  const scopedRequests = useMemo(() => {
+    if (!isSuperAdmin && adminLocation) {
+      return requests.filter((r) => r.location === adminLocation);
+    }
+    return requests;
+  }, [requests, isSuperAdmin, adminLocation]);
+
+  const scopedVehicles = useMemo(() => {
+    if (!isSuperAdmin && adminLocation) {
+      return vehicles.filter((v) => v.location === adminLocation);
+    }
+    return vehicles;
+  }, [vehicles, isSuperAdmin, adminLocation]);
+
+  const scopedDrivers = useMemo(() => {
+    if (!isSuperAdmin && adminLocation) {
+      return drivers.filter((d) => d.location === adminLocation);
+    }
+    return drivers;
+  }, [drivers, isSuperAdmin, adminLocation]);
+
+  // Computed metrics
+  const pendingRequests = useMemo(() => scopedRequests.filter((r) => r.status === "pending"), [scopedRequests]);
+  const approvedRequests = useMemo(() => scopedRequests.filter((r) => r.status === "approved"), [scopedRequests]);
+  const declinedRequests = useMemo(() => scopedRequests.filter((r) => r.status === "declined"), [scopedRequests]);
+
+  const assignedVehiclesCount = useMemo(() => scopedVehicles.filter((v) => v.assignedDriverId).length, [scopedVehicles]);
+  const unassignedVehiclesCount = scopedVehicles.length - assignedVehiclesCount;
 
   const assignedDriversCount = useMemo(() => {
-    const ids = new Set(vehicles.map((v) => v.assignedDriverId).filter(Boolean));
+    const ids = new Set(scopedVehicles.map((v) => v.assignedDriverId).filter(Boolean));
     return ids.size;
-  }, [vehicles]);
+  }, [scopedVehicles]);
 
-  const recentRequests = useMemo(() => requests.slice(0, 6), [requests]);
+  const recentRequests = useMemo(() => scopedRequests.slice(0, 6), [scopedRequests]);
 
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -160,11 +185,11 @@ export default function Dashboard() {
   }, []);
 
   const upcomingTrips = useMemo(() => {
-    return requests
+    return scopedRequests
       .filter((r) => r.status === "approved" && (r.travelDate >= todayStr || (r.travelDateEnd && r.travelDateEnd >= todayStr)))
       .sort((a, b) => a.travelDate.localeCompare(b.travelDate))
       .slice(0, 5);
-  }, [requests, todayStr]);
+  }, [scopedRequests, todayStr]);
 
   // Driver-specific KPIs
   const driverMetrics = useMemo(() => {
@@ -332,7 +357,7 @@ export default function Dashboard() {
                 label="Pending Requests"
                 value={pendingRequests.length}
                 color="var(--warning)"
-                sublabel={`${requests.length} total`}
+                sublabel={`${scopedRequests.length} total`}
               />
               <StatCard
                 icon={CheckCircle2}
@@ -343,14 +368,14 @@ export default function Dashboard() {
               <StatCard
                 icon={Truck}
                 label="Total Vehicles"
-                value={vehicles.length}
+                value={scopedVehicles.length}
                 color="var(--info)"
                 sublabel={`${assignedVehiclesCount} assigned`}
               />
               <StatCard
                 icon={Users}
                 label="Total Drivers"
-                value={drivers.length}
+                value={scopedDrivers.length}
                 color="#7e57c2"
                 sublabel={`${assignedDriversCount} active`}
               />
@@ -627,7 +652,7 @@ export default function Dashboard() {
                       Permanently Assigned
                     </div>
                     <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--primary)", marginTop: "2px" }}>
-                      {assignedVehiclesCount} <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>/ {vehicles.length}</span>
+                      {assignedVehiclesCount} <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>/ {scopedVehicles.length}</span>
                     </div>
                   </div>
 
