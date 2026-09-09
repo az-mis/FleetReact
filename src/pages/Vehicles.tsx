@@ -53,7 +53,10 @@ const emptyForm = {
 };
 
 export default function Vehicles() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, profile } = useAuth();
+  // Regular admins are scoped to their own assigned location
+  const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
+
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -105,14 +108,21 @@ export default function Vehicles() {
   }, []);
 
   const filtered = useMemo(() => {
+    // Scope to admin's location first (super admins see all)
+    let list = adminLocation
+      ? vehicles.filter((v) => v.location === adminLocation)
+      : vehicles;
+
     const s = search.trim().toLowerCase();
-    if (!s) return vehicles;
-    return vehicles.filter((v) =>
-      [v.plateNumber, v.brand, v.model, v.chassisNumber, v.engineNumber, v.location].some((f) =>
-        (f || "").toLowerCase().includes(s)
-      )
-    );
-  }, [vehicles, search]);
+    if (s) {
+      list = list.filter((v) =>
+        [v.plateNumber, v.brand, v.model, v.chassisNumber, v.engineNumber, v.location].some((f) =>
+          (f || "").toLowerCase().includes(s)
+        )
+      );
+    }
+    return list;
+  }, [vehicles, search, adminLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -129,7 +139,7 @@ export default function Vehicles() {
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, location: adminLocation || "" });
     setError("");
     resetPhotoState();
     originalPhotoRef.current = { url: null, fileId: null };
@@ -313,7 +323,7 @@ export default function Vehicles() {
       <PageHeader
         icon={Truck}
         title="Vehicles List"
-        subtitle={`${vehicles.length} registered`}
+        subtitle={adminLocation ? `${filtered.length} vehicle(s) in ${adminLocation}` : `${vehicles.length} registered`}
         actions={
           <>
             <div className="header-search-wrap">
@@ -549,20 +559,34 @@ export default function Vehicles() {
             </div>
 
             <Field label="Assigned Location / Office Province">
-              <select
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                style={{ ...inputStyle, cursor: "pointer" }}
-              >
-                <option value="">— No specific location (available to all) —</option>
-                {VEHICLE_LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
+              {!isSuperAdmin && adminLocation ? (
+                <input
+                  disabled
+                  value={adminLocation}
+                  style={{
+                    ...inputStyle,
+                    background: "#edf2f7",
+                    cursor: "not-allowed",
+                    color: "#4a5568",
+                  }}
+                />
+              ) : (
+                <select
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  <option value="">— No specific location (available to all) —</option>
+                  {VEHICLE_LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              )}
               <small style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
                 Requesters will only see this vehicle when selecting this location.
               </small>
             </Field>
+
 
             <button
               type="submit"

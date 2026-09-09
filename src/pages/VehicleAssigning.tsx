@@ -11,6 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
+
 import { AppUser, Vehicle } from "../types";
 import StatCard from "../components/StatCard";
 import PageHeader from "../components/PageHeader";
@@ -22,6 +24,7 @@ import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck, A
 import { Avatar } from "../components/Avatar";
 
 export default function VehicleAssigning() {
+  const { isSuperAdmin, profile } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
@@ -32,6 +35,9 @@ export default function VehicleAssigning() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const { showSuccess, showError } = useToast();
+
+  // Regular admins are scoped to their own assigned location
+  const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
 
   useEffect(() => {
     const q = query(collection(db, "vehicles"), orderBy("createdAt", "desc"));
@@ -63,27 +69,38 @@ export default function VehicleAssigning() {
     return unsub;
   }, []);
 
+  // Scope vehicles and drivers to admin's location (super admins see all)
+  const scopedVehicles = useMemo(
+    () => (adminLocation ? vehicles.filter((v) => v.location === adminLocation) : vehicles),
+    [vehicles, adminLocation]
+  );
+
+  const scopedDrivers = useMemo(
+    () => (adminLocation ? drivers.filter((d) => d.location === adminLocation) : drivers),
+    [drivers, adminLocation]
+  );
+
   // A driver can be permanently assigned to only one vehicle at a time, so for
   // each vehicle's dropdown we exclude drivers already assigned elsewhere.
   const assignedElsewhere = useMemo(() => {
     const map = new Map<string, string>(); // driverId -> vehicleId
-    vehicles.forEach((v) => {
+    scopedVehicles.forEach((v) => {
       if (v.assignedDriverId) map.set(v.assignedDriverId, v.id);
     });
     return map;
-  }, [vehicles]);
+  }, [scopedVehicles]);
 
-  const assignedCount = useMemo(() => vehicles.filter((v) => v.assignedDriverId).length, [vehicles]);
+  const assignedCount = useMemo(() => scopedVehicles.filter((v) => v.assignedDriverId).length, [scopedVehicles]);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return vehicles;
-    return vehicles.filter((v) =>
+    if (!s) return scopedVehicles;
+    return scopedVehicles.filter((v) =>
       [v.plateNumber, v.brand, v.model, v.assignedDriverName].some((f) =>
         (f || "").toLowerCase().includes(s)
       )
     );
-  }, [vehicles, search]);
+  }, [scopedVehicles, search]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -100,7 +117,7 @@ export default function VehicleAssigning() {
       return;
     }
     if (driverId && driverId !== vehicle.assignedDriverId) {
-      const targetDriver = drivers.find((d) => d.id === driverId);
+      const targetDriver = scopedDrivers.find((d) => d.id === driverId);
       setPendingAssignment({
         vehicle,
         driverId,
@@ -115,7 +132,7 @@ export default function VehicleAssigning() {
     setError("");
     setSavingId(vehicle.id);
     try {
-      const driver = driverId ? drivers.find((d) => d.id === driverId) : null;
+      const driver = driverId ? scopedDrivers.find((d) => d.id === driverId) : null;
       await updateDoc(doc(db, "vehicles", vehicle.id), {
         assignedDriverId: driverId || null,
         assignedDriverName: driver ? driver.name : null,
@@ -159,9 +176,9 @@ export default function VehicleAssigning() {
           marginBottom: "18px",
         }}
       >
-        <StatCard icon={Truck} label="Total Vehicles" value={vehicles.length} color="var(--primary)" />
+        <StatCard icon={Truck} label="Total Vehicles" value={scopedVehicles.length} color="var(--primary)" />
         <StatCard icon={CheckCircle2} label="Assigned" value={assignedCount} color="var(--primary-light)" />
-        <StatCard icon={CircleDashed} label="Unassigned" value={vehicles.length - assignedCount} color="var(--warning)" />
+        <StatCard icon={CircleDashed} label="Unassigned" value={scopedVehicles.length - assignedCount} color="var(--warning)" />
       </div>
 
       <div
@@ -228,7 +245,7 @@ export default function VehicleAssigning() {
             <VehicleAssignCard
               key={v.id}
               vehicle={v}
-              drivers={drivers}
+              drivers={scopedDrivers}
               assignedElsewhere={assignedElsewhere}
               saving={savingId === v.id}
               onAssign={(driverId) => requestAssign(v, driverId)}

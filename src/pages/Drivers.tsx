@@ -16,6 +16,7 @@ import {
 import { db } from "../firebase";
 import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
 import { AppUser } from "../types";
 import Modal from "../components/Modal";
@@ -52,6 +53,7 @@ const emptyForm = {
 };
 
 export default function Drivers() {
+  const { isSuperAdmin, profile } = useAuth();
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,6 +74,9 @@ export default function Drivers() {
   const [deleting, setDeleting] = useState(false);
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
+
+  // Regular admins (non-super) are scoped to their own assigned location
+  const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
 
   // Photo selection is local-only until "Save Changes" is clicked: `photoFile`
   // holds the file waiting to be uploaded, and `photoPreviewUrl` is a local
@@ -107,12 +112,19 @@ export default function Drivers() {
   }, []);
 
   const filtered = useMemo(() => {
+    // Scope to admin's location first (super admins see all)
+    let list = adminLocation
+      ? drivers.filter((d) => d.location === adminLocation)
+      : drivers;
+
     const s = search.trim().toLowerCase();
-    if (!s) return drivers;
-    return drivers.filter((d) =>
-      [d.name, d.email, d.address, d.location].some((f) => (f || "").toLowerCase().includes(s))
-    );
-  }, [drivers, search]);
+    if (s) {
+      list = list.filter((d) =>
+        [d.name, d.email, d.address, d.location].some((f) => (f || "").toLowerCase().includes(s))
+      );
+    }
+    return list;
+  }, [drivers, search, adminLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -129,7 +141,7 @@ export default function Drivers() {
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, location: adminLocation || "" });
     setError("");
     resetPhotoState();
     originalPhotoRef.current = { url: null, fileId: null };
@@ -334,7 +346,7 @@ export default function Drivers() {
       <PageHeader
         icon={Users}
         title="Drivers"
-        subtitle={`${drivers.length} on record`}
+        subtitle={adminLocation ? `${filtered.length} driver(s) in ${adminLocation}` : `${drivers.length} on record`}
         actions={
           <>
             <div className="header-search-wrap">
@@ -526,18 +538,31 @@ export default function Drivers() {
             )}
 
             <Field label="Assigned Location / Office Province">
-              <select
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                style={inputStyle}
-              >
-                <option value="">— All Locations (No restriction) —</option>
-                {LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </select>
+              {!isSuperAdmin && adminLocation ? (
+                <input
+                  disabled
+                  value={adminLocation}
+                  style={{
+                    ...inputStyle,
+                    background: "#edf2f7",
+                    cursor: "not-allowed",
+                    color: "#4a5568",
+                  }}
+                />
+              ) : (
+                <select
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  style={inputStyle}
+                >
+                  <option value="">— All Locations (No restriction) —</option>
+                  {LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+              )}
               <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>
                 Drivers assigned to a specific province will be prioritized for vehicle assignments in that location.
               </small>
