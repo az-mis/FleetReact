@@ -20,6 +20,7 @@ import {
   Lock,
   UserCircle,
   History,
+  UserCheck,
 } from "lucide-react";
 import { USER_ROLE_LABEL } from "../types";
 import Modal from "./Modal";
@@ -149,6 +150,13 @@ export default function Layout() {
           disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleRequests"),
         },
       ],
+    },
+    {
+      type: "link",
+      to: "/approving-officers",
+      icon: UserCheck,
+      label: "Approving Officers",
+      show: isAdmin,
     },
     {
       type: "link",

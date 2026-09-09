@@ -33,10 +33,6 @@ export default function MyProfile() {
   const [name, setName] = useState(profile?.name || "");
   const [birthDate, setBirthDate] = useState(profile?.birthDate || "");
   const [address, setAddress] = useState(profile?.address || "");
-  const [signee1Name, setSignee1Name] = useState(profile?.signee1Name || "");
-  const [signee1Title, setSignee1Title] = useState(profile?.signee1Title || "");
-  const [signee2Name, setSignee2Name] = useState(profile?.signee2Name || "");
-  const [signee2Title, setSignee2Title] = useState(profile?.signee2Title || "");
   const [photoURL, setPhotoURL] = useState<string | null>(profile?.photoURL || null);
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -55,10 +51,6 @@ export default function MyProfile() {
       setName(profile.name || "");
       setBirthDate(profile.birthDate || "");
       setAddress(profile.address || "");
-      setSignee1Name(profile.signee1Name || "");
-      setSignee1Title(profile.signee1Title || "");
-      setSignee2Name(profile.signee2Name || "");
-      setSignee2Title(profile.signee2Title || "");
       setPhotoURL(profile.photoURL || null);
     }
   }, [profile]);
@@ -147,11 +139,6 @@ export default function MyProfile() {
       if (isDriver) {
         updates.birthDate = birthDate || null;
         updates.address = address || null;
-      } else {
-        updates.signee1Name = signee1Name || null;
-        updates.signee1Title = signee1Title || null;
-        updates.signee2Name = signee2Name || null;
-        updates.signee2Title = signee2Title || null;
       }
 
       await updateDoc(doc(db, "users", currentUser.uid), updates);
@@ -300,6 +287,26 @@ export default function MyProfile() {
                   Account email is managed by your administrator.
                 </small>
               </Field>
+              <Field label="Assigned Location / Office Province" icon={MapPin}>
+                <div style={{ position: "relative" }}>
+                  <input
+                    className="auth-input"
+                    disabled
+                    value={
+                      profile.role === "super_admin"
+                        ? "All Locations (Super Admin)"
+                        : profile.location || "All Locations (No restriction)"
+                    }
+                    style={{ background: "#edf2f7", color: "#2d3748", fontWeight: 600, paddingRight: "28px", cursor: "not-allowed" }}
+                  />
+                  <Lock size={13} style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", color: "#a0aec0" }} />
+                </div>
+                <small style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
+                  {profile.role === "super_admin"
+                    ? "Super Administrators have full access across all office locations."
+                    : "Office assignment is managed by your fleet administrator."}
+                </small>
+              </Field>
             </section>
 
             {/* Driver Details Column */}
@@ -384,77 +391,6 @@ export default function MyProfile() {
                     Managed and verified by your fleet administrator.
                   </small>
                 </Field>
-              </section>
-            )}
-
-            {!isDriver && (
-              <section
-                style={{
-                  gridColumn: "1 / -1",
-                  background: "#f8fafc",
-                  border: "1px solid var(--border)",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                <div style={{ borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
-                  <h3 style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "#2d3748", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                    Trip Ticket Signatories (Approved by)
-                  </h3>
-                  <p style={{ margin: "2px 0 0", fontSize: "11px", color: "var(--text-muted)" }}>
-                    Configure the signatories displayed at the bottom of printed Trip Tickets for requests approved by you. Leave empty to use system defaults.
-                  </p>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
-                  <div>
-                    <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568", display: "block", marginBottom: "4px" }}>
-                      Signatory 1 Name
-                    </label>
-                    <input
-                      className="auth-input"
-                      value={signee1Name}
-                      onChange={(e) => setSignee1Name(e.target.value)}
-                      placeholder="e.g. ARJAY D. BURGOS"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568", display: "block", marginBottom: "4px" }}>
-                      Signatory 1 Title / Office
-                    </label>
-                    <input
-                      className="auth-input"
-                      value={signee1Title}
-                      onChange={(e) => setSignee1Title(e.target.value)}
-                      placeholder="e.g. OIC - APCO-Oriental Mindoro"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568", display: "block", marginBottom: "4px" }}>
-                      Signatory 2 Name
-                    </label>
-                    <input
-                      className="auth-input"
-                      value={signee2Name}
-                      onChange={(e) => setSignee2Name(e.target.value)}
-                      placeholder="e.g. EDGARDO F. LEIDO, Jr."
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#4a5568", display: "block", marginBottom: "4px" }}>
-                      Signatory 2 Title / Office
-                    </label>
-                    <input
-                      className="auth-input"
-                      value={signee2Title}
-                      onChange={(e) => setSignee2Title(e.target.value)}
-                      placeholder="e.g. GSS Regional Office Calapan City"
-                    />
-                  </div>
-                </div>
               </section>
             )}
           </div>

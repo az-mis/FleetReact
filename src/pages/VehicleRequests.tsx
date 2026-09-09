@@ -21,6 +21,7 @@ import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
 import { Avatar } from "../components/Avatar";
@@ -701,12 +702,19 @@ function ReviewModal({
   const [showDeclineForm, setShowDeclineForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
+  const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
+
   const isPending = request.status === "pending";
 
   // The driver who would actually be confirmed if Approve is pressed right
   // now, given the current Yes/No choice above.
   const effectiveDriverId =
     driverAvailable === true ? request.defaultDriverId || "" : driverAvailable === false ? substituteId : "";
+  const effectiveDriverName =
+    driverAvailable === true
+      ? request.defaultDriverName || "Default Assigned Driver"
+      : drivers.find((d) => d.id === substituteId)?.name || "Substitute Driver";
   const driverDoubleBooked = !!effectiveDriverId && busyDriverIds.has(effectiveDriverId);
 
   // Either conflict makes an approval physically impossible to honor — the
@@ -715,7 +723,8 @@ function ReviewModal({
   // declining this request or (for a driver conflict) picking someone else.
   const blockedByConflict = vehicleDoubleBooked || driverDoubleBooked;
 
-  async function submitApprove() {
+  async function executeApprove() {
+    setConfirmApproveOpen(false);
     if (blockedByConflict) return;
     setSaving(true);
     try {
@@ -731,7 +740,8 @@ function ReviewModal({
     }
   }
 
-  async function submitDecline() {
+  async function executeDecline() {
+    setConfirmDeclineOpen(false);
     setSaving(true);
     try {
       await onDecline(request, declineReason);
@@ -934,7 +944,7 @@ function ReviewModal({
               </button>
               <button
                 type="button"
-                onClick={submitApprove}
+                onClick={() => setConfirmApproveOpen(true)}
                 disabled={
                   saving ||
                   driverAvailable === null ||
@@ -1016,7 +1026,7 @@ function ReviewModal({
               </button>
               <button
                 type="button"
-                onClick={submitDecline}
+                onClick={() => setConfirmDeclineOpen(true)}
                 disabled={saving}
                 style={{
                   flex: 1,
@@ -1030,11 +1040,57 @@ function ReviewModal({
                   cursor: "pointer",
                 }}
               >
-                {saving ? "Declining..." : "Confirm Decline"}
+                {saving ? "Declining..." : "Decline Request"}
               </button>
             </div>
           </div>
         )}
+
+        {/* Confirm Approve Dialog */}
+        <ConfirmDialog
+          open={confirmApproveOpen}
+          title="Confirm Request Approval?"
+          danger={false}
+          confirmLabel="Yes, Approve Request"
+          confirmingLabel="Approving..."
+          message={
+            <div>
+              Are you sure you want to approve this travel request for <strong>{request.requesterName}</strong>?
+              <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                • Vehicle: <strong>{request.vehiclePlateNumber}</strong>
+                <br />
+                • Destination: <strong>{request.destination}</strong>
+                <br />
+                • Assigned Driver: <strong>{effectiveDriverName}</strong>
+              </div>
+            </div>
+          }
+          loading={saving}
+          onCancel={() => setConfirmApproveOpen(false)}
+          onConfirm={executeApprove}
+        />
+
+        {/* Confirm Decline Dialog */}
+        <ConfirmDialog
+          open={confirmDeclineOpen}
+          title="Confirm Request Decline?"
+          danger={true}
+          confirmLabel="Yes, Decline Request"
+          confirmingLabel="Declining..."
+          message={
+            <div>
+              Are you sure you want to decline this travel request from <strong>{request.requesterName}</strong>?
+              {declineReason && (
+                <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                  Reason: <em>"{declineReason}"</em>
+                </div>
+              )}
+            </div>
+          }
+          loading={saving}
+          onCancel={() => setConfirmDeclineOpen(false)}
+          onConfirm={executeDecline}
+        />
       </div>
     </Modal>
   );

@@ -40,6 +40,19 @@ export interface AppUser {
   updatedAt?: any; // Firestore Timestamp
 }
 
+/* ───────────────────────── Approving Officers (Trip Ticket Signatories) ───────────────────────── */
+
+export interface ApprovingOfficer {
+  id: string;
+  location: string; // Office/Province or "Default"
+  signee1Name: string; // e.g. "ARJAY D. BURGOS"
+  signee1Title: string; // e.g. "OIC - APCO-Oriental Mindoro"
+  signee2Name: string; // e.g. "EDGARDO F. LEIDO, Jr."
+  signee2Title: string; // e.g. "GSS Regional Office Calapan City"
+  updatedAt?: any;
+  updatedByName?: string | null;
+}
+
 /* ───────────────────────── Feature Flags (CMS) ───────────────────────── */
 
 // Lets a super_admin turn whole modules on/off for the "admin" and "driver"
@@ -167,6 +180,7 @@ export interface Vehicle {
   // this permanent assignment.
   assignedDriverId?: string | null;
   assignedDriverName?: string | null;
+  location?: string | null; // Office/Province assignment for this vehicle
   createdAt?: any;
   updatedAt?: any;
 }

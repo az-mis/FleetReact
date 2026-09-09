@@ -30,6 +30,15 @@ import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
+const LOCATIONS = [
+  "Oriental Mindoro",
+  "Occidental Mindoro",
+  "Marinduque",
+  "Palawan",
+  "Romblon",
+  "Quezon City Satellite Office",
+];
+
 const emptyForm = {
   name: "",
   email: "",
@@ -37,6 +46,7 @@ const emptyForm = {
   birthDate: "",
   address: "",
   licenseExpirationDate: "",
+  location: "",
   photoURL: null as string | null,
   photoDriveFileId: null as string | null,
 };
@@ -56,6 +66,7 @@ export default function Drivers() {
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -98,7 +109,9 @@ export default function Drivers() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     if (!s) return drivers;
-    return drivers.filter((d) => [d.name, d.email].some((f) => (f || "").toLowerCase().includes(s)));
+    return drivers.filter((d) =>
+      [d.name, d.email, d.address, d.location].some((f) => (f || "").toLowerCase().includes(s))
+    );
   }, [drivers, search]);
 
   useEffect(() => {
@@ -132,6 +145,7 @@ export default function Drivers() {
       birthDate: d.birthDate || "",
       address: d.address || "",
       licenseExpirationDate: d.licenseExpirationDate || "",
+      location: d.location || "",
       photoURL: d.photoURL || null,
       photoDriveFileId: d.photoDriveFileId || null,
     });
@@ -184,9 +198,24 @@ export default function Drivers() {
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!editing && form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (editing) {
+      setConfirmSaveOpen(true);
+    } else {
+      executeSave();
+    }
+  }
+
+  async function executeSave() {
+    setConfirmSaveOpen(false);
     setSaving(true);
     try {
       // Resolve the photo now: upload a newly-picked file (or process a
@@ -229,6 +258,7 @@ export default function Drivers() {
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
+          location: form.location || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
@@ -250,13 +280,8 @@ export default function Drivers() {
             await batch.commit();
           }
         }
-        // Note: email/password changes for an existing Firebase Auth user
-        // require the Admin SDK (a backend/Cloud Function) since the client
-        // SDK can only change credentials for the currently signed-in user.
+        showSuccess(`${form.name} updated.`);
       } else {
-        if (form.password.length < 8) {
-          throw new Error("Password must be at least 8 characters.");
-        }
         const uid = await createUserWithoutSignIn(form.email, form.password);
         await setDoc(doc(db, "users", uid), {
           name: form.name,
@@ -265,6 +290,7 @@ export default function Drivers() {
           birthDate: form.birthDate || null,
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
+          location: form.location || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
@@ -272,7 +298,6 @@ export default function Drivers() {
         });
         showSuccess(`${form.name} added as a driver.`);
       }
-      if (editing) showSuccess(`${form.name} updated.`);
       closeModal();
     } catch (err: any) {
       setError(err.message || "Something went wrong.");
@@ -361,7 +386,7 @@ export default function Drivers() {
           <table className="auth-table">
             <thead>
               <tr>
-                {["Name", "Email", "Address", "License Expiry", ""].map((h) => (
+                {["Name", "Email", "Assigned Location", "Address", "License Expiry", ""].map((h) => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
@@ -376,6 +401,11 @@ export default function Drivers() {
                     </div>
                   </td>
                   <td style={{ color: "var(--text-muted)" }}>{d.email}</td>
+                  <td>
+                    <span style={{ fontWeight: 600, color: d.location ? "#166534" : "var(--text-muted)" }}>
+                      {d.location || "All Locations"}
+                    </span>
+                  </td>
                   <td style={{ color: "var(--text-muted)" }}>{d.address || "—"}</td>
                   <td style={{ color: "var(--text-muted)" }}>{d.licenseExpirationDate || "—"}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
@@ -429,54 +459,57 @@ export default function Drivers() {
 
       {modalOpen && (
         <Modal title={editing ? "Edit Driver" : "Add Driver"} onClose={closeModal}>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {error && (
               <div
                 style={{
-                  background: "#fff5f5",
+                  background: "var(--danger-light)",
                   color: "var(--danger)",
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  fontSize: 13,
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  fontSize: "12.5px",
                 }}
               >
                 {error}
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
-              <AvatarPicker
-                inputId="driver-photo-input"
-                photoURL={form.photoURL}
-                name={form.name}
-                size={76}
-                onSelect={handlePhotoSelect}
-                onRemove={handlePhotoRemove}
-                onBeforePick={handleBeforePhotoPick}
-                error={photoError}
-                label={photoUploading ? "Uploading to Drive…" : "Photo (optional, max 5MB)"}
-              />
-            </div>
+            <AvatarPicker
+              inputId="driver-photo-input"
+              name={form.name || form.email || "driver"}
+              photoURL={form.photoURL}
+              onSelect={handlePhotoSelect}
+              onBeforePick={handleBeforePhotoPick}
+              onRemove={handlePhotoRemove}
+              error={photoError}
+              label={photoUploading ? "Uploading to Drive..." : "Photo (optional, max 5MB)"}
+            />
 
             <Field label="Full Name" required>
               <input
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Driver's full name"
                 style={inputStyle}
               />
             </Field>
 
-            <Field label="Email Address" required>
+            <Field label="Email" required>
               <input
                 type="email"
                 required
                 disabled={!!editing}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                style={inputStyle}
+                placeholder="driver@example.com"
+                style={{ ...inputStyle, ...(editing ? { background: "#edf2f7", cursor: "not-allowed", color: "#4a5568" } : {}) }}
               />
-              {editing && <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>Email changes require a backend admin action.</small>}
+              {editing && (
+                <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                  Email changes require a backend admin action.
+                </small>
+              )}
             </Field>
 
             {!editing && (
@@ -491,6 +524,24 @@ export default function Drivers() {
                 />
               </Field>
             )}
+
+            <Field label="Assigned Location / Office Province">
+              <select
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="">— All Locations (No restriction) —</option>
+                {LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+                Drivers assigned to a specific province will be prioritized for vehicle assignments in that location.
+              </small>
+            </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <Field label="Birth Date">
@@ -536,6 +587,28 @@ export default function Drivers() {
           </form>
         </Modal>
       )}
+
+      {/* Confirmation Dialog before updating driver */}
+      <ConfirmDialog
+        open={confirmSaveOpen}
+        title="Confirm Driver Update?"
+        danger={false}
+        confirmLabel="Yes, Save Changes"
+        confirmingLabel="Saving..."
+        message={
+          editing && (
+            <div>
+              Are you sure you want to update <strong>{form.name}</strong>?
+              <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                • Location: <strong>{form.location || "All Locations"}</strong>
+              </div>
+            </div>
+          )
+        }
+        loading={saving}
+        onCancel={() => setConfirmSaveOpen(false)}
+        onConfirm={executeSave}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -614,6 +687,9 @@ function DriverCard({
       <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <Mail size={12} style={{ flexShrink: 0 }} /> {driver.email}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.location ? <strong style={{ color: "#166534" }}>{driver.location}</strong> : "All Locations"}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.address || "No address on file"}

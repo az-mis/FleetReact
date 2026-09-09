@@ -67,14 +67,13 @@ export default function Admins() {
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
 
-  // Photo selection is local-only until "Save Changes" is clicked — see the
-  // matching comment in Drivers.tsx for the full rationale.
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const photoPreviewUrlRef = useRef<string | null>(null);
@@ -157,8 +156,6 @@ export default function Admins() {
     setModalOpen(false);
   }
 
-  /** Just stages the file for preview — nothing is uploaded to Drive until
-   *  Save Changes is clicked (see handleSubmit). */
   function handlePhotoSelect(file: File) {
     setPhotoError("");
     if (!file.type.startsWith("image/")) {
@@ -185,23 +182,30 @@ export default function Admins() {
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
-  // Fired on the click that OPENS the file picker (see AvatarPicker's
-  // onBeforePick), not after a file is chosen — browsers only allow
-  // opening a new popup during a fresh, unbroken click, and the OS-native
-  // file dialog can stay open for any length of time, so authorizing here
-  // (rather than in handlePhotoSelect's onChange) is what keeps the Drive
-  // consent popup from being silently blocked.
   function handleBeforePhotoPick() {
     if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!editing && form.password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (editing) {
+      setConfirmSaveOpen(true);
+    } else {
+      executeSave();
+    }
+  }
+
+  async function executeSave() {
+    setConfirmSaveOpen(false);
     setSaving(true);
     try {
-      // Resolve the photo now: upload a newly-picked file (or process a
-      // removal) to Drive right before saving, instead of at selection time.
       let finalPhotoURL = originalPhotoRef.current.url;
       let finalPhotoDriveFileId = originalPhotoRef.current.fileId;
 
@@ -219,7 +223,7 @@ export default function Admins() {
             driveConfig.connectedByEmail
           );
           if (originalPhotoRef.current.fileId)
-            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail); // best-effort
+            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail);
           finalPhotoURL = url;
           finalPhotoDriveFileId = fileId;
         } catch (err: any) {
@@ -229,7 +233,7 @@ export default function Admins() {
         }
       } else if (photoRemoved) {
         if (originalPhotoRef.current.fileId)
-          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail); // best-effort
+          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail);
         finalPhotoURL = null;
         finalPhotoDriveFileId = null;
       }
@@ -249,9 +253,6 @@ export default function Admins() {
         });
         showSuccess(`${form.name} updated.`);
       } else {
-        if (form.password.length < 8) {
-          throw new Error("Password must be at least 8 characters.");
-        }
         const uid = await createUserWithoutSignIn(form.email, form.password);
         await setDoc(doc(db, "users", uid), {
           name: form.name,
@@ -682,6 +683,30 @@ export default function Admins() {
           </form>
         </Modal>
       )}
+
+      {/* Confirmation Dialog before updating admin */}
+      <ConfirmDialog
+        open={confirmSaveOpen}
+        title="Confirm Administrator Update?"
+        danger={false}
+        confirmLabel="Yes, Save Changes"
+        confirmingLabel="Saving..."
+        message={
+          editing && (
+            <div>
+              Are you sure you want to update administrator <strong>{form.name}</strong>?
+              <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                • Role: <strong>{USER_ROLE_LABEL[form.role]}</strong>
+                <br />
+                • Assigned Location: <strong>{form.role === "admin" ? (form.location || "All Locations") : "All Locations (Super Admin)"}</strong>
+              </div>
+            </div>
+          )
+        }
+        loading={saving}
+        onCancel={() => setConfirmSaveOpen(false)}
+        onConfirm={executeSave}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

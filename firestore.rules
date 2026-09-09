@@ -103,5 +103,9 @@ service cloud.firestore {
             && request.resource.data.adminAnnouncement == resource.data.adminAnnouncement);
       allow delete: if isSuperAdmin();
     }
+    match /approvingOfficers/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

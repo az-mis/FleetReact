@@ -28,6 +28,7 @@ export default function VehicleAssigning() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [confirmUnassign, setConfirmUnassign] = useState<Vehicle | null>(null);
+  const [pendingAssignment, setPendingAssignment] = useState<{ vehicle: Vehicle; driverId: string; driverName: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const { showSuccess, showError } = useToast();
@@ -93,13 +94,18 @@ export default function VehicleAssigning() {
     return filtered.slice(start, start + pageSize);
   }, [filtered, currentPage, pageSize]);
 
-  // Unassigning is one accidental dropdown click away from wiping a real
-  // permanent assignment, so it goes through a confirmation step first;
-  // picking a driver (including for the first time) doesn't need one, since
-  // that's not destructive.
   function requestAssign(vehicle: Vehicle, driverId: string) {
     if (!driverId && vehicle.assignedDriverId) {
       setConfirmUnassign(vehicle);
+      return;
+    }
+    if (driverId && driverId !== vehicle.assignedDriverId) {
+      const targetDriver = drivers.find((d) => d.id === driverId);
+      setPendingAssignment({
+        vehicle,
+        driverId,
+        driverName: targetDriver ? targetDriver.name : "Selected Driver",
+      });
       return;
     }
     handleAssign(vehicle, driverId);
@@ -304,6 +310,75 @@ export default function VehicleAssigning() {
               }}
             >
               Yes, unassign
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingAssignment && (
+        <Modal title="Confirm Driver Assignment?" onClose={() => setPendingAssignment(null)}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "8px",
+                background: "#e6fffa",
+                color: "#0f7a44",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <CheckCircle2 size={18} />
+            </div>
+            <div style={{ fontSize: "13px", color: "#2d3748", lineHeight: 1.5 }}>
+              Assign <b>{pendingAssignment.driverName}</b> as the permanent driver for{" "}
+              <b>{pendingAssignment.vehicle.plateNumber}</b> ({pendingAssignment.vehicle.brand}{" "}
+              {pendingAssignment.vehicle.model})?
+              {pendingAssignment.vehicle.assignedDriverName && (
+                <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                  (This will replace currently assigned driver <b>{pendingAssignment.vehicle.assignedDriverName}</b>)
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+            <button
+              onClick={() => setPendingAssignment(null)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: "1px solid var(--border)",
+                background: "#fff",
+                color: "#2d3748",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                const { vehicle, driverId } = pendingAssignment;
+                setPendingAssignment(null);
+                handleAssign(vehicle, driverId);
+              }}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "8px",
+                border: "none",
+                background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
+                color: "#fff",
+                fontSize: "13px",
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(0, 179, 119, 0.28)",
+              }}
+            >
+              Confirm Assignment
             </button>
           </div>
         </Modal>

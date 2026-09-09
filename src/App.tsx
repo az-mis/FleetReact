@@ -18,6 +18,7 @@ import TripTicket from "./pages/TripTicket";
 import Landing from "./pages/Landing";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
+import ApprovingOfficers from "./pages/ApprovingOfficers";
 import MyProfile from "./pages/MyProfile";
 import TravelHistory from "./pages/TravelHistory";
 import ContentSettings from "./pages/ContentSettings";
@@ -138,6 +139,16 @@ function App() {
               element={
                 <ProtectedRoute allow={["super_admin"]}>
                   <Admins />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Approving Officers: admin + super_admin — manages trip ticket signatories */}
+            <Route
+              path="approving-officers"
+              element={
+                <ProtectedRoute allow={["admin", "super_admin"]}>
+                  <ApprovingOfficers />
                 </ProtectedRoute>
               }
             />
