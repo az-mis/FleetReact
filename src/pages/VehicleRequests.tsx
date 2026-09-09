@@ -273,8 +273,8 @@ export default function VehicleRequests() {
     <div className="fade-in">
       <PageHeader
         icon={ClipboardList}
-        title="Vehicle Requests"
-        subtitle="Review and confirm staff requests submitted via QR code."
+        title="Travel Requests"
+        subtitle="Review and confirm staff travel requests submitted via QR code."
         actions={
           <div className="header-search-wrap">
             <HeaderSearchInput

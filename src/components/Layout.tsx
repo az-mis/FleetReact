@@ -111,6 +111,7 @@ export default function Layout() {
     { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "Dashboard", show: true, end: true },
     { type: "link", to: "/my-profile", icon: UserCircle, label: "My Profile", show: true },
     { type: "link", to: "/travel-history", icon: History, label: "History of Travel", show: isDriver },
+    { type: "link", to: "/settings", icon: Settings2, label: "Settings", show: isDriver },
     { type: "link", to: "/admins", icon: ShieldCheck, label: "Admins", show: isSuperAdmin },
     {
       type: "link",
@@ -125,7 +126,6 @@ export default function Layout() {
       label: "Vehicles",
       icon: Truck,
       show: isAdmin,
-      badge: pendingRequestsCount,
       children: [
         {
           to: "/vehicles",
@@ -141,15 +141,16 @@ export default function Layout() {
           show: true,
           disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleAssigning"),
         },
-        {
-          to: "/vehicle-requests",
-          icon: ClipboardList,
-          label: "Vehicle Requests",
-          show: true,
-          badge: pendingRequestsCount,
-          disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleRequests"),
-        },
       ],
+    },
+    {
+      type: "link",
+      to: "/vehicle-requests",
+      icon: ClipboardList,
+      label: "Travel Requests",
+      show: isAdmin,
+      badge: pendingRequestsCount,
+      disabled: isAdmin && !isSuperAdmin && !moduleEnabled("vehicleRequests"),
     },
     {
       type: "link",

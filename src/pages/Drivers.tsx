@@ -48,6 +48,7 @@ const emptyForm = {
   address: "",
   licenseExpirationDate: "",
   location: "",
+  phoneNumber: "",
   photoURL: null as string | null,
   photoDriveFileId: null as string | null,
 };
@@ -158,6 +159,7 @@ export default function Drivers() {
       address: d.address || "",
       licenseExpirationDate: d.licenseExpirationDate || "",
       location: d.location || "",
+      phoneNumber: d.phoneNumber || "",
       photoURL: d.photoURL || null,
       photoDriveFileId: d.photoDriveFileId || null,
     });
@@ -219,6 +221,11 @@ export default function Drivers() {
       return;
     }
 
+    if (!form.phoneNumber.trim()) {
+      setError("Phone number is required.");
+      return;
+    }
+
     if (editing) {
       setConfirmSaveOpen(true);
     } else {
@@ -271,6 +278,7 @@ export default function Drivers() {
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
           location: form.location || null,
+          phoneNumber: form.phoneNumber || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
@@ -303,6 +311,7 @@ export default function Drivers() {
           address: form.address || null,
           licenseExpirationDate: form.licenseExpirationDate || null,
           location: form.location || null,
+          phoneNumber: form.phoneNumber || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
@@ -589,6 +598,17 @@ export default function Drivers() {
 
             <Field label="Address">
               <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={inputStyle} />
+            </Field>
+
+            <Field label="Phone Number" required>
+              <input
+                type="tel"
+                required
+                value={form.phoneNumber}
+                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                placeholder="e.g. 09171234567"
+                style={inputStyle}
+              />
             </Field>
 
             <button

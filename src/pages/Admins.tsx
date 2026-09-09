@@ -44,6 +44,7 @@ const emptyForm = {
   password: "",
   role: "admin" as UserRole,
   location: "",
+  phoneNumber: "",
   signee1Name: "",
   signee1Title: "",
   signee2Name: "",
@@ -138,6 +139,7 @@ export default function Admins() {
       password: "",
       role: a.role,
       location: a.location || "",
+      phoneNumber: a.phoneNumber || "",
       signee1Name: a.signee1Name || "",
       signee1Title: a.signee1Title || "",
       signee2Name: a.signee2Name || "",
@@ -195,6 +197,11 @@ export default function Admins() {
       return;
     }
 
+    if (!form.phoneNumber.trim()) {
+      setError("Phone number is required.");
+      return;
+    }
+
     if (editing) {
       setConfirmSaveOpen(true);
     } else {
@@ -243,6 +250,7 @@ export default function Admins() {
           name: form.name,
           role: form.role,
           location: form.role === "admin" ? (form.location || null) : null,
+          phoneNumber: form.phoneNumber || null,
           signee1Name: form.signee1Name || null,
           signee1Title: form.signee1Title || null,
           signee2Name: form.signee2Name || null,
@@ -259,6 +267,7 @@ export default function Admins() {
           email: form.email,
           role: form.role,
           location: form.role === "admin" ? (form.location || null) : null,
+          phoneNumber: form.phoneNumber || null,
           signee1Name: form.signee1Name || null,
           signee1Title: form.signee1Title || null,
           signee2Name: form.signee2Name || null,
@@ -615,6 +624,17 @@ export default function Admins() {
                 </small>
               </Field>
             )}
+
+            <Field label="Phone Number" required>
+              <input
+                type="tel"
+                required
+                value={form.phoneNumber}
+                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                placeholder="e.g. 09171234567"
+                style={inputStyle}
+              />
+            </Field>
 
             {/* Trip Ticket Signatories */}
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>

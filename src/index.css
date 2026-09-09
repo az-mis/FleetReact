@@ -73,6 +73,15 @@ table {
   animation: fadeIn 0.25s ease;
 }
 
+body.disable-ui-effects .fade-in {
+  animation: none !important;
+}
+
+body.disable-ui-effects * {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
+
 .spin {
   animation: spin 0.8s linear infinite;
 }

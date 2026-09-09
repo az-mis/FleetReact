@@ -23,7 +23,7 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role
         && request.resource.data.email == resource.data.email
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['name', 'photoURL', 'photoDriveFileId', 'birthDate', 'address', 'updatedAt', 'signee1Name', 'signee1Title', 'signee2Name', 'signee2Title']);
+             .hasOnly(['name', 'phoneNumber', 'photoURL', 'photoDriveFileId', 'birthDate', 'address', 'location', 'updatedAt', 'signee1Name', 'signee1Title', 'signee2Name', 'signee2Title']);
     }
     // users/{uid} — profile + role. This is the source of truth for authorization.
     match /users/{uid} {

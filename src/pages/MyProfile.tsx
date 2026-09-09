@@ -10,6 +10,7 @@ import {
   UserCircle,
   Mail,
   User,
+  Phone,
   Calendar,
   MapPin,
   Award,
@@ -33,6 +34,7 @@ export default function MyProfile() {
   const [name, setName] = useState(profile?.name || "");
   const [birthDate, setBirthDate] = useState(profile?.birthDate || "");
   const [address, setAddress] = useState(profile?.address || "");
+  const [phoneNumber, setPhoneNumber] = useState(profile?.phoneNumber || "");
   const [photoURL, setPhotoURL] = useState<string | null>(profile?.photoURL || null);
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -51,6 +53,7 @@ export default function MyProfile() {
       setName(profile.name || "");
       setBirthDate(profile.birthDate || "");
       setAddress(profile.address || "");
+      setPhoneNumber(profile.phoneNumber || "");
       setPhotoURL(profile.photoURL || null);
     }
   }, [profile]);
@@ -95,6 +98,10 @@ export default function MyProfile() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!currentUser || !profile) return;
+    if (!phoneNumber.trim()) {
+      showError("Phone number is required.");
+      return;
+    }
     setSaving(true);
     try {
       let finalPhotoURL = originalPhotoRef.current.url;
@@ -132,6 +139,7 @@ export default function MyProfile() {
 
       const updates: Record<string, any> = {
         name,
+        phoneNumber: phoneNumber || null,
         photoURL: finalPhotoURL,
         photoDriveFileId: finalPhotoDriveFileId,
         updatedAt: serverTimestamp(),
@@ -269,6 +277,17 @@ export default function MyProfile() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your full name"
+                />
+              </Field>
+
+              <Field label="Phone Number" icon={Phone} required>
+                <input
+                  className="auth-input"
+                  type="tel"
+                  required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="e.g. 09171234567"
                 />
               </Field>
 

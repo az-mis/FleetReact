@@ -31,6 +31,7 @@ export interface AppUser {
   address?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
   location?: string | null; // Office/Province assignment for admins & requests
+  phoneNumber?: string | null; // Contact phone number (all roles)
   // Custom Trip Ticket signatories for authorized admins
   signee1Name?: string | null; // e.g. "ARJAY D. BURGOS"
   signee1Title?: string | null; // e.g. "OIC - APCO-Oriental Mindoro"
