@@ -320,11 +320,11 @@ export default function ContentSettings() {
             />
             <ToggleRow
               icon={ClipboardList}
-              label="Vehicle Requests"
-              description="Reviewing public vehicle requests."
+              label="Travel Requests"
+              description="Reviewing public travel requests."
               checked={flags.adminModules.vehicleRequests}
               saving={savingKey === "admin-vehicleRequests"}
-              onChange={() => requestToggleAdminModule("vehicleRequests", "Vehicle Requests")}
+              onChange={() => requestToggleAdminModule("vehicleRequests", "Travel Requests")}
             />
             <ToggleRow
               icon={Users}

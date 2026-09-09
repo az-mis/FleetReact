@@ -106,6 +106,11 @@ export default function RequestVehicle() {
 
   const selectedVehicle = vehicles.find((v) => v.id === form.vehicleId) || null;
 
+  // Only show vehicles assigned to the selected location (or unassigned vehicles as fallback to all if no location).
+  const locationFilteredVehicles = form.location
+    ? vehicles.filter((v) => !v.location || v.location === form.location)
+    : vehicles;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -395,7 +400,7 @@ export default function RequestVehicle() {
             <select
               required
               value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              onChange={(e) => setForm({ ...form, location: e.target.value, vehicleId: "" })}
             >
               <option value="">— Select Location / Building —</option>
               {LOCATIONS.map((loc) => (
@@ -447,9 +452,12 @@ export default function RequestVehicle() {
               required
               value={form.vehicleId}
               onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
+              disabled={!form.location}
             >
-              <option value="">— Choose an available vehicle —</option>
-              {vehicles.map((v) => (
+              <option value="">
+                {form.location ? "— Choose an available vehicle —" : "— Select a location first —"}
+              </option>
+              {locationFilteredVehicles.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.plateNumber} · {v.brand} {v.model} ({v.color})
                 </option>

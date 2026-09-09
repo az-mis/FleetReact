@@ -27,6 +27,15 @@ import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel } f
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
+const VEHICLE_LOCATIONS = [
+  "Oriental Mindoro",
+  "Occidental Mindoro",
+  "Marinduque",
+  "Palawan",
+  "Romblon",
+  "Quezon City Satellite Office",
+];
+
 const emptyForm = {
   plateNumber: "",
   chassisNumber: "",
@@ -38,12 +47,16 @@ const emptyForm = {
   odometer: 0,
   vehicleType: "",
   fuelType: "",
+  location: "",
   photoURL: null as string | null,
   photoDriveFileId: null as string | null,
 };
 
 export default function Vehicles() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, profile } = useAuth();
+  // Regular admins are scoped to their own assigned location
+  const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
+
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -60,6 +73,7 @@ export default function Vehicles() {
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -94,14 +108,21 @@ export default function Vehicles() {
   }, []);
 
   const filtered = useMemo(() => {
+    // Scope to admin's location first (super admins see all)
+    let list = adminLocation
+      ? vehicles.filter((v) => v.location === adminLocation)
+      : vehicles;
+
     const s = search.trim().toLowerCase();
-    if (!s) return vehicles;
-    return vehicles.filter((v) =>
-      [v.plateNumber, v.brand, v.model, v.chassisNumber, v.engineNumber].some((f) =>
-        (f || "").toLowerCase().includes(s)
-      )
-    );
-  }, [vehicles, search]);
+    if (s) {
+      list = list.filter((v) =>
+        [v.plateNumber, v.brand, v.model, v.chassisNumber, v.engineNumber, v.location].some((f) =>
+          (f || "").toLowerCase().includes(s)
+        )
+      );
+    }
+    return list;
+  }, [vehicles, search, adminLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -118,7 +139,7 @@ export default function Vehicles() {
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, location: adminLocation || "" });
     setError("");
     resetPhotoState();
     originalPhotoRef.current = { url: null, fileId: null };
@@ -138,6 +159,7 @@ export default function Vehicles() {
       odometer: v.odometer,
       vehicleType: v.vehicleType || "",
       fuelType: v.fuelType || "",
+      location: v.location || "",
       photoURL: v.photoURL || null,
       photoDriveFileId: v.photoDriveFileId || null,
     });
@@ -172,12 +194,6 @@ export default function Vehicles() {
     setForm((f) => ({ ...f, photoURL: preview }));
   }
 
-  // Fired on the click that OPENS the file picker (see AvatarPicker's
-  // onBeforePick), not after a file is chosen — this is what actually keeps
-  // the browser from blocking the consent popup for accounts (e.g. Admins)
-  // that need it: browsers only allow opening a new popup during a fresh,
-  // unbroken click, and the OS-native file dialog can stay open for any
-  // length of time, so authorizing here beats authorizing in onChange.
   function handleBeforePhotoPick() {
     if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
@@ -190,7 +206,7 @@ export default function Vehicles() {
     setForm((f) => ({ ...f, photoURL: null, photoDriveFileId: null }));
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -204,6 +220,15 @@ export default function Vehicles() {
       return;
     }
 
+    if (editing) {
+      setConfirmSaveOpen(true);
+    } else {
+      executeSave();
+    }
+  }
+
+  async function executeSave() {
+    setConfirmSaveOpen(false);
     setSaving(true);
     try {
       // Resolve the photo now: upload a newly-picked file (or process a
@@ -245,6 +270,7 @@ export default function Vehicles() {
         plateNumber: form.plateNumber.trim(),
         year: Number(form.year),
         odometer: Number(form.odometer),
+        location: form.location || null,
         photoURL: finalPhotoURL,
         photoDriveFileId: finalPhotoDriveFileId,
         updatedAt: serverTimestamp(),
@@ -297,7 +323,7 @@ export default function Vehicles() {
       <PageHeader
         icon={Truck}
         title="Vehicles List"
-        subtitle={`${vehicles.length} registered`}
+        subtitle={adminLocation ? `${filtered.length} vehicle(s) in ${adminLocation}` : `${vehicles.length} registered`}
         actions={
           <>
             <div className="header-search-wrap">
@@ -349,7 +375,7 @@ export default function Vehicles() {
           <table className="auth-table">
             <thead>
               <tr>
-                {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", ""].map((h, i) => (
+                {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", "Location", ""].map((h, i) => (
                   <th key={i}>{h}</th>
                 ))}
               </tr>
@@ -369,6 +395,7 @@ export default function Vehicles() {
                   <td style={{ color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
                   <td style={{ color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
                   <td style={{ color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
+                  <td style={{ color: "var(--text-muted)", fontSize: "12px" }}>{v.location || "—"}</td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(v)}
@@ -531,6 +558,36 @@ export default function Vehicles() {
               </Field>
             </div>
 
+            <Field label="Assigned Location / Office Province">
+              {!isSuperAdmin && adminLocation ? (
+                <input
+                  disabled
+                  value={adminLocation}
+                  style={{
+                    ...inputStyle,
+                    background: "#edf2f7",
+                    cursor: "not-allowed",
+                    color: "#4a5568",
+                  }}
+                />
+              ) : (
+                <select
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  style={{ ...inputStyle, cursor: "pointer" }}
+                >
+                  <option value="">— No specific location (available to all) —</option>
+                  {VEHICLE_LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              )}
+              <small style={{ color: "var(--text-muted)", fontSize: "11px", marginTop: "2px" }}>
+                Requesters will only see this vehicle when selecting this location.
+              </small>
+            </Field>
+
+
             <button
               type="submit"
               disabled={saving || photoUploading}
@@ -552,6 +609,30 @@ export default function Vehicles() {
           </form>
         </Modal>
       )}
+
+      {/* Confirmation Dialog before updating vehicle */}
+      <ConfirmDialog
+        open={confirmSaveOpen}
+        title="Confirm Vehicle Update?"
+        danger={false}
+        confirmLabel="Yes, Save Changes"
+        confirmingLabel="Saving..."
+        message={
+          editing && (
+            <div>
+              Are you sure you want to update vehicle <strong>{form.plateNumber}</strong>?
+              <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+                • Brand / Model: <strong>{form.brand} {form.model}</strong>
+                <br />
+                • Assigned Location: <strong>{form.location || "All Locations"}</strong>
+              </div>
+            </div>
+          )
+        }
+        loading={saving}
+        onCancel={() => setConfirmSaveOpen(false)}
+        onConfirm={executeSave}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

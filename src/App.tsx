@@ -18,8 +18,10 @@ import TripTicket from "./pages/TripTicket";
 import Landing from "./pages/Landing";
 import Drivers from "./pages/Drivers";
 import Admins from "./pages/Admins";
+import ApprovingOfficers from "./pages/ApprovingOfficers";
 import MyProfile from "./pages/MyProfile";
 import TravelHistory from "./pages/TravelHistory";
+import DriverSettings from "./pages/DriverSettings";
 import ContentSettings from "./pages/ContentSettings";
 import Unauthorized from "./pages/Unauthorized";
 import FooterDrivingCar from "./components/FooterDrivingCar";
@@ -35,6 +37,16 @@ function RootRoute() {
 }
 
 function App() {
+  React.useEffect(() => {
+    const saved = localStorage.getItem("fleet_ui_effects_enabled");
+    const enabled = saved === null ? true : saved === "true";
+    if (enabled) {
+      document.body.classList.remove("disable-ui-effects");
+    } else {
+      document.body.classList.add("disable-ui-effects");
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <FeatureFlagsProvider>
@@ -90,6 +102,16 @@ function App() {
               }
             />
 
+            {/* Settings: driver visual & UI display preferences */}
+            <Route
+              path="settings"
+              element={
+                <ProtectedRoute>
+                  <DriverSettings />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Vehicles: admin + super_admin only (drivers have no access) */}
             <Route
               path="vehicles"
@@ -111,12 +133,12 @@ function App() {
               }
             />
 
-            {/* Vehicle Requests: admin + super_admin only — review/confirm
+            {/* Travel Requests: admin + super_admin only — review/confirm
                 requests submitted through the public QR-code form */}
             <Route
               path="vehicle-requests"
               element={
-                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleRequests" adminModuleLabel="Vehicle Requests">
+                <ProtectedRoute allow={["admin", "super_admin"]} adminModule="vehicleRequests" adminModuleLabel="Travel Requests">
                   <VehicleRequests />
                 </ProtectedRoute>
               }
@@ -138,6 +160,16 @@ function App() {
               element={
                 <ProtectedRoute allow={["super_admin"]}>
                   <Admins />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Approving Officers: admin + super_admin — manages trip ticket signatories */}
+            <Route
+              path="approving-officers"
+              element={
+                <ProtectedRoute allow={["admin", "super_admin"]}>
+                  <ApprovingOfficers />
                 </ProtectedRoute>
               }
             />

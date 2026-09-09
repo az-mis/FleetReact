@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebase";
-import { AppUser, VehicleRequest } from "../types";
+import { AppUser, ApprovingOfficer, VehicleRequest } from "../types";
 import { ArrowLeft, Printer, AlertTriangle } from "lucide-react";
 
 import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
@@ -100,6 +100,25 @@ export default function TripTicket() {
             }
           } catch (err) {
             console.error("Could not fetch approving user signatories:", err);
+          }
+        }
+
+        if ((!s1Name || !s2Name) && data.location) {
+          try {
+            const q = query(
+              collection(db, "approvingOfficers"),
+              where("location", "==", data.location)
+            );
+            const offSnap = await getDocs(q);
+            if (!offSnap.empty) {
+              const offData = offSnap.docs[0].data() as ApprovingOfficer;
+              if (!s1Name && offData.signee1Name) s1Name = offData.signee1Name;
+              if (!s1Title && offData.signee1Title) s1Title = offData.signee1Title;
+              if (!s2Name && offData.signee2Name) s2Name = offData.signee2Name;
+              if (!s2Title && offData.signee2Title) s2Title = offData.signee2Title;
+            }
+          } catch (err) {
+            console.error("Could not fetch approving officers:", err);
           }
         }
 

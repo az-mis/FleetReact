@@ -27,6 +27,7 @@ import {
   Clock,
   Sparkles,
   Info,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function TravelHistory() {
@@ -649,6 +650,7 @@ function TripDetailModal({ trip, onClose }: { trip: VehicleRequest; onClose: () 
         <DetailRow icon={User} label="Requester" value={`${trip.requesterName}${trip.requesterOffice ? ` (${trip.requesterOffice})` : ""}`} />
         {trip.requesterContact && <DetailRow icon={Phone} label="Contact" value={trip.requesterContact} />}
         {trip.location && <DetailRow icon={MapPin} label="Pick-up Location" value={trip.location} />}
+        {trip.approvedByName && <DetailRow icon={ShieldCheck} label="Approved By" value={trip.approvedByName} />}
         <DetailRow icon={FileText} label="Trip Purpose" value={trip.purpose || "—"} />
 
         {/* Passengers list */}
