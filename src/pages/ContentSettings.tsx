@@ -689,8 +689,10 @@ function AnnouncementSection({
   const [dirty, setDirty] = useState(false);
   const [savingToggle, setSavingToggle] = useState(false);
   const [savingMessage, setSavingMessage] = useState(false);
+  const [deletingMessage, setDeletingMessage] = useState(false);
 
   const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!dirty) setDraft(config.message);
@@ -724,8 +726,24 @@ function AnnouncementSection({
     }
   }
 
+  async function deleteAnnouncement() {
+    setDeletingMessage(true);
+    try {
+      await updateFlags({ [flagKey]: { message: "", enabled: false } });
+      setDraft("");
+      setDirty(false);
+      showSuccess("Announcement deleted and banner hidden.");
+    } catch (e: any) {
+      showError(e.message || "Couldn't delete the announcement.");
+    } finally {
+      setDeletingMessage(false);
+      setConfirmDeleteOpen(false);
+    }
+  }
+
   const audienceLabel = flagKey === "adminAnnouncement" ? "admins" : "drivers";
   const willEnable = !config.enabled;
+  const hasMessage = !!config.message.trim();
 
   return (
     <Section icon={icon} title={title} description={description}>
@@ -754,6 +772,18 @@ function AnnouncementSection({
         onConfirm={performToggle}
       />
 
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title="Delete announcement?"
+        message={`This will permanently clear the ${title.toLowerCase()} message and hide the banner from all ${audienceLabel}.`}
+        confirmLabel="Delete"
+        confirmingLabel="Deleting…"
+        danger={true}
+        loading={deletingMessage}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={deleteAnnouncement}
+      />
+
       <div style={{ paddingTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
         <textarea
           value={draft}
@@ -774,7 +804,33 @@ function AnnouncementSection({
             outline: "none",
           }}
         />
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          {hasMessage && (
+            <button
+              onClick={() => setConfirmDeleteOpen(true)}
+              disabled={deletingMessage || savingMessage}
+              title="Delete announcement"
+              style={{
+                height: "32px",
+                padding: "0 12px",
+                borderRadius: "7px",
+                border: "1.5px solid #fca5a5",
+                background: "#fff5f5",
+                color: "#dc2626",
+                fontSize: "12px",
+                fontWeight: 600,
+                cursor: deletingMessage || savingMessage ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                opacity: deletingMessage || savingMessage ? 0.6 : 1,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Trash2 size={13} />
+              {deletingMessage ? "Deleting…" : "Delete"}
+            </button>
+          )}
           <button
             onClick={saveMessage}
             disabled={savingMessage || !dirty}

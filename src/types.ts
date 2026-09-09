@@ -240,6 +240,7 @@ export interface VehicleRequest {
   previousTripTicketDate?: string | null;
   status: VehicleRequestStatus;
   declineReason?: string | null;
+  tripTicketNumber?: string | null; // e.g. "FMS-2026-09-K8W2" generated upon approval
   approvedBy?: string | null;
   approvedByName?: string | null;
   // Snapshot of signatories at approval time

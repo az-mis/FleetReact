@@ -42,17 +42,17 @@ export default function StatCard({
       style={{
         position: "relative",
         background: "#ffffff",
-        borderRadius: "14px",
-        padding: "14px 16px",
+        borderRadius: "12px",
+        padding: "10px 14px",
         display: "flex",
         alignItems: "center",
-        gap: "12px",
+        gap: "10px",
         border: "1px solid rgba(226,232,240,0.8)",
         boxShadow: hover
-          ? "0 10px 20px -10px rgba(26,107,60,0.18), 0 2px 6px rgba(0,0,0,0.04)"
-          : "0 2px 8px rgba(15,23,42,0.05)",
+          ? "0 8px 16px -8px rgba(26,107,60,0.18), 0 2px 4px rgba(0,0,0,0.04)"
+          : "0 1px 4px rgba(15,23,42,0.04)",
         transform: hover ? "translateY(-2px)" : "translateY(0)",
-        transition: "all 0.25s ease",
+        transition: "all 0.2s ease",
         overflow: "hidden",
       }}
     >
@@ -68,40 +68,40 @@ export default function StatCard({
       />
       <div
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: "10px",
+          width: 34,
+          height: 34,
+          borderRadius: "8px",
           background: `linear-gradient(135deg, ${resolved}, ${resolved}cc)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "#fff",
           flexShrink: 0,
-          boxShadow: `0 6px 14px -4px ${resolved}66`,
+          boxShadow: `0 4px 10px -3px ${resolved}66`,
         }}
       >
-        <Icon size={18} />
+        <Icon size={16} />
       </div>
       <div style={{ minWidth: 0 }}>
         <div
           style={{
-            fontSize: "11.5px",
-            fontWeight: 600,
+            fontSize: "10.5px",
+            fontWeight: 700,
             color: "var(--text-muted)",
             textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            marginBottom: "2px",
+            letterSpacing: "0.03em",
+            marginBottom: "1px",
             whiteSpace: "nowrap",
           }}
         >
           {label}
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-          <span style={{ fontSize: "22px", fontWeight: 800, color: "#1a202c", lineHeight: 1 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "5px" }}>
+          <span style={{ fontSize: "19px", fontWeight: 800, color: "#1a202c", lineHeight: 1 }}>
             {value}
           </span>
           {sublabel && (
-            <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>
+            <span style={{ fontSize: "10.5px", color: "var(--text-muted)", fontWeight: 500 }}>
               {sublabel}
             </span>
           )}

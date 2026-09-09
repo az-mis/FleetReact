@@ -18,6 +18,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { AppUser, Vehicle, VehicleRequest, VehicleRequestStatus } from "../types";
 import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
+import { generateTripTicketNumber } from "../utils/ticketNumber";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
@@ -237,8 +238,11 @@ export default function VehicleRequests() {
         }
       }
 
+      const ticketNo = request.tripTicketNumber || generateTripTicketNumber();
+
       await updateDoc(doc(db, "vehicleRequests", request.id), {
         status: "approved",
+        tripTicketNumber: ticketNo,
         confirmedDriverId: driverId || null,
         confirmedDriverName: driverName || null,
         approvedBy: currentUser?.uid || null,
@@ -290,9 +294,9 @@ export default function VehicleRequests() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: "12px",
-          marginBottom: "18px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: "8px",
+          marginBottom: "12px",
         }}
       >
         <StatCard icon={ClipboardList} label="Total Requests" value={counts.total} color="#4a5568" />
@@ -301,7 +305,7 @@ export default function VehicleRequests() {
         <StatCard icon={XCircle} label="Declined" value={counts.declined} color="var(--danger)" />
       </div>
 
-      <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
         {(["pending", "approved", "declined", "all"] as const).map((s) => {
           const count =
             s === "all"
@@ -397,117 +401,147 @@ export default function VehicleRequests() {
                   key={r.id}
                   style={{
                     background: "#fff",
-                    borderRadius: "14px",
+                    borderRadius: "10px",
                     border: "1px solid var(--border)",
-                    padding: "16px",
+                    padding: "10px 12px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "12px",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                    gap: "6px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <Avatar photoURL={vehicle?.photoURL} fallback="icon" icon={Truck} size={36} name={r.vehiclePlateNumber} />
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: "14px", color: "#1a202c" }}>{r.vehiclePlateNumber}</div>
-                        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", fontWeight: 500 }}>
-                          🗓 {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
-                        </div>
-                      </div>
+                  {/* Header: Destination & Status Badge */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                    <div style={{ fontWeight: 800, fontSize: "13.5px", color: "#1a202c", display: "flex", alignItems: "center", gap: "4px", minWidth: 0 }}>
+                      <span style={{ color: "var(--primary)" }}>📍</span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.destination}
+                      </span>
                     </div>
 
                     <span
                       style={{
-                        fontSize: "10px",
+                        fontSize: "9.5px",
                         fontWeight: 700,
-                        padding: "3px 8px",
+                        padding: "2px 7px",
                         borderRadius: "999px",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "4px",
+                        gap: "3.5px",
                         background: badge.bg,
                         color: badge.color,
                         border: `1px solid ${badge.border}`,
                         textTransform: "uppercase",
                         letterSpacing: "0.03em",
                         whiteSpace: "nowrap",
+                        flexShrink: 0,
                       }}
                     >
-                      <BadgeIcon size={10} />
+                      <BadgeIcon size={9} />
                       {r.status}
                     </span>
                   </div>
 
-                  <div style={{ height: "1px", background: "#f1f5f9" }} />
-
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "12px" }}>
-                    <div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                        Requester
+                  {/* Trip Date, Vehicle & Location Info Box */}
+                  <div
+                    style={{
+                      fontSize: "11.5px",
+                      background: "#f8fafc",
+                      padding: "6px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid #edf2f7",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "2px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 700, color: "#2d3748", fontSize: "11.5px" }}>
+                        🗓 {formatTravelDateRange(r.travelDate, r.travelDateEnd)}
                       </div>
-                      <div style={{ fontWeight: 600, color: "#2d3748", marginTop: "2px" }}>{r.requesterName}</div>
-                      {r.requesterOffice && <div style={{ fontSize: "11px", color: "#718096" }}>{r.requesterOffice}</div>}
+                      <div style={{ fontWeight: 800, color: "var(--primary-dark)", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Truck size={13} /> {r.vehiclePlateNumber}
+                        {r.location && (
+                          <span style={{ color: "#718096", fontWeight: 600, fontSize: "11px", marginLeft: "4px" }}>
+                            • {r.location}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                        Assigned Driver
+                    {r.purpose && (
+                      <div style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        Purpose: {r.purpose}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
-                        <Avatar photoURL={driver?.photoURL} name={driverName} size={20} />
-                        <span style={{ fontWeight: 600, color: "#2d3748" }}>{driverName}</span>
+                    )}
+                  </div>
+
+                  {/* Requester & Driver Grid */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px", alignItems: "flex-start" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                        Requester
+                      </div>
+                      <div style={{ fontWeight: 600, color: "#2d3748", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.requesterName}
+                      </div>
+                      {r.requesterOffice && (
+                        <div style={{ fontSize: "10px", color: "#718096", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {r.requesterOffice}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                        Driver
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <Avatar photoURL={driver?.photoURL} name={driverName} size={18} />
+                        <span style={{ fontWeight: 600, color: "#2d3748", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {driverName}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  {r.approvedByName && (
-                    <div style={{ fontSize: "12px" }}>
-                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                        Approved By
+                  {/* Passengers Section */}
+                  {((r.passengers && r.passengers.length > 0) || r.requesterIsPassenger) && (
+                    <div style={{ fontSize: "11px", borderTop: "1px dashed #edf2f7", paddingTop: "5px" }}>
+                      <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: "2px" }}>
+                        Passengers
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
-                        <Avatar name={r.approvedByName} size={20} />
-                        <span style={{ fontWeight: 600, color: "#166534" }}>{r.approvedByName}</span>
-                      </div>
+                      <PassengersCell request={r} />
                     </div>
                   )}
 
-                  <div style={{ fontSize: "12px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                      Location &amp; Destination
+                  {/* Approver Tag */}
+                  {r.approvedByName && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#166534", fontWeight: 600 }}>
+                      <ShieldCheck size={11} color="#166534" />
+                      <span>Approved by: {r.approvedByName}</span>
                     </div>
-                    {r.location && <div style={{ fontSize: "11px", color: "#4a5568", fontWeight: 600 }}>🏢 {r.location}</div>}
-                    <div style={{ fontWeight: 700, color: "#166534", marginTop: "2px" }}>📍 {r.destination}</div>
-                    {r.purpose && <div style={{ fontSize: "11.5px", color: "#4a5568", marginTop: "1px" }}>{r.purpose}</div>}
-                  </div>
+                  )}
 
-                  <div>
-                    <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", marginBottom: "3px" }}>
-                      Passengers
-                    </div>
-                    <PassengersCell request={r} />
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-                    <button
-                      onClick={() => setReviewing(r)}
-                      style={{
-                        width: "100%",
-                        padding: "8px 14px",
-                        borderRadius: "8px",
-                        border: "none",
-                        background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
-                        color: r.status === "pending" ? "#fff" : "#2d3748",
-                        fontSize: "13px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
-                      }}
-                    >
-                      {r.status === "pending" ? "Review Request" : "View Details"}
-                    </button>
-                  </div>
+                  {/* Action Button */}
+                  <button
+                    onClick={() => setReviewing(r)}
+                    style={{
+                      width: "100%",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      border: "none",
+                      background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                      color: r.status === "pending" ? "#fff" : "#2d3748",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      boxShadow: r.status === "pending" ? "0 2px 4px rgba(0, 179, 119, 0.2)" : "none",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {r.status === "pending" ? "Review Request" : "View Details"}
+                  </button>
                 </div>
               );
             })}

@@ -177,8 +177,9 @@ export default function TravelHistory() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "14px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: "8px",
+          marginBottom: "4px",
         }}
       >
         <StatCard
@@ -195,22 +196,22 @@ export default function TravelHistory() {
         />
         <StatCard
           icon={Navigation}
-          label="Total Travel Dispatches"
+          label="Total Dispatches"
           value={approvedTrips.length}
           color="var(--primary)"
         />
       </div>
 
-      {/* Main Table Card */}
+      {/* Main Container */}
       <div
         style={{
           background: "#fff",
           border: "1px solid var(--border)",
           borderRadius: "14px",
-          padding: "16px 20px",
+          padding: "14px 16px",
           display: "flex",
           flexDirection: "column",
-          gap: "16px",
+          gap: "12px",
           boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         }}
       >
@@ -219,7 +220,7 @@ export default function TravelHistory() {
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: "12px",
+            gap: "10px",
             alignItems: "center",
             justifyContent: "space-between",
           }}
@@ -232,35 +233,36 @@ export default function TravelHistory() {
               padding: "3px",
               borderRadius: "10px",
               gap: "2px",
+              flexWrap: "wrap",
             }}
           >
             <button
               onClick={() => setFilterTab("upcoming")}
               style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
+                padding: "5px 12px",
+                borderRadius: "7px",
                 border: "none",
                 background: filterTab === "upcoming" ? "#fff" : "transparent",
                 color: filterTab === "upcoming" ? "var(--primary-dark)" : "var(--text-muted)",
                 fontWeight: filterTab === "upcoming" ? 700 : 500,
-                fontSize: "12.5px",
+                fontSize: "12px",
                 cursor: "pointer",
                 boxShadow: filterTab === "upcoming" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 transition: "all 0.15s ease",
               }}
             >
-              Upcoming / Active ({upcomingTrips.length})
+              Active / Upcoming ({upcomingTrips.length})
             </button>
             <button
               onClick={() => setFilterTab("completed")}
               style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
+                padding: "5px 12px",
+                borderRadius: "7px",
                 border: "none",
                 background: filterTab === "completed" ? "#fff" : "transparent",
                 color: filterTab === "completed" ? "var(--primary-dark)" : "var(--text-muted)",
                 fontWeight: filterTab === "completed" ? 700 : 500,
-                fontSize: "12.5px",
+                fontSize: "12px",
                 cursor: "pointer",
                 boxShadow: filterTab === "completed" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 transition: "all 0.15s ease",
@@ -271,266 +273,469 @@ export default function TravelHistory() {
             <button
               onClick={() => setFilterTab("all")}
               style={{
-                padding: "6px 14px",
-                borderRadius: "8px",
+                padding: "5px 12px",
+                borderRadius: "7px",
                 border: "none",
                 background: filterTab === "all" ? "#fff" : "transparent",
                 color: filterTab === "all" ? "var(--primary-dark)" : "var(--text-muted)",
                 fontWeight: filterTab === "all" ? 700 : 500,
-                fontSize: "12.5px",
+                fontSize: "12px",
                 cursor: "pointer",
                 boxShadow: filterTab === "all" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
                 transition: "all 0.15s ease",
               }}
             >
-              All Travels ({approvedTrips.length})
+              All ({approvedTrips.length})
             </button>
           </div>
 
           {/* Search Input */}
-          <div style={{ width: "260px" }}>
+          <div style={{ flex: "1 1 200px", maxWidth: "280px" }}>
             <HeaderSearchInput
               value={search}
               onChange={setSearch}
-              placeholder="Search destination, passenger, vehicle..."
+              placeholder="Search destination, passenger..."
             />
           </div>
         </div>
 
-        {/* Trips Table */}
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "separate",
-              borderSpacing: "0",
-              fontSize: "13px",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "#f8fafc", color: "var(--text-muted)", textAlign: "left" }}>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700, borderRadius: "8px 0 0 8px" }}>
-                  Destination &amp; Purpose
-                </th>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
-                  Travel Date
-                </th>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
-                  Vehicle
-                </th>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
-                  Passengers
-                </th>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
-                  Status
-                </th>
-                <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700, textAlign: "right", borderRadius: "0 8px 8px 0" }}>
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: "32px", textAlign: "center", color: "var(--text-muted)" }}>
-                    Loading your travel records...
-                  </td>
-                </tr>
-              ) : filteredTrips.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: "40px 16px", textAlign: "center", color: "var(--text-muted)" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                      <Navigation size={28} style={{ opacity: 0.4 }} />
-                      <div style={{ fontWeight: 600, fontSize: "14px", color: "#4a5568" }}>
-                        {search ? "No matching travel records found" : "No travels in this category yet"}
-                      </div>
-                      <div style={{ fontSize: "12px" }}>
-                        {search ? "Try clearing your search query." : "When trips are assigned to you, they will appear here."}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedTrips.map((trip) => {
-                  const isEndPast = (trip.travelDateEnd || trip.travelDate) < todayStr;
-                  const isCurrentActive = trip.travelDate <= todayStr && (trip.travelDateEnd || trip.travelDate) >= todayStr;
+        {/* Trips Empty State */}
+        {loading ? (
+          <div style={{ padding: "32px", textAlign: "center", color: "var(--text-muted)", fontSize: "13px" }}>
+            Loading your travel records...
+          </div>
+        ) : filteredTrips.length === 0 ? (
+          <div style={{ padding: "36px 16px", textAlign: "center", color: "var(--text-muted)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+              <Navigation size={26} style={{ opacity: 0.4 }} />
+              <div style={{ fontWeight: 600, fontSize: "13.5px", color: "#4a5568" }}>
+                {search ? "No matching travel records found" : "No travels in this category yet"}
+              </div>
+              <div style={{ fontSize: "12px" }}>
+                {search ? "Try clearing your search query." : "When trips are assigned to you, they will appear here."}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mobile / Split-screen Compact Card Grid */}
+            <div className="mobile-travel-grid">
+              {paginatedTrips.map((trip) => {
+                const isEndPast = (trip.travelDateEnd || trip.travelDate) < todayStr;
+                const isCurrentActive = trip.travelDate <= todayStr && (trip.travelDateEnd || trip.travelDate) >= todayStr;
 
-                  const passengersList = [
-                    ...(trip.requesterIsPassenger ? [`${trip.requesterName} (Requester)`] : []),
-                    ...(trip.passengers || []),
-                  ];
+                const passengersList = [
+                  ...(trip.requesterIsPassenger ? [`${trip.requesterName} (Requester)`] : []),
+                  ...(trip.passengers || []),
+                ];
 
-                  return (
-                    <tr
-                      key={trip.id}
-                      style={{
-                        borderBottom: "1px solid var(--border)",
-                        transition: "background 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
-                        <div style={{ fontWeight: 700, color: "#1a202c", fontSize: "13.5px" }}>
-                          📍 {trip.destination}
-                        </div>
-                        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                          {trip.purpose || "No specific purpose provided"}
-                        </div>
-                        {trip.requesterOffice && (
-                          <div style={{ fontSize: "11px", color: "#718096", marginTop: "1px" }}>
-                            Office: {trip.requesterOffice}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" }}>
-                        <div style={{ fontWeight: 600, color: "#2d3748" }}>
-                          {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
-                        </div>
-                        {isCurrentActive && (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              marginTop: "4px",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              background: "#e6fffa",
-                              color: "#234e52",
-                              fontSize: "10.5px",
-                              fontWeight: 700,
-                            }}
-                          >
-                            Active Today
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <div
-                            style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: "8px",
-                              background: "#f1f5f9",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "#475569",
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Truck size={15} />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: "13px", color: "#1a202c" }}>
-                              {trip.vehiclePlateNumber}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
-                        <PassengersSummary passengers={passengersList} />
-                      </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" }}>
+                return (
+                  <div
+                    key={trip.id}
+                    style={{
+                      background: "#fff",
+                      borderRadius: "10px",
+                      border: "1px solid var(--border)",
+                      padding: "10px 12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {/* Header: Destination & Status Badge */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                      <div style={{ fontWeight: 800, fontSize: "13.5px", color: "#1a202c", display: "flex", alignItems: "center", gap: "4px", minWidth: 0 }}>
+                        <span style={{ color: "var(--primary)" }}>📍</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {trip.destination}
+                        </span>
+                      </div>
+
+                      <div>
                         {isEndPast ? (
                           <span
                             style={{
-                              fontSize: "11px",
+                              fontSize: "9.5px",
                               fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "6px",
+                              padding: "2px 7px",
+                              borderRadius: "999px",
                               background: "#f1f5f9",
                               color: "#475569",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: "4px",
+                              gap: "3.5px",
+                              textTransform: "uppercase",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <CheckCircle2 size={12} /> Completed
+                            <CheckCircle2 size={10} /> Completed
                           </span>
                         ) : isCurrentActive ? (
                           <span
                             style={{
-                              fontSize: "11px",
+                              fontSize: "9.5px",
                               fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "6px",
+                              padding: "2px 7px",
+                              borderRadius: "999px",
                               background: "#dcfce7",
                               color: "#166534",
+                              border: "1px solid #bbf7d0",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: "4px",
+                              gap: "3.5px",
+                              textTransform: "uppercase",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <Sparkles size={12} /> Ongoing
+                            <Sparkles size={10} /> Active Today
                           </span>
                         ) : (
                           <span
                             style={{
-                              fontSize: "11px",
+                              fontSize: "9.5px",
                               fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "6px",
+                              padding: "2px 7px",
+                              borderRadius: "999px",
                               background: "#e0f2fe",
                               color: "#0369a1",
+                              border: "1px solid #bae6fd",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: "4px",
+                              gap: "3.5px",
+                              textTransform: "uppercase",
+                              whiteSpace: "nowrap",
                             }}
                           >
-                            <Clock size={12} /> Scheduled
+                            <Clock size={10} /> Scheduled
                           </span>
                         )}
-                      </td>
-                      <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
-                        <div style={{ display: "inline-flex", gap: "6px" }}>
-                          <button
-                            onClick={() => setSelectedTrip(trip)}
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: "6px",
-                              border: "1px solid var(--border)",
-                              background: "#fff",
-                              color: "#2d3748",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            <Info size={13} /> View Details
-                          </button>
-                          <Link
-                            to={`/trip-ticket/${trip.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: "6px",
-                              border: "none",
-                              background: "rgba(26,107,60,0.1)",
-                              color: "var(--primary)",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            <Printer size={13} /> Ticket
-                          </Link>
+                      </div>
+                    </div>
+
+                    {/* Trip Date & Vehicle Info Box */}
+                    <div
+                      style={{
+                        fontSize: "11.5px",
+                        background: "#f8fafc",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid #edf2f7",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", flexWrap: "wrap" }}>
+                        <div style={{ fontWeight: 700, color: "#2d3748", fontSize: "11.5px" }}>
+                          🗓 {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <div style={{ fontWeight: 800, color: "var(--primary-dark)", fontSize: "11.5px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <Truck size={13} /> {trip.vehiclePlateNumber}
+                        </div>
+                      </div>
+
+                      {trip.purpose && (
+                        <div style={{ fontSize: "10.5px", color: "var(--text-muted)", marginTop: "1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          Purpose: {trip.purpose}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Requester & Passengers Grid */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "11px", alignItems: "flex-start" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                          Requester
+                        </div>
+                        <div style={{ fontWeight: 600, color: "#2d3748", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {trip.requesterName}
+                        </div>
+                        {trip.requesterOffice && (
+                          <div style={{ fontSize: "10px", color: "#718096", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {trip.requesterOffice}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: "9px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                          Passengers
+                        </div>
+                        <PassengersSummary passengers={passengersList} />
+                      </div>
+                    </div>
+
+                    {/* Approver Tag if present */}
+                    {trip.approvedByName && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#166534", fontWeight: 600 }}>
+                        <ShieldCheck size={11} color="#166534" />
+                        <span>Approved by: {trip.approvedByName}</span>
+                      </div>
+                    )}
+
+                    {/* Actions Row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "2px" }}>
+                      <button
+                        onClick={() => setSelectedTrip(trip)}
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid var(--border)",
+                          background: "#fff",
+                          color: "#2d3748",
+                          fontSize: "11.5px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Info size={12} /> Details
+                      </button>
+                      <Link
+                        to={`/trip-ticket/${trip.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          border: "none",
+                          background: "rgba(26,107,60,0.1)",
+                          color: "var(--primary)",
+                          fontSize: "11.5px",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Printer size={12} /> Printable Ticket
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View for Wide Screens */}
+            <div className="desktop-travel-table" style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "separate",
+                  borderSpacing: "0",
+                  fontSize: "13px",
+                }}
+              >
+                <thead>
+                  <tr style={{ background: "#f8fafc", color: "var(--text-muted)", textAlign: "left" }}>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700, borderRadius: "8px 0 0 8px" }}>
+                      Destination &amp; Purpose
+                    </th>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
+                      Travel Date
+                    </th>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
+                      Vehicle
+                    </th>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
+                      Passengers
+                    </th>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700 }}>
+                      Status
+                    </th>
+                    <th style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontWeight: 700, textAlign: "right", borderRadius: "0 8px 8px 0" }}>
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedTrips.map((trip) => {
+                    const isEndPast = (trip.travelDateEnd || trip.travelDate) < todayStr;
+                    const isCurrentActive = trip.travelDate <= todayStr && (trip.travelDateEnd || trip.travelDate) >= todayStr;
+
+                    const passengersList = [
+                      ...(trip.requesterIsPassenger ? [`${trip.requesterName} (Requester)`] : []),
+                      ...(trip.passengers || []),
+                    ];
+
+                    return (
+                      <tr
+                        key={trip.id}
+                        style={{
+                          borderBottom: "1px solid var(--border)",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
+                          <div style={{ fontWeight: 700, color: "#1a202c", fontSize: "13.5px" }}>
+                            📍 {trip.destination}
+                          </div>
+                          <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                            {trip.purpose || "No specific purpose provided"}
+                          </div>
+                          {trip.requesterOffice && (
+                            <div style={{ fontSize: "11px", color: "#718096", marginTop: "1px" }}>
+                              Office: {trip.requesterOffice}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" }}>
+                          <div style={{ fontWeight: 600, color: "#2d3748" }}>
+                            {formatTravelDateRange(trip.travelDate, trip.travelDateEnd)}
+                          </div>
+                          {isCurrentActive && (
+                            <span
+                              style={{
+                                display: "inline-block",
+                                marginTop: "4px",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                background: "#e6fffa",
+                                color: "#234e52",
+                                fontSize: "10.5px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Active Today
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: "8px",
+                                background: "#f1f5f9",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#475569",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Truck size={15} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: "13px", color: "#1a202c" }}>
+                                {trip.vehiclePlateNumber}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9" }}>
+                          <PassengersSummary passengers={passengersList} />
+                        </td>
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", whiteSpace: "nowrap" }}>
+                          {isEndPast ? (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                background: "#f1f5f9",
+                                color: "#475569",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <CheckCircle2 size={12} /> Completed
+                            </span>
+                          ) : isCurrentActive ? (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                background: "#dcfce7",
+                                color: "#166534",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Sparkles size={12} /> Ongoing
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                background: "#e0f2fe",
+                                color: "#0369a1",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Clock size={12} /> Scheduled
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "inline-flex", gap: "6px" }}>
+                            <button
+                              onClick={() => setSelectedTrip(trip)}
+                              style={{
+                                padding: "6px 10px",
+                                borderRadius: "6px",
+                                border: "1px solid var(--border)",
+                                background: "#fff",
+                                color: "#2d3748",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Info size={13} /> View Details
+                            </button>
+                            <Link
+                              to={`/trip-ticket/${trip.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                padding: "6px 10px",
+                                borderRadius: "6px",
+                                border: "none",
+                                background: "rgba(26,107,60,0.1)",
+                                color: "var(--primary)",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                textDecoration: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Printer size={13} /> Ticket
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
 
         {filteredTrips.length > 0 && (
           <Pagination
