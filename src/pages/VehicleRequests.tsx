@@ -39,6 +39,7 @@ import {
   Building2,
   Users,
   AlertTriangle,
+  ShieldCheck,
   LucideIcon,
 } from "lucide-react";
 
@@ -460,6 +461,18 @@ export default function VehicleRequests() {
                     </div>
                   </div>
 
+                  {r.approvedByName && (
+                    <div style={{ fontSize: "12px" }}>
+                      <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                        Approved By
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <Avatar name={r.approvedByName} size={20} />
+                        <span style={{ fontWeight: 600, color: "#166534" }}>{r.approvedByName}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ fontSize: "12px" }}>
                     <div style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
                       Location &amp; Destination
@@ -514,6 +527,7 @@ export default function VehicleRequests() {
                   <th style={{ minWidth: 140 }}>Destination</th>
                   <th style={{ minWidth: 130 }}>Purpose</th>
                   <th style={{ minWidth: 100 }}>Status</th>
+                  <th style={{ minWidth: 130 }}>Approver</th>
                   <th style={{ textAlign: "right", minWidth: 90 }}>Action</th>
                 </tr>
               </thead>
@@ -612,7 +626,25 @@ export default function VehicleRequests() {
                         </span>
                       </td>
 
-                      {/* 9. Action button review/view */}
+                      {/* 9. Approver */}
+                      <td>
+                        {r.approvedByName ? (
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Avatar name={r.approvedByName} size={22} />
+                            <span style={{ fontSize: "12.5px", fontWeight: 600, color: "#2d3748" }}>
+                              {r.approvedByName}
+                            </span>
+                          </div>
+                        ) : r.status === "approved" ? (
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                            Approved
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "12px", color: "#a0aec0" }}>—</span>
+                        )}
+                      </td>
+
+                      {/* 10. Action button review/view */}
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                         <button
                           onClick={() => setReviewing(r)}
@@ -771,6 +803,10 @@ function ReviewModal({
           <InfoRow icon={CalendarDays} label="Previous Trip Ticket Date" value={request.previousTripTicketDate} />
         )}
 
+        {request.approvedByName && (
+          <InfoRow icon={ShieldCheck} label="Approved By" value={request.approvedByName} />
+        )}
+
         {!isPending && (
           <div
             style={{
@@ -783,7 +819,7 @@ function ReviewModal({
             }}
           >
             {request.status === "approved"
-              ? `Approved · Driver: ${request.confirmedDriverName || "Unassigned"}`
+              ? `Approved · Driver: ${request.confirmedDriverName || "Unassigned"}${request.approvedByName ? ` · Approver: ${request.approvedByName}` : ""}`
               : `Declined${request.declineReason ? ` · ${request.declineReason}` : ""}`}
           </div>
         )}
