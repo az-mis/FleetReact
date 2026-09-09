@@ -31,6 +31,11 @@ export interface AppUser {
   address?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
   location?: string | null; // Office/Province assignment for admins & requests
+  // Custom Trip Ticket signatories for authorized admins
+  signee1Name?: string | null; // e.g. "ARJAY D. BURGOS"
+  signee1Title?: string | null; // e.g. "OIC - APCO-Oriental Mindoro"
+  signee2Name?: string | null; // e.g. "EDGARDO F. LEIDO, Jr."
+  signee2Title?: string | null; // e.g. "GSS Regional Office Calapan City"
   createdAt?: any; // Firestore Timestamp
   updatedAt?: any; // Firestore Timestamp
 }
@@ -222,6 +227,11 @@ export interface VehicleRequest {
   declineReason?: string | null;
   approvedBy?: string | null;
   approvedByName?: string | null;
+  // Snapshot of signatories at approval time
+  signee1Name?: string | null;
+  signee1Title?: string | null;
+  signee2Name?: string | null;
+  signee2Title?: string | null;
   approvedAt?: any;
   createdAt?: any;
   updatedAt?: any;

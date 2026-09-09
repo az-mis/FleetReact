@@ -3,12 +3,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -192,12 +195,56 @@ export default function VehicleRequests() {
 
   async function handleApprove(request: VehicleRequest, driverId: string, driverName: string) {
     try {
+      let s1Name = profile?.signee1Name || null;
+      let s1Title = profile?.signee1Title || null;
+      let s2Name = profile?.signee2Name || null;
+      let s2Title = profile?.signee2Title || null;
+
+      if (currentUser?.uid) {
+        try {
+          const uSnap = await getDoc(doc(db, "users", currentUser.uid));
+          if (uSnap.exists()) {
+            const uData = uSnap.data() as AppUser;
+            if (uData.signee1Name) s1Name = uData.signee1Name;
+            if (uData.signee1Title) s1Title = uData.signee1Title;
+            if (uData.signee2Name) s2Name = uData.signee2Name;
+            if (uData.signee2Title) s2Title = uData.signee2Title;
+          }
+        } catch (e) {
+          console.error("Error fetching approver user doc:", e);
+        }
+      }
+
+      if ((!s1Name || !s2Name) && request.location) {
+        try {
+          const q = query(
+            collection(db, "users"),
+            where("role", "==", "admin"),
+            where("location", "==", request.location)
+          );
+          const locAdmins = await getDocs(q);
+          if (!locAdmins.empty) {
+            const adminData = locAdmins.docs[0].data() as AppUser;
+            if (!s1Name && adminData.signee1Name) s1Name = adminData.signee1Name;
+            if (!s1Title && adminData.signee1Title) s1Title = adminData.signee1Title;
+            if (!s2Name && adminData.signee2Name) s2Name = adminData.signee2Name;
+            if (!s2Title && adminData.signee2Title) s2Title = adminData.signee2Title;
+          }
+        } catch (e) {
+          console.error("Error fetching location admin signatories:", e);
+        }
+      }
+
       await updateDoc(doc(db, "vehicleRequests", request.id), {
         status: "approved",
         confirmedDriverId: driverId || null,
         confirmedDriverName: driverName || null,
         approvedBy: currentUser?.uid || null,
         approvedByName: profile?.name || null,
+        signee1Name: s1Name,
+        signee1Title: s1Title,
+        signee2Name: s2Name,
+        signee2Title: s2Title,
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });

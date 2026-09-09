@@ -44,6 +44,10 @@ const emptyForm = {
   password: "",
   role: "admin" as UserRole,
   location: "",
+  signee1Name: "",
+  signee1Title: "",
+  signee2Name: "",
+  signee2Title: "",
   photoURL: null as string | null,
   photoDriveFileId: null as string | null,
 };
@@ -135,6 +139,10 @@ export default function Admins() {
       password: "",
       role: a.role,
       location: a.location || "",
+      signee1Name: a.signee1Name || "",
+      signee1Title: a.signee1Title || "",
+      signee2Name: a.signee2Name || "",
+      signee2Title: a.signee2Title || "",
       photoURL: a.photoURL || null,
       photoDriveFileId: a.photoDriveFileId || null,
     });
@@ -231,6 +239,10 @@ export default function Admins() {
           name: form.name,
           role: form.role,
           location: form.role === "admin" ? (form.location || null) : null,
+          signee1Name: form.signee1Name || null,
+          signee1Title: form.signee1Title || null,
+          signee2Name: form.signee2Name || null,
+          signee2Title: form.signee2Title || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
@@ -246,6 +258,10 @@ export default function Admins() {
           email: form.email,
           role: form.role,
           location: form.role === "admin" ? (form.location || null) : null,
+          signee1Name: form.signee1Name || null,
+          signee1Title: form.signee1Title || null,
+          signee2Name: form.signee2Name || null,
+          signee2Title: form.signee2Title || null,
           photoURL: finalPhotoURL,
           photoDriveFileId: finalPhotoDriveFileId,
           createdAt: serverTimestamp(),
@@ -598,6 +614,51 @@ export default function Admins() {
                 </small>
               </Field>
             )}
+
+            {/* Trip Ticket Signatories */}
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#1a202c", marginBottom: "8px" }}>
+                Trip Ticket Signatories (Approved by)
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "8px" }}>
+                <Field label="Signatory 1 Name">
+                  <input
+                    placeholder="e.g. ARJAY D. BURGOS"
+                    value={form.signee1Name}
+                    onChange={(e) => setForm({ ...form, signee1Name: e.target.value })}
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Signatory 1 Title / Office">
+                  <input
+                    placeholder="e.g. OIC - APCO-Oriental Mindoro"
+                    value={form.signee1Title}
+                    onChange={(e) => setForm({ ...form, signee1Title: e.target.value })}
+                    style={inputStyle}
+                  />
+                </Field>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <Field label="Signatory 2 Name">
+                  <input
+                    placeholder="e.g. EDGARDO F. LEIDO, Jr."
+                    value={form.signee2Name}
+                    onChange={(e) => setForm({ ...form, signee2Name: e.target.value })}
+                    style={inputStyle}
+                  />
+                </Field>
+                <Field label="Signatory 2 Title / Office">
+                  <input
+                    placeholder="e.g. GSS Regional Office Calapan City"
+                    value={form.signee2Title}
+                    onChange={(e) => setForm({ ...form, signee2Title: e.target.value })}
+                    style={inputStyle}
+                  />
+                </Field>
+              </div>
+            </div>
 
             <button
               type="submit"

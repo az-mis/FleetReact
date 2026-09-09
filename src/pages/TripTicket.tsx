@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebase";
-import { VehicleRequest } from "../types";
+import { AppUser, VehicleRequest } from "../types";
 import { ArrowLeft, Printer, AlertTriangle } from "lucide-react";
 
 import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
@@ -44,6 +44,17 @@ export default function TripTicket() {
   const [state, setState] = useState<LoadState>("loading");
   const [request, setRequest] = useState<VehicleRequest | null>(null);
   const [vehicleLabel, setVehicleLabel] = useState<string>("");
+  const [signatories, setSignatories] = useState<{
+    s1Name: string;
+    s1Title: string;
+    s2Name: string;
+    s2Title: string;
+  }>({
+    s1Name: "ARJAY D. BURGOS",
+    s1Title: "OIC - APCO-Oriental Mindoro",
+    s2Name: "EDGARDO F. LEIDO, Jr.",
+    s2Title: "GSS Regional Office Calapan City",
+  });
 
   useEffect(() => {
     const cleanId = sanitizeInput(id?.trim() || "", 20);
@@ -70,6 +81,55 @@ export default function TripTicket() {
           return;
         }
         setRequest(data);
+
+        // Resolve signatories: Request snapshot -> Approver User profile -> Location Admin -> Fallback defaults
+        let s1Name = data.signee1Name || "";
+        let s1Title = data.signee1Title || "";
+        let s2Name = data.signee2Name || "";
+        let s2Title = data.signee2Title || "";
+
+        if ((!s1Name || !s2Name) && data.approvedBy) {
+          try {
+            const uSnap = await getDoc(doc(db, "users", data.approvedBy));
+            if (uSnap.exists()) {
+              const uData = uSnap.data() as AppUser;
+              if (!s1Name && uData.signee1Name) s1Name = uData.signee1Name;
+              if (!s1Title && uData.signee1Title) s1Title = uData.signee1Title;
+              if (!s2Name && uData.signee2Name) s2Name = uData.signee2Name;
+              if (!s2Title && uData.signee2Title) s2Title = uData.signee2Title;
+            }
+          } catch (err) {
+            console.error("Could not fetch approving user signatories:", err);
+          }
+        }
+
+        if ((!s1Name || !s2Name) && data.location) {
+          try {
+            const q = query(
+              collection(db, "users"),
+              where("role", "==", "admin"),
+              where("location", "==", data.location)
+            );
+            const locAdmins = await getDocs(q);
+            if (!locAdmins.empty) {
+              const adminData = locAdmins.docs[0].data() as AppUser;
+              if (!s1Name && adminData.signee1Name) s1Name = adminData.signee1Name;
+              if (!s1Title && adminData.signee1Title) s1Title = adminData.signee1Title;
+              if (!s2Name && adminData.signee2Name) s2Name = adminData.signee2Name;
+              if (!s2Title && adminData.signee2Title) s2Title = adminData.signee2Title;
+            }
+          } catch (err) {
+            console.error("Could not fetch location admin signatories:", err);
+          }
+        }
+
+        setSignatories({
+          s1Name: s1Name || "ARJAY D. BURGOS",
+          s1Title: s1Title || "OIC - APCO-Oriental Mindoro",
+          s2Name: s2Name || "EDGARDO F. LEIDO, Jr.",
+          s2Title: s2Title || "GSS Regional Office Calapan City",
+        });
+
         // Brand/model isn't snapshotted on the request, so look it up from
         // the vehicle doc to prefix the plate number (e.g. "Toyota Vios").
         if (data.vehicleId) {
@@ -249,14 +309,22 @@ export default function TripTicket() {
           <div style={{ textAlign: "center" }}>Approved by:</div>
           <div style={{ width: "260px", marginLeft: "auto", marginTop: "3px" }}>
             <div style={{ minHeight: "20px" }} />
-            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>ARJAY D. BURGOS</div>
-            <div style={{ fontSize: "10px", textAlign: "center" }}>OIC - APCO-Oriental Mindoro</div>
+            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>
+              {signatories.s1Name}
+            </div>
+            <div style={{ fontSize: "10px", textAlign: "center" }}>
+              {signatories.s1Title}
+            </div>
           </div>
 
           <div style={{ width: "260px", marginLeft: "auto", marginTop: "6px" }}>
             <div style={{ minHeight: "20px" }} />
-            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>EDGARDO F. LEIDO, Jr.</div>
-            <div style={{ fontSize: "10px", textAlign: "center" }}>GSS Regional Office Calapan City</div>
+            <div style={{ borderTop: "1px solid #333", textAlign: "center", fontWeight: 700, paddingTop: "1px" }}>
+              {signatories.s2Name}
+            </div>
+            <div style={{ fontSize: "10px", textAlign: "center" }}>
+              {signatories.s2Title}
+            </div>
           </div>
         </div>
 
