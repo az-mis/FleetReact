@@ -284,7 +284,7 @@ export default function Dashboard() {
           padding: "20px 24px",
           background: "linear-gradient(120deg, var(--primary-dark) 0%, var(--primary) 55%, var(--primary-light) 100%)",
           boxShadow: "0 10px 25px -10px rgba(19,77,43,0.45)",
-          overflow: "hidden",
+          overflow: "visible",
         }}
       >
         <div

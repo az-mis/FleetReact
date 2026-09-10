@@ -26,7 +26,9 @@ export default function LocationFilter({
   style,
 }: LocationFilterProps) {
   const [open, setOpen] = useState(false);
+  const [menuAlign, setMenuAlign] = useState<"left" | "right">("right");
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -37,6 +39,26 @@ export default function LocationFilter({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Calculate alignment and make sure menu doesn't overflow viewport on mobile
+  useEffect(() => {
+    if (open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const screenWidth = window.innerWidth;
+      
+      // If the button is closer to the left side of the screen or right side would overflow
+      if (rect.left < 220 || rect.right > screenWidth - 20) {
+        // If button is near left edge, align menu to left of button
+        if (rect.left < screenWidth / 2) {
+          setMenuAlign("left");
+        } else {
+          setMenuAlign("right");
+        }
+      } else {
+        setMenuAlign("right");
+      }
+    }
+  }, [open]);
 
   const selectedText = value || "All Locations";
 
@@ -73,17 +95,20 @@ export default function LocationFilter({
 
       {open && (
         <div
+          ref={menuRef}
           style={{
             position: "absolute",
-            top: "calc(100% + 4px)",
-            right: 0,
-            zIndex: 100,
+            top: "calc(100% + 6px)",
+            ...(menuAlign === "left" ? { left: 0 } : { right: 0 }),
+            zIndex: 9999,
             background: "#ffffff",
-            borderRadius: "10px",
+            borderRadius: "12px",
             border: "1px solid var(--border)",
-            boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-            minWidth: "210px",
-            padding: "5px",
+            boxShadow: "0 12px 28px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08)",
+            width: "max-content",
+            minWidth: "220px",
+            maxWidth: "calc(100vw - 32px)",
+            padding: "6px",
             display: "flex",
             flexDirection: "column",
             gap: "2px",
@@ -113,7 +138,7 @@ export default function LocationFilter({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "7px 10px",
+              padding: "8px 10px",
               borderRadius: "6px",
               border: "none",
               background: !value ? "#e6f7ee" : "transparent",
@@ -126,7 +151,7 @@ export default function LocationFilter({
             }}
           >
             <span>All Locations</span>
-            {!value && <Check size={14} />}
+            {!value && <Check size={14} style={{ color: "var(--primary)", flexShrink: 0 }} />}
           </button>
 
           {locations.map((loc) => {
@@ -143,7 +168,7 @@ export default function LocationFilter({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "7px 10px",
+                  padding: "8px 10px",
                   borderRadius: "6px",
                   border: "none",
                   background: active ? "#e6f7ee" : "transparent",
@@ -155,8 +180,8 @@ export default function LocationFilter({
                   transition: "background 0.1s ease",
                 }}
               >
-                <span>{loc}</span>
-                {active && <Check size={14} />}
+                <span style={{ marginRight: 8 }}>{loc}</span>
+                {active && <Check size={14} style={{ color: "var(--primary)", flexShrink: 0 }} />}
               </button>
             );
           })}
