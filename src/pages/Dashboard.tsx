@@ -36,6 +36,7 @@ import {
 import { USER_ROLE_LABEL, Vehicle, VehicleRequest, AppUser } from "../types";
 import { formatTravelDateRange } from "../utils/travelDate";
 import LocationFilter from "../components/LocationFilter";
+import DashboardCharts from "../components/DashboardCharts";
 
 export default function Dashboard() {
   const { currentUser, profile, role, isAdmin, isSuperAdmin, isDriver } = useAuth();
@@ -481,6 +482,16 @@ export default function Dashboard() {
               <span>Driver Assignments</span>
             </Link>
           </section>
+
+          {/* Graphical Analytics Section */}
+          <DashboardCharts
+            requests={scopedRequests}
+            vehicles={scopedVehicles}
+            drivers={scopedDrivers}
+            isSuperAdmin={isSuperAdmin}
+            selectedLocation={selectedLocation}
+            adminLocation={adminLocation}
+          />
 
           {/* Main 2-Column Dashboard Body */}
           <div
