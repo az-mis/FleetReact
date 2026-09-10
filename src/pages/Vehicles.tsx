@@ -502,16 +502,17 @@ export default function Vehicles() {
                   required
                   value={form.plateNumber}
                   onChange={(e) => setForm({ ...form, plateNumber: e.target.value })}
+                  placeholder="Plate Number"
                   style={inputStyle}
                 />
               </Field>
               <Field label="Brand" required>
-                <input required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} style={inputStyle} />
+                <input required value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Toyota" style={inputStyle} />
               </Field>
             </div>
 
             <Field label="Model" required>
-              <input required value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} style={inputStyle} />
+              <input required value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Vios" style={inputStyle} />
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -519,6 +520,7 @@ export default function Vehicles() {
                 <input
                   value={form.chassisNumber}
                   onChange={(e) => setForm({ ...form, chassisNumber: e.target.value })}
+                  placeholder="Chassis Number"
                   style={inputStyle}
                 />
               </Field>
@@ -526,6 +528,7 @@ export default function Vehicles() {
                 <input
                   value={form.engineNumber}
                   onChange={(e) => setForm({ ...form, engineNumber: e.target.value })}
+                  placeholder="Engine Number"
                   style={inputStyle}
                 />
               </Field>
@@ -538,14 +541,14 @@ export default function Vehicles() {
                   required
                   min={1900}
                   max={new Date().getFullYear() + 1}
-                  placeholder={String(new Date().getFullYear())}
+                  placeholder="e.g. 2026"
                   value={form.year}
                   onChange={(e) => setForm({ ...form, year: e.target.value === "" ? "" : Number(e.target.value) })}
                   style={inputStyle}
                 />
               </Field>
               <Field label="Color" required>
-                <input required value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} style={inputStyle} />
+                <input required value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} placeholder="e.g. White" style={inputStyle} />
               </Field>
               <Field label="Odometer (km)" required>
                 <input
@@ -561,10 +564,10 @@ export default function Vehicles() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <Field label="Vehicle Type">
-                <input value={form.vehicleType} onChange={(e) => setForm({ ...form, vehicleType: e.target.value })} style={inputStyle} />
+                <input value={form.vehicleType} onChange={(e) => setForm({ ...form, vehicleType: e.target.value })} placeholder="e.g. Car" style={inputStyle} />
               </Field>
               <Field label="Fuel Type">
-                <input value={form.fuelType} onChange={(e) => setForm({ ...form, fuelType: e.target.value })} style={inputStyle} />
+                <input value={form.fuelType} onChange={(e) => setForm({ ...form, fuelType: e.target.value })} placeholder="e.g. Diesel" style={inputStyle} />
               </Field>
             </div>
 
