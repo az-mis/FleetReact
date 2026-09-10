@@ -55,6 +55,9 @@ service cloud.firestore {
     function referencedVehicle() {
       return get(/databases/$(database)/documents/vehicles/$(request.resource.data.vehicleId)).data;
     }
+    function fieldOrNull(map, key) {
+      return key in map ? map[key] : null;
+    }
     function matchesOrBothEmpty(sent, real) {
       return sent == real || ((sent == null || sent == '') && (real == null || real == ''));
     }
@@ -78,8 +81,8 @@ service cloud.firestore {
           && request.resource.data.destination is string
           && request.resource.data.travelDate is string
           && request.resource.data.vehiclePlateNumber == referencedVehicle().plateNumber
-          && matchesOrBothEmpty(request.resource.data.defaultDriverId, referencedVehicle().assignedDriverId)
-          && matchesOrBothEmpty(request.resource.data.defaultDriverName, referencedVehicle().assignedDriverName));
+          && matchesOrBothEmpty(request.resource.data.defaultDriverId, fieldOrNull(referencedVehicle(), 'assignedDriverId'))
+          && matchesOrBothEmpty(request.resource.data.defaultDriverName, fieldOrNull(referencedVehicle(), 'assignedDriverName')));
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -91,7 +94,7 @@ service cloud.firestore {
             && referencedVehicleRequest(id).status == 'pending'
             && request.resource.data.vehicleId == referencedVehicleRequest(id).vehicleId
             && request.resource.data.travelDate == referencedVehicleRequest(id).travelDate
-            && matchesOrBothEmpty(request.resource.data.travelDateEnd, referencedVehicleRequest(id).travelDateEnd));
+            && matchesOrBothEmpty(request.resource.data.travelDateEnd, fieldOrNull(referencedVehicleRequest(id), 'travelDateEnd')));
       allow update, delete: if isAdmin();
     }
     match /settings/{id} {

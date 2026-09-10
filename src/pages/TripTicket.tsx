@@ -4,7 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { db } from "../firebase";
 import { AppUser, ApprovingOfficer, VehicleRequest } from "../types";
 import { ArrowLeft, Printer, AlertTriangle } from "lucide-react";
-import { generateTripTicketNumber } from "../utils/ticketNumber";
+
 
 import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
 
@@ -294,7 +294,7 @@ export default function TripTicket() {
 
         <div style={{ textAlign: "right", fontSize: "12px", marginBottom: "4px" }}>
           <div>
-            No. <U w={140}>{request.tripTicketNumber || generateTripTicketNumber(request.approvedAt?.toDate ? request.approvedAt.toDate() : new Date())}</U>
+            No. <U w={140}>{request.tripTicketNumber || "—"}</U>
           </div>
           <div style={{ marginTop: "2px" }}>
             <U w={160}>

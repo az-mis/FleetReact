@@ -18,7 +18,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { AppUser, Vehicle, VehicleRequest, VehicleRequestStatus } from "../types";
 import { formatTravelDateRange, dateRangesOverlap } from "../utils/travelDate";
-import { generateTripTicketNumber } from "../utils/ticketNumber";
+import { buildTripTicketNumber, getLocationCode } from "../utils/ticketNumber";
 import PageHeader from "../components/PageHeader";
 import StatCard from "../components/StatCard";
 import Modal from "../components/Modal";
@@ -41,6 +41,8 @@ import {
   Users,
   AlertTriangle,
   ShieldCheck,
+  UserCheck,
+  Pencil,
   LucideIcon,
 } from "lucide-react";
 
@@ -238,7 +240,31 @@ export default function VehicleRequests() {
         }
       }
 
-      const ticketNo = request.tripTicketNumber || generateTripTicketNumber();
+      // ── Generate sequential trip ticket number ──────────────────────────
+      // Only generate a new one if this request doesn't already have one
+      // (re-approval edge case). The number is sequential per location+month.
+      let ticketNo = request.tripTicketNumber || "";
+      if (!ticketNo) {
+        const now = new Date();
+        const locCode = getLocationCode(request.location);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const prefix = `FMS-${locCode}-${year}-${month}-`;
+
+        // Count how many trip tickets already exist with this prefix.
+        // tripTicketNumber is only ever set at approval time so no need to
+        // also filter by status — that would require a composite Firestore
+        // index and cause the query to throw, falling through to the fallback.
+        const existingSnap = await getDocs(
+          query(
+            collection(db, "vehicleRequests"),
+            where("tripTicketNumber", ">=", prefix),
+            where("tripTicketNumber", "<", prefix + "\uf8ff")
+          )
+        );
+        const nextSeq = existingSnap.size + 1;
+        ticketNo = buildTripTicketNumber(locCode, now, nextSeq);
+      }
 
       await updateDoc(doc(db, "vehicleRequests", request.id), {
         status: "approved",
@@ -271,6 +297,20 @@ export default function VehicleRequests() {
       setReviewing(null);
     } catch (err: any) {
       showError(err.message || "Couldn't approve this request.");
+    }
+  }
+
+  async function handleUpdateDriver(request: VehicleRequest, driverId: string, driverName: string) {
+    try {
+      await updateDoc(doc(db, "vehicleRequests", request.id), {
+        confirmedDriverId: driverId || null,
+        confirmedDriverName: driverName || null,
+        updatedAt: serverTimestamp(),
+      });
+      showSuccess(`Assigned driver updated to ${driverName || "Unassigned"}.`);
+      setReviewing(null);
+    } catch (err: any) {
+      showError(err.message || "Couldn't update driver for this request.");
     }
   }
 
@@ -419,27 +459,50 @@ export default function VehicleRequests() {
                       </span>
                     </div>
 
-                    <span
-                      style={{
-                        fontSize: "9.5px",
-                        fontWeight: 700,
-                        padding: "2px 7px",
-                        borderRadius: "999px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "3.5px",
-                        background: badge.bg,
-                        color: badge.color,
-                        border: `1px solid ${badge.border}`,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.03em",
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <BadgeIcon size={9} />
-                      {r.status}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
+                      {r.tripTicketNumber && (
+                        <span
+                          title="Trip Ticket No. — click to copy"
+                          onClick={() => navigator.clipboard?.writeText(r.tripTicketNumber!)}
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "9.5px",
+                            fontWeight: 700,
+                            letterSpacing: "0.06em",
+                            background: "#f0fdf4",
+                            color: "#166534",
+                            border: "1px solid #bbf7d0",
+                            borderRadius: "5px",
+                            padding: "2px 6px",
+                            cursor: "pointer",
+                            userSelect: "all",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {r.tripTicketNumber}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: "9.5px",
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3.5px",
+                          background: badge.bg,
+                          color: badge.color,
+                          border: `1px solid ${badge.border}`,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.03em",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <BadgeIcon size={9} />
+                        {r.status}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Trip Date, Vehicle & Location Info Box */}
@@ -553,6 +616,7 @@ export default function VehicleRequests() {
               <thead>
                 <tr>
                   <th style={{ width: 48 }}>Vehicle</th>
+                  <th style={{ minWidth: 110 }}>Trip No.</th>
                   <th style={{ minWidth: 130 }}>Plate &amp; Travel Date</th>
                   <th style={{ minWidth: 130 }}>Office Province</th>
                   <th style={{ minWidth: 140 }}>Driver</th>
@@ -588,6 +652,35 @@ export default function VehicleRequests() {
                           size={34}
                           name={r.vehiclePlateNumber}
                         />
+                      </td>
+
+                      {/* 1b. Trip Ticket Number */}
+                      <td>
+                        {r.tripTicketNumber ? (
+                          <span
+                            title="Trip Ticket No. — click to copy"
+                            style={{
+                              display: "inline-block",
+                              fontFamily: "monospace",
+                              fontSize: "11.5px",
+                              fontWeight: 700,
+                              letterSpacing: "0.06em",
+                              background: "#f0fdf4",
+                              color: "#166534",
+                              border: "1px solid #bbf7d0",
+                              borderRadius: "6px",
+                              padding: "3px 7px",
+                              cursor: "pointer",
+                              userSelect: "all",
+                              whiteSpace: "nowrap",
+                            }}
+                            onClick={() => navigator.clipboard?.writeText(r.tripTicketNumber!)}
+                          >
+                            {r.tripTicketNumber}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#a0aec0", fontSize: "12px" }}>—</span>
+                        )}
                       </td>
 
                       {/* 2. Plate Number & Date */}
@@ -733,6 +826,7 @@ export default function VehicleRequests() {
           onClose={() => setReviewing(null)}
           onApprove={handleApprove}
           onDecline={handleDecline}
+          onUpdateDriver={handleUpdateDriver}
         />
       )}
     </div>
@@ -751,6 +845,7 @@ function ReviewModal({
   onClose,
   onApprove,
   onDecline,
+  onUpdateDriver,
 }: {
   request: VehicleRequest;
   drivers: AppUser[];
@@ -759,6 +854,7 @@ function ReviewModal({
   onClose: () => void;
   onApprove: (request: VehicleRequest, driverId: string, driverName: string) => Promise<void>;
   onDecline: (request: VehicleRequest, reason: string) => Promise<void>;
+  onUpdateDriver: (request: VehicleRequest, driverId: string, driverName: string) => Promise<void>;
 }) {
   const [driverAvailable, setDriverAvailable] = useState<boolean | null>(
     request.status !== "pending" ? true : null
@@ -768,10 +864,18 @@ function ReviewModal({
   const [showDeclineForm, setShowDeclineForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Editing driver on approved request
+  const [editingApprovedDriver, setEditingApprovedDriver] = useState(false);
+  const [selectedApprovedDriverId, setSelectedApprovedDriverId] = useState(
+    request.confirmedDriverId || ""
+  );
+  const [confirmUpdateDriverOpen, setConfirmUpdateDriverOpen] = useState(false);
+
   const [confirmApproveOpen, setConfirmApproveOpen] = useState(false);
   const [confirmDeclineOpen, setConfirmDeclineOpen] = useState(false);
 
   const isPending = request.status === "pending";
+  const isApproved = request.status === "approved";
 
   // The driver who would actually be confirmed if Approve is pressed right
   // now, given the current Yes/No choice above.
@@ -816,6 +920,25 @@ function ReviewModal({
     }
   }
 
+  async function executeUpdateDriver() {
+    setConfirmUpdateDriverOpen(false);
+    setSaving(true);
+    try {
+      const chosenDriver = drivers.find((d) => d.id === selectedApprovedDriverId);
+      await onUpdateDriver(
+        request,
+        chosenDriver ? chosenDriver.id : "",
+        chosenDriver ? chosenDriver.name : ""
+      );
+      setEditingApprovedDriver(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedApprovedDriver = drivers.find((d) => d.id === selectedApprovedDriverId);
+  const selectedApprovedDriverBusy = !!selectedApprovedDriverId && busyDriverIds.has(selectedApprovedDriverId);
+
   return (
     <Modal title={isPending ? "Review Request" : "Request Details"} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -850,11 +973,133 @@ function ReviewModal({
               padding: "10px 12px",
               fontSize: "12.5px",
               fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "8px",
             }}
           >
-            {request.status === "approved"
-              ? `Approved · Driver: ${request.confirmedDriverName || "Unassigned"}${request.approvedByName ? ` · Approver: ${request.approvedByName}` : ""}`
-              : `Declined${request.declineReason ? ` · ${request.declineReason}` : ""}`}
+            <div>
+              {request.status === "approved"
+                ? `Approved · Driver: ${request.confirmedDriverName || "Unassigned"}${request.approvedByName ? ` · Approver: ${request.approvedByName}` : ""}`
+                : `Declined${request.declineReason ? ` · ${request.declineReason}` : ""}`}
+            </div>
+            {isApproved && !editingApprovedDriver && (
+              <button
+                type="button"
+                onClick={() => setEditingApprovedDriver(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid var(--primary)",
+                  background: "#fff",
+                  color: "var(--primary)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                <Pencil size={12} />
+                Change Driver
+              </button>
+            )}
+          </div>
+        )}
+
+        {isApproved && editingApprovedDriver && (
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              paddingTop: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            <div style={{ fontSize: "13px", fontWeight: 700, color: "#2d3748", display: "flex", alignItems: "center", gap: "6px" }}>
+              <UserCheck size={16} style={{ color: "var(--primary)" }} />
+              Update Assigned Driver
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)" }}>
+                Select driver for this trip:
+              </span>
+              <select
+                value={selectedApprovedDriverId}
+                onChange={(e) => setSelectedApprovedDriverId(e.target.value)}
+                style={{ padding: "9px 11px", borderRadius: "8px", border: "1.5px solid var(--border)", fontSize: "13px" }}
+              >
+                <option value="">— Unassigned —</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} {busyDriverIds.has(d.id) && d.id !== request.confirmedDriverId ? "(busy that day)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {selectedApprovedDriverBusy && selectedApprovedDriverId !== request.confirmedDriverId && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "6px",
+                  fontSize: "12px",
+                  color: "var(--danger)",
+                  background: "#fff5f5",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                }}
+              >
+                <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                This driver is already confirmed on another approved trip that overlaps this date.
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingApprovedDriver(false);
+                  setSelectedApprovedDriverId(request.confirmedDriverId || "");
+                }}
+                disabled={saving}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "7px",
+                  border: "1px solid var(--border)",
+                  background: "#fff",
+                  color: "#4a5568",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmUpdateDriverOpen(true)}
+                disabled={saving || (selectedApprovedDriverBusy && selectedApprovedDriverId !== request.confirmedDriverId)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "7px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #00b377 0%, #008f58 100%)",
+                  color: "#fff",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 2px 6px rgba(0, 179, 119, 0.25)",
+                }}
+              >
+                {saving ? "Saving…" : "Save Driver"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1160,6 +1405,24 @@ function ReviewModal({
           loading={saving}
           onCancel={() => setConfirmDeclineOpen(false)}
           onConfirm={executeDecline}
+        />
+
+        {/* Confirm Update Driver Dialog */}
+        <ConfirmDialog
+          open={confirmUpdateDriverOpen}
+          title="Update Assigned Driver?"
+          danger={false}
+          confirmLabel="Yes, Update Driver"
+          confirmingLabel="Updating..."
+          message={
+            <div>
+              Are you sure you want to change the assigned driver for this trip to{" "}
+              <strong>{selectedApprovedDriver ? selectedApprovedDriver.name : "Unassigned"}</strong>?
+            </div>
+          }
+          loading={saving}
+          onCancel={() => setConfirmUpdateDriverOpen(false)}
+          onConfirm={executeUpdateDriver}
         />
       </div>
     </Modal>
