@@ -26,6 +26,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
 import { Avatar } from "../components/Avatar";
+import LocationFilter from "../components/LocationFilter";
 import {
   ClipboardList,
   Truck,
@@ -53,11 +54,12 @@ const STATUS_BADGE_STYLE: Record<VehicleRequestStatus, { bg: string; border: str
 };
 
 export default function VehicleRequests() {
-  const { profile, currentUser } = useAuth();
+  const { profile, currentUser, isSuperAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
   const [requests, setRequests] = useState<VehicleRequest[]>([]);
   const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<VehicleRequestStatus | "all">("pending");
   const [reviewing, setReviewing] = useState<VehicleRequest | null>(null);
@@ -89,14 +91,17 @@ export default function VehicleRequests() {
     return unsub;
   }, []);
 
-  // Location-scoped requests: Super Admins see all requests; Admins assigned
-  // to a specific Location / Office Province see only requests originating from that location.
+  // Location-scoped requests: Super Admins see all requests (or filter by selectedLocation);
+  // Admins assigned to a specific Location see only requests originating from that location.
   const visibleRequests = useMemo(() => {
     if (profile?.role === "admin" && profile?.location) {
       return requests.filter((r) => r.location === profile.location);
     }
+    if (selectedLocation) {
+      return requests.filter((r) => r.location === selectedLocation);
+    }
     return requests;
-  }, [requests, profile]);
+  }, [requests, profile, selectedLocation]);
 
   const counts = useMemo(
     () => ({
@@ -133,7 +138,7 @@ export default function VehicleRequests() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, selectedLocation]);
 
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -321,13 +326,21 @@ export default function VehicleRequests() {
         title="Travel Requests"
         subtitle="Review and confirm staff travel requests submitted via QR code."
         actions={
-          <div className="header-search-wrap">
-            <HeaderSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search requester, plate, destination..."
-            />
-          </div>
+          <>
+            <div className="header-search-wrap">
+              <HeaderSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search requester, plate, destination..."
+              />
+            </div>
+            {isSuperAdmin && (
+              <LocationFilter
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+              />
+            )}
+          </>
         }
       />
 

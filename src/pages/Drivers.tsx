@@ -28,6 +28,7 @@ import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
+import LocationFilter from "../components/LocationFilter";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -56,6 +57,7 @@ const emptyForm = {
 export default function Drivers() {
   const { isSuperAdmin, profile } = useAuth();
   const [drivers, setDrivers] = useState<AppUser[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -113,9 +115,11 @@ export default function Drivers() {
   }, []);
 
   const filtered = useMemo(() => {
-    // Scope to admin's location first (super admins see all)
+    // Scope to admin's location first (super admins see all or filter by selectedLocation)
     let list = adminLocation
       ? drivers.filter((d) => d.location === adminLocation)
+      : selectedLocation
+      ? drivers.filter((d) => d.location === selectedLocation)
       : drivers;
 
     const s = search.trim().toLowerCase();
@@ -125,11 +129,11 @@ export default function Drivers() {
       );
     }
     return list;
-  }, [drivers, search, adminLocation]);
+  }, [drivers, search, adminLocation, selectedLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedLocation]);
 
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -366,6 +370,12 @@ export default function Drivers() {
               />
             </div>
             <ViewToggle view={view} onChange={(v) => setView(v)} />
+            {isSuperAdmin && (
+              <LocationFilter
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+              />
+            )}
             <button
               onClick={openCreate}
               style={{

@@ -23,7 +23,8 @@ import Pagination from "../components/Pagination";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
-import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel, MapPin } from "lucide-react";
+import LocationFilter from "../components/LocationFilter";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -60,6 +61,7 @@ export default function Vehicles() {
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -108,9 +110,11 @@ export default function Vehicles() {
   }, []);
 
   const filtered = useMemo(() => {
-    // Scope to admin's location first (super admins see all)
+    // Scope to admin's location first (super admins see all or filter by selectedLocation)
     let list = adminLocation
       ? vehicles.filter((v) => v.location === adminLocation)
+      : selectedLocation
+      ? vehicles.filter((v) => v.location === selectedLocation)
       : vehicles;
 
     const s = search.trim().toLowerCase();
@@ -122,11 +126,11 @@ export default function Vehicles() {
       );
     }
     return list;
-  }, [vehicles, search, adminLocation]);
+  }, [vehicles, search, adminLocation, selectedLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedLocation]);
 
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -334,6 +338,12 @@ export default function Vehicles() {
               />
             </div>
             <ViewToggle view={view} onChange={(v) => setView(v)} />
+            {isSuperAdmin && (
+              <LocationFilter
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+              />
+            )}
             <button
               onClick={openCreate}
               style={{
@@ -714,6 +724,11 @@ function VehicleCard({
       </div>
 
       <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
+        {vehicle.location && (
+          <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)", fontWeight: 600 }}>
+            <MapPin size={12} style={{ flexShrink: 0 }} /> {vehicle.location}
+          </span>
+        )}
         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Palette size={12} style={{ flexShrink: 0 }} /> {vehicle.color}
         </span>

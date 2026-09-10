@@ -35,11 +35,13 @@ import {
 } from "lucide-react";
 import { USER_ROLE_LABEL, Vehicle, VehicleRequest, AppUser } from "../types";
 import { formatTravelDateRange } from "../utils/travelDate";
+import LocationFilter from "../components/LocationFilter";
 
 export default function Dashboard() {
   const { currentUser, profile, role, isAdmin, isSuperAdmin, isDriver } = useAuth();
   const { flags } = useFeatureFlags();
 
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [requests, setRequests] = useState<VehicleRequest[]>([]);
   const [drivers, setDrivers] = useState<AppUser[]>([]);
@@ -142,27 +144,36 @@ export default function Dashboard() {
   // Regular admins are scoped to their own assigned location (Super Admins see all)
   const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
 
-  // Scoped datasets based on admin's location
+  // Scoped datasets based on admin's location (super admins see all or filter by selectedLocation)
   const scopedRequests = useMemo(() => {
     if (!isSuperAdmin && adminLocation) {
       return requests.filter((r) => r.location === adminLocation);
     }
+    if (selectedLocation) {
+      return requests.filter((r) => r.location === selectedLocation);
+    }
     return requests;
-  }, [requests, isSuperAdmin, adminLocation]);
+  }, [requests, isSuperAdmin, adminLocation, selectedLocation]);
 
   const scopedVehicles = useMemo(() => {
     if (!isSuperAdmin && adminLocation) {
       return vehicles.filter((v) => v.location === adminLocation);
     }
+    if (selectedLocation) {
+      return vehicles.filter((v) => v.location === selectedLocation);
+    }
     return vehicles;
-  }, [vehicles, isSuperAdmin, adminLocation]);
+  }, [vehicles, isSuperAdmin, adminLocation, selectedLocation]);
 
   const scopedDrivers = useMemo(() => {
     if (!isSuperAdmin && adminLocation) {
       return drivers.filter((d) => d.location === adminLocation);
     }
+    if (selectedLocation) {
+      return drivers.filter((d) => d.location === selectedLocation);
+    }
     return drivers;
-  }, [drivers, isSuperAdmin, adminLocation]);
+  }, [drivers, isSuperAdmin, adminLocation, selectedLocation]);
 
   // Computed metrics
   const pendingRequests = useMemo(() => scopedRequests.filter((r) => r.status === "pending"), [scopedRequests]);
@@ -301,43 +312,54 @@ export default function Dashboard() {
           }}
         />
 
-        <div style={{ position: "relative" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "rgba(255,255,255,0.15)",
-              color: "#fff",
-              fontSize: "11px",
-              fontWeight: 600,
-              padding: "3px 9px",
-              borderRadius: "999px",
-              marginBottom: "8px",
-              letterSpacing: "0.02em",
-            }}
-          >
-            <Sparkles size={12} />
-            {timeGreeting}
+        <div style={{ position: "relative", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "14px" }}>
+          <div>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "rgba(255,255,255,0.15)",
+                color: "#fff",
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "3px 9px",
+                borderRadius: "999px",
+                marginBottom: "8px",
+                letterSpacing: "0.02em",
+              }}
+            >
+              <Sparkles size={12} />
+              {timeGreeting}
+            </div>
+            <h2
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                color: "#fff",
+                marginBottom: "4px",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Welcome back{profile?.name ? `, ${profile.name}` : ""}
+            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "rgba(255,255,255,0.85)" }}>
+              <span>
+                Signed in as <b style={{ color: "#fff" }}>{role ? USER_ROLE_LABEL[role] : "—"}</b>
+              </span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span style={{ color: "rgba(255,255,255,0.75)" }}>{today}</span>
+            </div>
           </div>
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: 800,
-              color: "#fff",
-              marginBottom: "4px",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Welcome back{profile?.name ? `, ${profile.name}` : ""}
-          </h2>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "rgba(255,255,255,0.85)" }}>
-            <span>
-              Signed in as <b style={{ color: "#fff" }}>{role ? USER_ROLE_LABEL[role] : "—"}</b>
-            </span>
-            <span style={{ opacity: 0.5 }}>•</span>
-            <span style={{ color: "rgba(255,255,255,0.75)" }}>{today}</span>
-          </div>
+
+          {isSuperAdmin && (
+            <div style={{ alignSelf: "center" }}>
+              <LocationFilter
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+              />
+            </div>
+          )}
         </div>
       </div>
 

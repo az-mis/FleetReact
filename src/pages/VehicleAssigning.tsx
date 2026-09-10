@@ -22,11 +22,13 @@ import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import { UserCog, Truck, CheckCircle2, CircleDashed, Mail, MapPin, BadgeCheck, AlertTriangle } from "lucide-react";
 import { Avatar } from "../components/Avatar";
+import LocationFilter from "../components/LocationFilter";
 
 export default function VehicleAssigning() {
   const { isSuperAdmin, profile } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<AppUser[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -69,16 +71,18 @@ export default function VehicleAssigning() {
     return unsub;
   }, []);
 
-  // Scope vehicles and drivers to admin's location (super admins see all)
-  const scopedVehicles = useMemo(
-    () => (adminLocation ? vehicles.filter((v) => v.location === adminLocation) : vehicles),
-    [vehicles, adminLocation]
-  );
+  // Scope vehicles and drivers to admin's location (super admins see all or filter by selectedLocation)
+  const scopedVehicles = useMemo(() => {
+    if (adminLocation) return vehicles.filter((v) => v.location === adminLocation);
+    if (selectedLocation) return vehicles.filter((v) => v.location === selectedLocation);
+    return vehicles;
+  }, [vehicles, adminLocation, selectedLocation]);
 
-  const scopedDrivers = useMemo(
-    () => (adminLocation ? drivers.filter((d) => d.location === adminLocation) : drivers),
-    [drivers, adminLocation]
-  );
+  const scopedDrivers = useMemo(() => {
+    if (adminLocation) return drivers.filter((d) => d.location === adminLocation);
+    if (selectedLocation) return drivers.filter((d) => d.location === selectedLocation);
+    return drivers;
+  }, [drivers, adminLocation, selectedLocation]);
 
   // A driver can be permanently assigned to only one vehicle at a time, so for
   // each vehicle's dropdown we exclude drivers already assigned elsewhere.
@@ -96,7 +100,7 @@ export default function VehicleAssigning() {
     const s = search.trim().toLowerCase();
     if (!s) return scopedVehicles;
     return scopedVehicles.filter((v) =>
-      [v.plateNumber, v.brand, v.model, v.assignedDriverName].some((f) =>
+      [v.plateNumber, v.brand, v.model, v.assignedDriverName, v.location].some((f) =>
         (f || "").toLowerCase().includes(s)
       )
     );
@@ -104,7 +108,7 @@ export default function VehicleAssigning() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedLocation]);
 
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -158,13 +162,21 @@ export default function VehicleAssigning() {
         title="Vehicle Assigning"
         subtitle="Assign each vehicle to one driver permanently."
         actions={
-          <div className="header-search-wrap">
-            <HeaderSearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Search plate, brand, driver..."
-            />
-          </div>
+          <>
+            <div className="header-search-wrap">
+              <HeaderSearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search plate, brand, driver..."
+              />
+            </div>
+            {isSuperAdmin && (
+              <LocationFilter
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+              />
+            )}
+          </>
         }
       />
 
