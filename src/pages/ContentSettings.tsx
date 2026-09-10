@@ -337,52 +337,50 @@ export default function ContentSettings() {
           </Section>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <Section
-            icon={Users}
-            title="Driver Dashboard Content"
-            description="Controls what signed-in drivers see on dashboard."
-          >
-            <ToggleRow
-              icon={Car}
-              label="Assigned Vehicle Card"
-              description="Vehicle assigned to the signed-in driver."
-              checked={flags.driverModules.showAssignedVehicle}
-              saving={savingKey === "driver-showAssignedVehicle"}
-              onChange={() => requestToggleDriverModule("showAssignedVehicle", "Assigned Vehicle Card")}
-            />
-          </Section>
-
-          <Section
+        <Section
+          icon={Users}
+          title="Driver Dashboard Content"
+          description="Controls what signed-in drivers see on dashboard."
+        >
+          <ToggleRow
             icon={Car}
-            title="Visual & UI Effects"
-            description="Toggle interactive visual effects across the portal."
-          >
-            <ToggleRow
-              icon={Car}
-              label="Footer Driving Car"
-              description="Animated SVG vehicle cruising along the bottom of pages."
-              checked={carAnimationEnabled}
-              saving={false}
-              onChange={() => {
-                const next = toggleCarAnimation();
-                setCarAnimationEnabled(next);
-                showSuccess(next ? "Footer car animation enabled." : "Footer car animation hidden.");
-              }}
-            />
-          </Section>
-
-          <AnnouncementSection
-            icon={Megaphone}
-            title="Driver Announcement"
-            description="Broadcast alert banner for driver accounts."
-            flagKey="driverAnnouncement"
-            config={flags.driverAnnouncement}
-            updateFlags={updateFlags}
-            showSuccess={showSuccess}
-            showError={showError}
+            label="Assigned Vehicle Card"
+            description="Vehicle assigned to the signed-in driver."
+            checked={flags.driverModules.showAssignedVehicle}
+            saving={savingKey === "driver-showAssignedVehicle"}
+            onChange={() => requestToggleDriverModule("showAssignedVehicle", "Assigned Vehicle Card")}
           />
-        </div>
+        </Section>
+
+        <Section
+          icon={Car}
+          title="Visual & UI Effects"
+          description="Toggle interactive visual effects across the portal."
+        >
+          <ToggleRow
+            icon={Car}
+            label="Footer Driving Car"
+            description="Animated SVG vehicle cruising along the bottom of pages."
+            checked={carAnimationEnabled}
+            saving={false}
+            onChange={() => {
+              const next = toggleCarAnimation();
+              setCarAnimationEnabled(next);
+              showSuccess(next ? "Footer car animation enabled." : "Footer car animation hidden.");
+            }}
+          />
+        </Section>
+
+        <AnnouncementSection
+          icon={Megaphone}
+          title="Driver Announcement"
+          description="Broadcast alert banner for driver accounts."
+          flagKey="driverAnnouncement"
+          config={flags.driverAnnouncement}
+          updateFlags={updateFlags}
+          showSuccess={showSuccess}
+          showError={showError}
+        />
 
         {isSuperAdmin && (
           <AnnouncementSection
