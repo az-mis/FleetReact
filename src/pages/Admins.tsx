@@ -647,50 +647,52 @@ export default function Admins() {
               />
             </Field>
 
-            {/* Trip Ticket Signatories */}
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "#1a202c", marginBottom: "8px" }}>
-                Trip Ticket Signatories (Approved by)
-              </div>
+            {/* Trip Ticket Signatories — hidden for Super Admin */}
+            {form.role !== "super_admin" && (
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", marginTop: "4px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#1a202c", marginBottom: "8px" }}>
+                  Trip Ticket Signatories (Approved by)
+                </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "8px" }}>
-                <Field label="Signatory 1 Name">
-                  <input
-                    placeholder="e.g. ARJAY D. BURGOS"
-                    value={form.signee1Name}
-                    onChange={(e) => setForm({ ...form, signee1Name: e.target.value })}
-                    style={inputStyle}
-                  />
-                </Field>
-                <Field label="Signatory 1 Title / Office">
-                  <input
-                    placeholder="e.g. OIC - APCO-Oriental Mindoro"
-                    value={form.signee1Title}
-                    onChange={(e) => setForm({ ...form, signee1Title: e.target.value })}
-                    style={inputStyle}
-                  />
-                </Field>
-              </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "8px" }}>
+                  <Field label="Signatory 1 Name">
+                    <input
+                      placeholder="e.g. ARJAY D. BURGOS"
+                      value={form.signee1Name}
+                      onChange={(e) => setForm({ ...form, signee1Name: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Field label="Signatory 1 Title / Office">
+                    <input
+                      placeholder="e.g. OIC - APCO-Oriental Mindoro"
+                      value={form.signee1Title}
+                      onChange={(e) => setForm({ ...form, signee1Title: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </Field>
+                </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <Field label="Signatory 2 Name">
-                  <input
-                    placeholder="e.g. EDGARDO F. LEIDO, Jr."
-                    value={form.signee2Name}
-                    onChange={(e) => setForm({ ...form, signee2Name: e.target.value })}
-                    style={inputStyle}
-                  />
-                </Field>
-                <Field label="Signatory 2 Title / Office">
-                  <input
-                    placeholder="e.g. GSS Regional Office Calapan City"
-                    value={form.signee2Title}
-                    onChange={(e) => setForm({ ...form, signee2Title: e.target.value })}
-                    style={inputStyle}
-                  />
-                </Field>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <Field label="Signatory 2 Name">
+                    <input
+                      placeholder="e.g. EDGARDO F. LEIDO, Jr."
+                      value={form.signee2Name}
+                      onChange={(e) => setForm({ ...form, signee2Name: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Field label="Signatory 2 Title / Office">
+                    <input
+                      placeholder="e.g. GSS Regional Office Calapan City"
+                      value={form.signee2Title}
+                      onChange={(e) => setForm({ ...form, signee2Title: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </Field>
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
