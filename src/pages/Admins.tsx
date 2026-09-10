@@ -581,7 +581,7 @@ export default function Admins() {
             />
 
             <Field label="Full Name" required>
-              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Enter Full Name" style={inputStyle} />
             </Field>
 
             <Field label="Email" required>
@@ -591,6 +591,7 @@ export default function Admins() {
                 disabled={!!editing}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="Enter email"
                 style={inputStyle}
               />
               {editing && <small style={{ color: "var(--text-muted)" }}>Email changes require a backend admin action.</small>}
@@ -604,6 +605,7 @@ export default function Admins() {
                   minLength={8}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="Set temporary password"
                   style={inputStyle}
                 />
               </Field>

@@ -533,7 +533,7 @@ export default function Drivers() {
                 disabled={!!editing}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="driver@example.com"
+                placeholder="e.g. driver@example.com"
                 style={{ ...inputStyle, ...(editing ? { background: "#edf2f7", cursor: "not-allowed", color: "#4a5568" } : {}) }}
               />
               {editing && (
@@ -551,6 +551,7 @@ export default function Drivers() {
                   minLength={8}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="Set temporary password"
                   style={inputStyle}
                 />
               </Field>
@@ -607,7 +608,7 @@ export default function Drivers() {
             </div>
 
             <Field label="Address">
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={inputStyle} />
+              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Enter address" style={inputStyle} />
             </Field>
 
             <Field label="Phone Number" required>
