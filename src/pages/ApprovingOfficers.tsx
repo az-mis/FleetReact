@@ -591,7 +591,7 @@ export default function ApprovingOfficers() {
                 <input
                   value={form.signee1Name}
                   onChange={(e) => setForm({ ...form, signee1Name: e.target.value })}
-                  placeholder="e.g. ARJAY D. BURGOS or Alvin Zoleta"
+                  placeholder="e.g. ARJAY D. BURGOS"
                   style={{
                     width: "100%",
                     padding: "8px 11px",
@@ -609,7 +609,7 @@ export default function ApprovingOfficers() {
                 <input
                   value={form.signee1Title}
                   onChange={(e) => setForm({ ...form, signee1Title: e.target.value })}
-                  placeholder="e.g. Information System Analyst I"
+                  placeholder="e.g. OIC - APCO-Oriental Mindoro"
                   style={{
                     width: "100%",
                     padding: "8px 11px",
@@ -644,7 +644,7 @@ export default function ApprovingOfficers() {
                 <input
                   value={form.signee2Name}
                   onChange={(e) => setForm({ ...form, signee2Name: e.target.value })}
-                  placeholder="e.g. EDGARDO F. LEIDO, Jr. or LLoyd Ramirez"
+                  placeholder="e.g. EDGARDO F. LEIDO, Jr."
                   style={{
                     width: "100%",
                     padding: "8px 11px",
@@ -662,7 +662,7 @@ export default function ApprovingOfficers() {
                 <input
                   value={form.signee2Title}
                   onChange={(e) => setForm({ ...form, signee2Title: e.target.value })}
-                  placeholder="e.g. Computer Programmer"
+                  placeholder="e.g. GSS Regional Office Calapan City"
                   style={{
                     width: "100%",
                     padding: "8px 11px",

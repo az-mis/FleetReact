@@ -246,21 +246,25 @@ textarea::placeholder {
 }
 
 /* Vehicle Requests Responsive Layout Switcher */
-.mobile-requests-grid {
+.mobile-requests-grid,
+.mobile-travel-grid {
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-.desktop-requests-table {
+.desktop-requests-table,
+.desktop-travel-table {
   display: block;
 }
 
 @media (max-width: 900px) {
-  .mobile-requests-grid {
+  .mobile-requests-grid,
+  .mobile-travel-grid {
     display: flex;
   }
-  .desktop-requests-table {
+  .desktop-requests-table,
+  .desktop-travel-table {
     display: none;
   }
 }

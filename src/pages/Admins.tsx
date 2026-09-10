@@ -26,6 +26,7 @@ import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
+import LocationFilter from "../components/LocationFilter";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -56,6 +57,7 @@ const emptyForm = {
 export default function Admins() {
   const { currentUser } = useAuth();
   const [admins, setAdmins] = useState<AppUser[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -103,14 +105,19 @@ export default function Admins() {
   }, []);
 
   const filtered = useMemo(() => {
+    let list = selectedLocation
+      ? admins.filter((a) => a.location === selectedLocation)
+      : admins;
     const s = search.trim().toLowerCase();
-    if (!s) return admins;
-    return admins.filter((a) => [a.name, a.email].some((f) => (f || "").toLowerCase().includes(s)));
-  }, [admins, search]);
+    if (s) {
+      list = list.filter((a) => [a.name, a.email, a.location].some((f) => (f || "").toLowerCase().includes(s)));
+    }
+    return list;
+  }, [admins, search, selectedLocation]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search]);
+  }, [search, selectedLocation]);
 
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -328,6 +335,10 @@ export default function Admins() {
               />
             </div>
             <ViewToggle view={view} onChange={setViewMode} />
+            <LocationFilter
+              value={selectedLocation}
+              onChange={setSelectedLocation}
+            />
             <button
               onClick={openCreate}
               style={{

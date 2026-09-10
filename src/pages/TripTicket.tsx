@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { AppUser, ApprovingOfficer, VehicleRequest } from "../types";
 import { ArrowLeft, Printer, AlertTriangle } from "lucide-react";
 
+
 import { checkRateLimit, recordAttempt, sanitizeInput } from "../utils/rateLimiter";
 
 type LoadState = "loading" | "not_found" | "not_approved" | "error" | "ready" | "rate_limited";
@@ -293,7 +294,7 @@ export default function TripTicket() {
 
         <div style={{ textAlign: "right", fontSize: "12px", marginBottom: "4px" }}>
           <div>
-            No. <U w={90}>{request.id}</U>
+            No. <U w={140}>{request.tripTicketNumber || "—"}</U>
           </div>
           <div style={{ marginTop: "2px" }}>
             <U w={160}>
