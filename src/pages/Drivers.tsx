@@ -18,12 +18,26 @@ import { createUserWithoutSignIn } from "../lib/secondaryAuth";
 import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
-import { AppUser } from "../types";
+import { AppUser, Vehicle } from "../types";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import { Avatar, AvatarPicker } from "../components/Avatar";
-import { Plus, Pencil, Trash2, Users, List, LayoutGrid, Mail, MapPin, BadgeCheck } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Users,
+  List,
+  LayoutGrid,
+  Mail,
+  Phone,
+  MapPin,
+  BadgeCheck,
+  Car,
+  Calendar,
+  Hash,
+} from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
 import { compressImageToBlob } from "../lib/imageCompress";
@@ -57,13 +71,14 @@ const emptyForm = {
 export default function Drivers() {
   const { isSuperAdmin, profile } = useAuth();
   const [drivers, setDrivers] = useState<AppUser[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(12);
   const [view, setView] = useState<"list" | "grid">(() => {
-    if (typeof window === "undefined") return "list";
-    return (localStorage.getItem("drivers:view") as "list" | "grid") || "list";
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("drivers:view") as "list" | "grid") || "grid";
   });
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AppUser | null>(null);
@@ -81,12 +96,6 @@ export default function Drivers() {
   // Regular admins (non-super) are scoped to their own assigned location
   const adminLocation = !isSuperAdmin ? (profile?.location || "") : "";
 
-  // Photo selection is local-only until "Save Changes" is clicked: `photoFile`
-  // holds the file waiting to be uploaded, and `photoPreviewUrl` is a local
-  // object URL used just for the <img> preview. Nothing touches Drive until
-  // handleSubmit runs. `originalPhotoRef` remembers what was actually saved
-  // (so we know what to delete from Drive if it gets replaced/removed) and
-  // `photoRemoved` marks that the user cleared an existing photo.
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const photoPreviewUrlRef = useRef<string | null>(null);
@@ -106,6 +115,7 @@ export default function Drivers() {
     setPhotoError("");
   }
 
+  // Subscribe to drivers
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "driver"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
@@ -114,8 +124,25 @@ export default function Drivers() {
     return unsub;
   }, []);
 
+  // Subscribe to vehicles to show assigned vehicle on each card
+  useEffect(() => {
+    const q = query(collection(db, "vehicles"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setVehicles(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Vehicle, "id">) })));
+    });
+    return unsub;
+  }, []);
+
+  // Build a map: driverId → vehicle
+  const vehicleByDriverId = useMemo(() => {
+    const map = new Map<string, Vehicle>();
+    vehicles.forEach((v) => {
+      if (v.assignedDriverId) map.set(v.assignedDriverId, v);
+    });
+    return map;
+  }, [vehicles]);
+
   const filtered = useMemo(() => {
-    // Scope to admin's location first (super admins see all or filter by selectedLocation)
     let list = adminLocation
       ? drivers.filter((d) => d.location === adminLocation)
       : selectedLocation
@@ -178,8 +205,6 @@ export default function Drivers() {
     setModalOpen(false);
   }
 
-  /** Just stages the file for preview — nothing is uploaded to Drive until
-   *  Save Changes is clicked (see handleSubmit). */
   function handlePhotoSelect(file: File) {
     setPhotoError("");
     if (!file.type.startsWith("image/")) {
@@ -198,12 +223,6 @@ export default function Drivers() {
     setForm((f) => ({ ...f, photoURL: preview }));
   }
 
-  // Fired on the click that OPENS the file picker (see AvatarPicker's
-  // onBeforePick), not after a file is chosen — this is what actually keeps
-  // the browser from blocking the consent popup for accounts (e.g. Admins)
-  // that need it: browsers only allow opening a new popup during a fresh,
-  // unbroken click, and the OS-native file dialog can stay open for any
-  // length of time, so authorizing here beats authorizing in onChange.
   function handleBeforePhotoPick() {
     if (driveConfig) preauthorizeDrive(driveConfig.connectedByEmail);
   }
@@ -241,8 +260,6 @@ export default function Drivers() {
     setConfirmSaveOpen(false);
     setSaving(true);
     try {
-      // Resolve the photo now: upload a newly-picked file (or process a
-      // removal) to Drive right before saving, instead of at selection time.
       let finalPhotoURL = originalPhotoRef.current.url;
       let finalPhotoDriveFileId = originalPhotoRef.current.fileId;
 
@@ -260,7 +277,7 @@ export default function Drivers() {
             driveConfig.connectedByEmail
           );
           if (originalPhotoRef.current.fileId)
-            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail); // best-effort
+            deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig.connectedByEmail);
           finalPhotoURL = url;
           finalPhotoDriveFileId = fileId;
         } catch (err: any) {
@@ -270,7 +287,7 @@ export default function Drivers() {
         }
       } else if (photoRemoved) {
         if (originalPhotoRef.current.fileId)
-          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail); // best-effort
+          deletePhotoFromDrive(originalPhotoRef.current.fileId, driveConfig?.connectedByEmail);
         finalPhotoURL = null;
         finalPhotoDriveFileId = null;
       }
@@ -287,11 +304,6 @@ export default function Drivers() {
           photoDriveFileId: finalPhotoDriveFileId,
           updatedAt: serverTimestamp(),
         });
-        // vehicles.assignedDriverName is a denormalized copy of the driver's
-        // name (set once in Vehicle Assigning), so it doesn't update on its
-        // own when the driver is renamed here. Cascade the new name to any
-        // vehicle(s) currently assigned to this driver so Vehicle Requests /
-        // the public request form don't keep showing the old name.
         if (form.name !== editing.name) {
           const assignedVehicles = await getDocs(
             query(collection(db, "vehicles"), where("assignedDriverId", "==", editing.id))
@@ -339,12 +351,10 @@ export default function Drivers() {
   async function confirmDelete() {
     if (!deleteTarget) return;
     const d = deleteTarget;
-    // Deleting the matching Firebase Auth account also requires the Admin
-    // SDK; wire this up to a Cloud Function if you need full account removal.
     setDeleting(true);
     try {
       await deleteDoc(doc(db, "users", d.id));
-      if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId, driveConfig?.connectedByEmail); // best-effort
+      if (d.photoDriveFileId) deletePhotoFromDrive(d.photoDriveFileId, driveConfig?.connectedByEmail);
       showSuccess(`${d.name} deleted.`);
       setDeleteTarget(null);
     } catch (err: any) {
@@ -356,6 +366,30 @@ export default function Drivers() {
 
   return (
     <div className="fade-in">
+      {/* Responsive grid styles */}
+      <style>{`
+        .drivers-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 12px;
+        }
+        .driver-card {
+          background: #fff;
+          border-radius: 14px;
+          border: 1px solid var(--border);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .driver-card:hover {
+          box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+          transform: translateY(-2px);
+        }
+
+      `}</style>
+
       <PageHeader
         icon={Users}
         title="Drivers"
@@ -366,7 +400,7 @@ export default function Drivers() {
               <HeaderSearchInput
                 value={search}
                 onChange={setSearch}
-                placeholder="Search name or email..."
+                placeholder="Search by name or email..."
               />
             </div>
             <ViewToggle view={view} onChange={(v) => setView(v)} />
@@ -390,6 +424,7 @@ export default function Drivers() {
                 fontSize: "13px",
                 fontWeight: 700,
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               <Plus size={16} /> Add Driver
@@ -402,22 +437,23 @@ export default function Drivers() {
         <div
           style={{
             background: "#fff",
-            borderRadius: "12px",
+            borderRadius: "14px",
             border: "1px solid var(--border)",
-            padding: "28px",
+            padding: "48px 28px",
             textAlign: "center",
             color: "var(--text-muted)",
           }}
         >
-          <Users size={22} style={{ marginBottom: 6 }} />
-          <div>No drivers found.</div>
+          <Users size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
+          <div style={{ fontWeight: 600, fontSize: 15 }}>No drivers found</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Try adjusting your search or filter.</div>
         </div>
       ) : view === "list" ? (
         <div className="auth-table-wrap">
           <table className="auth-table">
             <thead>
               <tr>
-                {["Name", "Email", "Assigned Location", "Address", "License Expiry", ""].map((h) => (
+                {["Name", "Email", "Phone", "Assigned Location", "License Expiry", ""].map((h) => (
                   <th key={h}>{h}</th>
                 ))}
               </tr>
@@ -427,18 +463,22 @@ export default function Drivers() {
                 <tr key={d.id} className="admin-row">
                   <td style={{ fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <Avatar name={d.name} photoURL={d.photoURL} size={30} />
+                      <Avatar name={d.name} photoURL={d.photoURL} size={32} />
                       <span>{d.name}</span>
                     </div>
                   </td>
                   <td style={{ color: "var(--text-muted)" }}>{d.email}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{d.phoneNumber || "—"}</td>
                   <td>
                     <span style={{ fontWeight: 600, color: d.location ? "#166534" : "var(--text-muted)" }}>
                       {d.location || "All Locations"}
                     </span>
                   </td>
-                  <td style={{ color: "var(--text-muted)" }}>{d.address || "—"}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{d.licenseExpirationDate || "—"}</td>
+                  <td style={{ color: "var(--text-muted)" }}>
+                    {d.licenseExpirationDate
+                      ? new Date(d.licenseExpirationDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                      : "—"}
+                  </td>
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(d)}
@@ -461,15 +501,16 @@ export default function Drivers() {
           </table>
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "12px",
-          }}
-        >
-          {paginated.map((d) => (
-            <DriverCard key={d.id} driver={d} onEdit={() => openEdit(d)} onDelete={() => handleDelete(d)} />
+        <div className="drivers-grid">
+          {paginated.map((d, index) => (
+            <DriverCard
+              key={d.id}
+              driver={d}
+              vehicle={vehicleByDriverId.get(d.id) || null}
+              index={index + (currentPage - 1) * pageSize}
+              onEdit={() => openEdit(d)}
+              onDelete={() => handleDelete(d)}
+            />
           ))}
         </div>
       )}
@@ -533,7 +574,7 @@ export default function Drivers() {
                 disabled={!!editing}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="e.g. driver@example.com"
+                placeholder="driver@example.com"
                 style={{ ...inputStyle, ...(editing ? { background: "#edf2f7", cursor: "not-allowed", color: "#4a5568" } : {}) }}
               />
               {editing && (
@@ -551,7 +592,6 @@ export default function Drivers() {
                   minLength={8}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="Set temporary password"
                   style={inputStyle}
                 />
               </Field>
@@ -608,7 +648,7 @@ export default function Drivers() {
             </div>
 
             <Field label="Address">
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Enter address" style={inputStyle} />
+              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={inputStyle} />
             </Field>
 
             <Field label="Phone Number" required>
@@ -685,79 +725,291 @@ export default function Drivers() {
   );
 }
 
+// ─── Driver Card ──────────────────────────────────────────────────────────────
+
 function DriverCard({
   driver,
+  vehicle,
+  index,
   onEdit,
   onDelete,
 }: {
   driver: AppUser;
+  vehicle: Vehicle | null;
+  index: number;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const initials = driver.name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+  const driverId = `DRV-${String(index + 1).padStart(3, "0")}`;
+
+  const licenseDate = driver.licenseExpirationDate
+    ? new Date(driver.licenseExpirationDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
+  const licenseStatus = (() => {
+    if (!driver.licenseExpirationDate) return "none";
+    const expiry = new Date(driver.licenseExpirationDate);
+    const now = new Date();
+    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "expired";
+    if (diffDays <= 60) return "expiring";
+    return "valid";
+  })();
+
+  const licenseColor =
+    licenseStatus === "expired"
+      ? "#dc2626"
+      : licenseStatus === "expiring"
+      ? "#d97706"
+      : "#166534";
+
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: "12px",
-        border: "1px solid var(--border)",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 14px",
-          borderBottom: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        <Avatar name={driver.name} photoURL={driver.photoURL} size={36} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: "13.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+    <div className="driver-card">
+      {/* ── Top: Photo left, Info right (Top-aligned as shown in mockup) ── */}
+      <div style={{ display: "flex", gap: 12, padding: "14px 14px 10px", alignItems: "flex-start" }}>
+
+        {/* Driver photo — Rounded square left side */}
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 14,
+            overflow: "hidden",
+            flexShrink: 0,
+            background: "linear-gradient(135deg, #1b4d3e 0%, #2d6a4f 60%, #3a7d5c 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
+          {driver.photoURL ? (
+            <img
+              src={driver.photoURL}
+              alt={driver.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
+            />
+          ) : (
+            <span
+              style={{
+                fontSize: 24,
+                fontWeight: 800,
+                color: "rgba(255,255,255,0.55)",
+                letterSpacing: "-1px",
+                userSelect: "none",
+              }}
+            >
+              {initials}
+            </span>
+          )}
+        </div>
+
+        {/* Info — right side */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Top row: Active badge + action buttons */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            {/* Active badge */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "#dcfce7",
+                borderRadius: 20,
+                padding: "2px 8px",
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#15803d",
+              }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+              Active
+            </div>
+
+            {/* Edit / Delete */}
+            <div style={{ display: "flex", gap: 4 }}>
+              <button
+                onClick={onEdit}
+                title="Edit driver"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 6,
+                  border: "1px solid #dbeafe",
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <Pencil size={12} />
+              </button>
+              <button
+                onClick={onDelete}
+                title="Delete driver"
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 6,
+                  border: "1px solid #fee2e2",
+                  background: "#fff5f5",
+                  color: "#ef4444",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+
+          {/* Name */}
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 14,
+              color: "#0f172a",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {driver.name}
           </div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Driver</div>
-        </div>
-        <div style={{ display: "flex", gap: "2px", flexShrink: 0 }}>
-          <button
-            onClick={onEdit}
-            className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={onDelete}
-            className="admin-icon-btn"
-            style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
-          >
-            <Trash2 size={14} />
-          </button>
+
+          {/* ID */}
+          <div style={{ fontSize: 11, color: "#64748b", display: "flex", alignItems: "center", gap: 3, marginTop: 2, marginBottom: 6 }}>
+            <Hash size={10} />
+            {driverId}
+          </div>
+
+          {/* Contact rows */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#475569", overflow: "hidden" }}>
+              <Mail size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{driver.email}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#475569" }}>
+              <Phone size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+              <span>{driver.phoneNumber || "—"}</span>
+            </div>
+            {driver.location && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5 }}>
+                <MapPin size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+                <span style={{ fontWeight: 600, color: "#166534", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {driver.location}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <Mail size={12} style={{ flexShrink: 0 }} /> {driver.email}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.location ? <strong style={{ color: "#166534" }}>{driver.location}</strong> : "All Locations"}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          <MapPin size={12} style={{ flexShrink: 0 }} /> {driver.address || "No address on file"}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <BadgeCheck size={12} style={{ flexShrink: 0 }} />
-          {driver.licenseExpirationDate ? `License exp: ${driver.licenseExpirationDate}` : "No license expiry on file"}
-        </span>
+      {/* ── Assigned Vehicle Container (Grey background rounded section) ── */}
+      <div style={{ padding: "0 12px 10px" }}>
+        <div
+          style={{
+            background: "#f8fafc",
+            borderRadius: 12,
+            border: "1px solid #f1f5f9",
+            padding: "10px 12px",
+          }}
+        >
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+            ASSIGNED VEHICLE(S)
+          </div>
+          {vehicle ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div
+                style={{
+                  width: 52,
+                  height: 36,
+                  borderRadius: 6,
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  background: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                {vehicle.photoURL ? (
+                  <img src={vehicle.photoURL} alt={vehicle.brand} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <Car size={16} style={{ color: "#94a3b8" }} />
+                )}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {vehicle.brand} {vehicle.model}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: "#475569",
+                    marginTop: 2,
+                    background: "#e2e8f0",
+                    display: "inline-block",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    letterSpacing: "0.03em",
+                  }}
+                >
+                  {vehicle.plateNumber}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 11.5 }}>
+              <Car size={14} />
+              <span>No vehicle assigned</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── License Info Boxes ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "0 12px 12px" }}>
+        <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "7px 10px" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3, display: "flex", alignItems: "center", gap: 3 }}>
+            <BadgeCheck size={10} />
+            LICENSE NO.
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a" }}>—</div>
+        </div>
+        <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "7px 10px" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3, display: "flex", alignItems: "center", gap: 3 }}>
+            <Calendar size={10} />
+            VALID UNTIL
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: licenseColor }}>
+            {licenseDate || "—"}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
+// ─── View Toggle ──────────────────────────────────────────────────────────────
 
 function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "list" | "grid") => void }) {
   const btn = (mode: "list" | "grid", Icon: any, label: string) => (
@@ -798,6 +1050,8 @@ function ViewToggle({ view, onChange }: { view: "list" | "grid"; onChange: (v: "
     </div>
   );
 }
+
+// ─── Field ────────────────────────────────────────────────────────────────────
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
