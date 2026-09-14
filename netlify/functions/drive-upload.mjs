@@ -15,23 +15,14 @@ function adminAuth() {
 
 async function googleAccessToken() {
   if (driveToken && driveToken.expiresAt > Date.now() + 60_000) return driveToken.value;
-  const account = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  const now = Math.floor(Date.now() / 1000);
-  const base64 = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
-  const unsigned = `${base64({ alg: "RS256", typ: "JWT" })}.${base64({
-    iss: account.client_email,
-    scope: DRIVE_SCOPE,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  })}`;
-  const signer = crypto.createSign("RSA-SHA256");
-  signer.update(unsigned);
-  const assertion = `${unsigned}.${signer.sign(account.private_key, "base64url")}`;
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) throw new Error("Google Drive OAuth server credentials are not configured.");
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
   });
   if (!response.ok) throw new Error("Google Drive authorization failed.");
   const data = await response.json();
@@ -97,4 +88,3 @@ export default async (request) => {
     return new Response(JSON.stringify({ error: error.message || "Drive upload failed." }), { status: 500 });
   }
 };
-
