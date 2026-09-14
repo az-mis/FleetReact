@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   collection,
   deleteDoc,
@@ -44,6 +45,7 @@ import {
   ShieldCheck,
   UserCheck,
   Pencil,
+  Printer,
   LucideIcon,
 } from "lucide-react";
 
@@ -129,6 +131,8 @@ export default function VehicleRequests() {
           r.destination,
           r.defaultDriverName,
           r.location,
+          r.id,
+          r.tripTicketNumber,
           ...passList,
         ].some((f) => (f || "").toLowerCase().includes(s));
       });
@@ -473,7 +477,7 @@ export default function VehicleRequests() {
                     </div>
 
                     <div style={{ display: "flex", alignItems: "center", gap: "5px", flexShrink: 0 }}>
-                      {r.tripTicketNumber && (
+                      {r.status === "approved" && r.tripTicketNumber && (
                         <span
                           title="Trip Ticket No. — click to copy"
                           onClick={() => navigator.clipboard?.writeText(r.tripTicketNumber!)}
@@ -493,6 +497,28 @@ export default function VehicleRequests() {
                           }}
                         >
                           {r.tripTicketNumber}
+                        </span>
+                      )}
+                      {r.status !== "approved" && (
+                        <span
+                          title="Reference code — click to copy"
+                          onClick={() => navigator.clipboard?.writeText(r.id)}
+                          style={{
+                            fontFamily: "monospace",
+                            fontSize: "9.5px",
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "5px",
+                            padding: "2px 6px",
+                            cursor: "pointer",
+                            userSelect: "all",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {r.id}
                         </span>
                       )}
                       <span
@@ -599,25 +625,49 @@ export default function VehicleRequests() {
                     </div>
                   )}
 
-                  {/* Action Button */}
-                  <button
-                    onClick={() => setReviewing(r)}
-                    style={{
-                      width: "100%",
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      border: "none",
-                      background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
-                      color: r.status === "pending" ? "#fff" : "#2d3748",
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      boxShadow: r.status === "pending" ? "0 2px 4px rgba(0, 179, 119, 0.2)" : "none",
-                      marginTop: "2px",
-                    }}
-                  >
-                    {r.status === "pending" ? "Review Request" : "View Details"}
-                  </button>
+                  {/* Action Buttons */}
+                  <div style={{ display: "grid", gridTemplateColumns: r.status === "approved" ? "1fr 1fr" : "1fr", gap: "6px", marginTop: "2px" }}>
+                    <button
+                      onClick={() => setReviewing(r)}
+                      style={{
+                        width: "100%",
+                        padding: "6px 12px",
+                        borderRadius: "6px",
+                        border: "none",
+                        background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                        color: r.status === "pending" ? "#fff" : "#2d3748",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        boxShadow: r.status === "pending" ? "0 2px 4px rgba(0, 179, 119, 0.2)" : "none",
+                      }}
+                    >
+                      {r.status === "pending" ? "Review Request" : "View Details"}
+                    </button>
+                    {r.status === "approved" && (
+                      <Link
+                        to={`/trip-ticket/${r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "6px",
+                          border: "none",
+                          background: "rgba(26,107,60,0.1)",
+                          color: "var(--primary)",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Printer size={12} /> Print
+                      </Link>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -629,7 +679,7 @@ export default function VehicleRequests() {
               <thead>
                 <tr>
                   <th style={{ width: 48 }}>Vehicle</th>
-                  <th style={{ minWidth: 110 }}>Trip No.</th>
+                  <th style={{ minWidth: 130 }}>Reference / Trip No.</th>
                   <th style={{ minWidth: 130 }}>Plate &amp; Travel Date</th>
                   <th style={{ minWidth: 130 }}>Office Province</th>
                   <th style={{ minWidth: 140 }}>Driver</th>
@@ -669,8 +719,8 @@ export default function VehicleRequests() {
 
                       {/* 1b. Trip Ticket Number */}
                       <td>
-                        {r.tripTicketNumber ? (
-                          <span
+                        {r.status === "approved" && r.tripTicketNumber ? (
+                          <div
                             title="Trip Ticket No. — click to copy"
                             style={{
                               display: "inline-block",
@@ -690,9 +740,32 @@ export default function VehicleRequests() {
                             onClick={() => navigator.clipboard?.writeText(r.tripTicketNumber!)}
                           >
                             {r.tripTicketNumber}
-                          </span>
+                          </div>
                         ) : (
-                          <span style={{ color: "#a0aec0", fontSize: "12px" }}>—</span>
+                          <>
+                            <div
+                              title="Reference code — click to copy"
+                              onClick={() => navigator.clipboard?.writeText(r.id)}
+                              style={{
+                                display: "inline-block",
+                                fontFamily: "monospace",
+                                fontSize: "11px",
+                                fontWeight: 800,
+                                letterSpacing: "0.06em",
+                                background: "#eff6ff",
+                                color: "#1d4ed8",
+                                border: "1px solid #bfdbfe",
+                                borderRadius: "6px",
+                                padding: "3px 7px",
+                                cursor: "pointer",
+                                userSelect: "all",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {r.id}
+                            </div>
+                            <div style={{ color: "#a0aec0", fontSize: "11px" }}>Pending approval</div>
+                          </>
                         )}
                       </td>
 
@@ -784,25 +857,49 @@ export default function VehicleRequests() {
                         )}
                       </td>
 
-                      {/* 10. Action button review/view */}
+                      {/* 10. Action buttons review/view/print */}
                       <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        <button
-                          onClick={() => setReviewing(r)}
-                          style={{
-                            padding: "6px 14px",
-                            borderRadius: "8px",
-                            border: "none",
-                            background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
-                            color: r.status === "pending" ? "#fff" : "#2d3748",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
-                            transition: "all 0.15s ease",
-                          }}
-                        >
-                          {r.status === "pending" ? "Review" : "View"}
-                        </button>
+                        <div style={{ display: "inline-flex", justifyContent: "flex-end", gap: "6px" }}>
+                          <button
+                            onClick={() => setReviewing(r)}
+                            style={{
+                              padding: "6px 14px",
+                              borderRadius: "8px",
+                              border: "none",
+                              background: r.status === "pending" ? "linear-gradient(135deg, #00b377 0%, #008f58 100%)" : "#edf2f7",
+                              color: r.status === "pending" ? "#fff" : "#2d3748",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              boxShadow: r.status === "pending" ? "0 2px 6px rgba(0, 179, 119, 0.25)" : "none",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {r.status === "pending" ? "Review" : "View"}
+                          </button>
+                          {r.status === "approved" && (
+                            <Link
+                              to={`/trip-ticket/${r.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                padding: "6px 10px",
+                                borderRadius: "8px",
+                                border: "1px solid rgba(26,107,60,0.18)",
+                                background: "rgba(26,107,60,0.1)",
+                                color: "var(--primary)",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                textDecoration: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Printer size={12} /> Print
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -955,7 +1052,53 @@ function ReviewModal({
   return (
     <Modal title={isPending ? "Review Request" : "Request Details"} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            background: "#eff6ff",
+            border: "1px solid #bfdbfe",
+            borderRadius: "10px",
+            padding: "10px 12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "10.5px", color: "#1d4ed8", fontWeight: 800, textTransform: "uppercase" }}>
+              Request Reference Code
+            </div>
+            <div style={{ fontFamily: "monospace", fontSize: "18px", color: "#1e3a8a", fontWeight: 900, letterSpacing: "0.08em" }}>
+              {request.id}
+            </div>
+            {isPending && (
+              <div style={{ fontSize: "11.5px", color: "#475569", marginTop: "2px" }}>
+                The requester can use this code to check or ask about this pending request.
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(request.id)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "7px",
+              border: "1px solid #93c5fd",
+              background: "#fff",
+              color: "#1d4ed8",
+              fontSize: "12px",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            Copy Code
+          </button>
+        </div>
         <InfoRow icon={User} label="Requester" value={request.requesterName} />
+        {isApproved && request.tripTicketNumber && (
+          <InfoRow icon={FileText} label="Trip Ticket No." value={request.tripTicketNumber} />
+        )}
         {request.location && <InfoRow icon={MapPin} label="Location" value={request.location} />}
         {request.requesterIsPassenger && (
           <InfoRow icon={Users} label="Riding along" value="Yes — requester is also a passenger" />
@@ -999,26 +1142,49 @@ function ReviewModal({
                 : `Declined${request.declineReason ? ` · ${request.declineReason}` : ""}`}
             </div>
             {isApproved && !editingApprovedDriver && (
-              <button
-                type="button"
-                onClick={() => setEditingApprovedDriver(true)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "4px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid var(--primary)",
-                  background: "#fff",
-                  color: "var(--primary)",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                <Pencil size={12} />
-                Change Driver
-              </button>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <Link
+                  to={`/trip-ticket/${request.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--primary)",
+                    background: "#fff",
+                    color: "var(--primary)",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                  }}
+                >
+                  <Printer size={12} />
+                  Print Ticket
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setEditingApprovedDriver(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--primary)",
+                    background: "#fff",
+                    color: "var(--primary)",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Pencil size={12} />
+                  Change Driver
+                </button>
+              </div>
             )}
           </div>
         )}
