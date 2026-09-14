@@ -10,14 +10,20 @@
 // (settings/driveConfig — see types.ts DriveConfig), so every other upload,
 // by anyone, just reads those IDs instead of touching Drive's folder APIs.
 
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { auth } from "../firebase";
 import { DRIVE_CONFIG_DOC_PATH, DriveConfig } from "../types";
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
-const SCOPE = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
+const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET as string | undefined;
+const SCOPE =
+  (import.meta.env.VITE_GOOGLE_DRIVE_SCOPE as string | undefined)?.trim() ||
+  "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email";
 
-const ROOT_FOLDER_NAME = "FMS Photos";
+// Keep staging and production files isolated. Production can omit this value
+// and continue using the original "FMS Photos" folder.
+const ROOT_FOLDER_NAME = (import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_NAME as string | undefined)?.trim() || "FMS Photos";
 const SUBFOLDER_NAMES = { admin: "Admins", vehicle: "Vehicles", driver: "Drivers" } as const;
 
 declare global {
@@ -125,23 +131,53 @@ const TIMEOUT_MESSAGE =
  * into multiple Google accounts doesn't end up using — or being asked to
  * pick between — the wrong one.
  */
-export function getAccessToken(loginHint?: string, forceInteractive = false): Promise<string> {
+async function refreshAccessTokenFromSecret(refreshToken: string, clientSecret?: string): Promise<string> {
+  const secret = clientSecret || CLIENT_SECRET;
+  if (!secret) throw new Error("Missing client secret");
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID!,
+    client_secret: secret,
+    refresh_token: refreshToken,
+    grant_type: "refresh_token",
+  });
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+  if (!res.ok) throw new Error("Failed to refresh access token");
+  const data = await res.json();
+  cachedToken = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
+}
+
+export async function getAccessToken(loginHint?: string, forceInteractive = false): Promise<string> {
   if (!CLIENT_ID) {
     return Promise.reject(new Error("Google Drive isn't configured yet (missing VITE_GOOGLE_CLIENT_ID)."));
   }
   if (!forceInteractive && cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
     return Promise.resolve(cachedToken.value);
   }
-  // Google's token client only has one callback slot at a time — if a
-  // second request comes in (e.g. the "preauthorize on photo pick" call is
-  // still waiting on an interactive popup when Save triggers the real
-  // upload's own getAccessToken call) it would silently overwrite the first
-  // request's callback, leaving that first caller's promise unresolved
-  // forever. So instead of starting a fresh request, any call that arrives
-  // while one is already in flight just piggybacks on that same promise.
   if (!forceInteractive && inFlightTokenRequest) {
     return inFlightTokenRequest;
   }
+
+  // Attempt to load refresh token from Firestore driveConfig for silent background refresh across devices
+  if (!forceInteractive) {
+    try {
+      const configSnap = await getDoc(doc(db, ...DRIVE_CONFIG_DOC_PATH));
+      if (configSnap.exists()) {
+        const configData = configSnap.data() as DriveConfig;
+        if (configData.refreshToken) {
+          const token = await refreshAccessTokenFromSecret(configData.refreshToken, configData.clientSecret);
+          return token;
+        }
+      }
+    } catch (e) {
+      console.warn("Silent refresh token exchange failed, falling back to GIS flow:", e);
+    }
+  }
+
   const request = withTimeout(getAccessTokenInner(loginHint, forceInteractive), AUTH_TIMEOUT_MS, TIMEOUT_MESSAGE);
   if (!forceInteractive) {
     inFlightTokenRequest = request;
@@ -304,10 +340,8 @@ export async function connectGoogleDrive(connectedByName: string): Promise<Drive
  * error the person can act on.
  */
 export function preauthorizeDrive(loginHint?: string): void {
-  if (!CLIENT_ID) return;
-  getAccessToken(loginHint).catch(() => {
-    // Ignore — handled again (with a real error message) at actual upload time.
-  });
+  // Uploads are now handled by the Netlify Function. Keep this export so
+  // existing photo pickers do not need a special browser-auth path.
 }
 
 export interface DriveUploadResult {
@@ -329,39 +363,21 @@ export async function uploadPhotoToDrive(
   folderId: string,
   loginHint?: string
 ): Promise<DriveUploadResult> {
-  const token = await getAccessToken(loginHint);
-
-  const metadata = { name: filename, parents: [folderId] };
+  const user = auth.currentUser;
+  if (!user) throw new Error("Please sign in before uploading a photo.");
+  const idToken = await user.getIdToken();
   const form = new FormData();
-  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-  form.append("file", blob);
-
-  const { id: fileId } = await withTimeout(
-    driveFetch(token, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
-      method: "POST",
-      body: form,
-    }),
-    AUTH_TIMEOUT_MS,
-    TIMEOUT_MESSAGE
-  );
-
-  try {
-    await withTimeout(
-      driveFetch(token, `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "reader", type: "anyone" }),
-      }),
-      AUTH_TIMEOUT_MS,
-      TIMEOUT_MESSAGE
-    );
-  } catch (err) {
-    // The file uploaded but isn't publicly viewable yet — still return it
-    // rather than failing outright, since this can be fixed manually in Drive.
-    console.error("Uploaded to Drive but couldn't set public link sharing:", err);
-  }
-
-  return { fileId, url: `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` };
+  form.append("file", blob, filename);
+  form.append("folderId", folderId);
+  form.append("filename", filename);
+  const res = await fetch("/.netlify/functions/drive-upload", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Couldn't upload the photo.");
+  return data as DriveUploadResult;
 }
 
 /** Best-effort delete — called when a photo is replaced or removed. Never
@@ -371,8 +387,14 @@ export async function uploadPhotoToDrive(
  *  pinned to the account that connected Drive. */
 export async function deletePhotoFromDrive(fileId: string, loginHint?: string): Promise<void> {
   try {
-    const token = await getAccessToken(loginHint);
-    await driveFetch(token, `https://www.googleapis.com/drive/v3/files/${fileId}`, { method: "DELETE" });
+    const user = auth.currentUser;
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    await fetch("/.netlify/functions/drive-upload", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fileId }),
+    });
   } catch (err) {
     console.error("Couldn't delete old Drive file (non-fatal):", err);
   }

@@ -127,6 +127,8 @@ export interface DriveConfig {
   driverFolderId: string;
   connectedByName: string;
   connectedByEmail?: string; // pins token requests to this Google account via login_hint
+  refreshToken?: string; // Google OAuth Refresh Token for seamless multi-device uploading
+  clientSecret?: string; // Google OAuth Client Secret for exchanging refresh token
   connectedAt: any; // Firestore server timestamp
 }
 export const DRIVE_CONFIG_DOC_PATH = ["settings", "driveConfig"] as const;

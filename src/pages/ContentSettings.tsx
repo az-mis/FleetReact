@@ -31,12 +31,14 @@ import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
-import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
+import { AdminModuleFlags, AnnouncementConfig, BRANDING_DOC_PATH, DRIVE_CONFIG_DOC_PATH, DriverModuleFlags, DriveConfig } from "../types";
 import { connectGoogleDrive } from "../lib/googleDrive";
 import { CAR_ANIMATION_STORAGE_KEY, toggleCarAnimation } from "../components/FooterDrivingCar";
 import { seed100Records, clearSeededRecords } from "../lib/seeder";
 
 const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
+const DRIVE_ROOT_FOLDER_NAME =
+  (import.meta.env.VITE_GOOGLE_DRIVE_ROOT_FOLDER_NAME as string | undefined)?.trim() || "FMS Photos";
 
 export default function ContentSettings() {
   const { isSuperAdmin, profile } = useAuth();
@@ -173,7 +175,7 @@ export default function ContentSettings() {
       showSuccess(
         driveConfig
           ? "Reconnected to Google Drive."
-          : "Connected! The \"FMS Photos\" folder (with Admins/Vehicles/Drivers subfolders) was created in your Drive."
+          : `Connected! The "${DRIVE_ROOT_FOLDER_NAME}" folder (with Admins/Vehicles/Drivers subfolders) was created in your Drive.`
       );
     } catch (err: any) {
       showError(err.message || "Couldn't connect to Google Drive.");
@@ -934,7 +936,7 @@ function DriveConnectionCard({
                   rel="noreferrer"
                   style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--primary)" }}
                 >
-                  Open "FMS Photos" folder <ExternalLink size={11} />
+                  Open &quot;{DRIVE_ROOT_FOLDER_NAME}&quot; folder <ExternalLink size={11} />
                 </a>
               ) : (
                 "Connect to enable photo storage."
@@ -970,6 +972,37 @@ function DriveConnectionCard({
                 ? "Connecting…"
                 : "Connect Drive"}
             </button>
+
+            {connected && (
+              <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border)" }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "#4a5568", marginBottom: "4px" }}>
+                  Multi-Device Upload Auth (Optional / Recommended)
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px", lineHeight: 1.4 }}>
+                  If admins use different devices/browsers without Google sign-in popups, enter a <b>Refresh Token</b> once below:
+                </div>
+                <input
+                  type="password"
+                  placeholder="Paste Refresh Token (Optional)"
+                  defaultValue={driveConfig?.refreshToken || ""}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim();
+                    if (val !== (driveConfig?.refreshToken || "")) {
+                      await setDoc(doc(db, ...DRIVE_CONFIG_DOC_PATH), { refreshToken: val || null }, { merge: true });
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    height: "30px",
+                    padding: "0 8px",
+                    fontSize: "11px",
+                    borderRadius: "6px",
+                    border: "1px solid var(--border)",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
