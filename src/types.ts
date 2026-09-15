@@ -29,6 +29,7 @@ export interface AppUser {
   photoDriveFileId?: string | null;
   birthDate?: string | null; // yyyy-mm-dd, drivers only
   address?: string | null; // drivers only
+  licenseNo?: string | null; // drivers only
   licenseExpirationDate?: string | null; // yyyy-mm-dd, drivers only
   location?: string | null; // Office/Province assignment for admins & requests
   phoneNumber?: string | null; // Contact phone number (all roles)

@@ -36,7 +36,6 @@ import {
   BadgeCheck,
   Car,
   Calendar,
-  Hash,
 } from "lucide-react";
 import HeaderSearchInput from "../components/HeaderSearchInput";
 import Pagination from "../components/Pagination";
@@ -61,6 +60,7 @@ const emptyForm = {
   password: "",
   birthDate: "",
   address: "",
+  licenseNo: "",
   licenseExpirationDate: "",
   location: "",
   phoneNumber: "",
@@ -188,6 +188,7 @@ export default function Drivers() {
       password: "",
       birthDate: d.birthDate || "",
       address: d.address || "",
+      licenseNo: d.licenseNo || "",
       licenseExpirationDate: d.licenseExpirationDate || "",
       location: d.location || "",
       phoneNumber: d.phoneNumber || "",
@@ -249,6 +250,11 @@ export default function Drivers() {
       return;
     }
 
+    if (!form.licenseNo.trim()) {
+      setError("License No. is required.");
+      return;
+    }
+
     if (editing) {
       setConfirmSaveOpen(true);
     } else {
@@ -297,6 +303,7 @@ export default function Drivers() {
           name: form.name,
           birthDate: form.birthDate || null,
           address: form.address || null,
+          licenseNo: form.licenseNo.trim(),
           licenseExpirationDate: form.licenseExpirationDate || null,
           location: form.location || null,
           phoneNumber: form.phoneNumber || null,
@@ -325,6 +332,7 @@ export default function Drivers() {
           role: "driver",
           birthDate: form.birthDate || null,
           address: form.address || null,
+          licenseNo: form.licenseNo.trim(),
           licenseExpirationDate: form.licenseExpirationDate || null,
           location: form.location || null,
           phoneNumber: form.phoneNumber || null,
@@ -637,6 +645,18 @@ export default function Drivers() {
                   style={inputStyle}
                 />
               </Field>
+              <Field label="License No." required>
+                <input
+                  required
+                  value={form.licenseNo}
+                  onChange={(e) => setForm({ ...form, licenseNo: e.target.value })}
+                  placeholder="e.g. N01-23-456789"
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
               <Field label="License Expiration">
                 <input
                   type="date"
@@ -645,19 +665,23 @@ export default function Drivers() {
                   style={inputStyle}
                 />
               </Field>
+              <Field label="Phone Number" required>
+                <input
+                  type="tel"
+                  required
+                  value={form.phoneNumber}
+                  onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                  placeholder="e.g. 09171234567"
+                  style={inputStyle}
+                />
+              </Field>
             </div>
 
             <Field label="Address">
-              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} style={inputStyle} />
-            </Field>
-
-            <Field label="Phone Number" required>
               <input
-                type="tel"
-                required
-                value={form.phoneNumber}
-                onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
-                placeholder="e.g. 09171234567"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Complete address"
                 style={inputStyle}
               />
             </Field>
@@ -746,8 +770,6 @@ function DriverCard({
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-
-  const driverId = `DRV-${String(index + 1).padStart(3, "0")}`;
 
   const licenseDate = driver.licenseExpirationDate
     ? new Date(driver.licenseExpirationDate).toLocaleDateString("en-US", {
@@ -893,14 +915,8 @@ function DriverCard({
             {driver.name}
           </div>
 
-          {/* ID */}
-          <div style={{ fontSize: 11, color: "#64748b", display: "flex", alignItems: "center", gap: 3, marginTop: 2, marginBottom: 6 }}>
-            <Hash size={10} />
-            {driverId}
-          </div>
-
           {/* Contact rows */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: "#475569", overflow: "hidden" }}>
               <Mail size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{driver.email}</span>
@@ -993,7 +1009,9 @@ function DriverCard({
             <BadgeCheck size={10} />
             LICENSE NO.
           </div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a" }}>—</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>
+            {driver.licenseNo || "—"}
+          </div>
         </div>
         <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: 10, padding: "7px 10px" }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3, display: "flex", alignItems: "center", gap: 3 }}>

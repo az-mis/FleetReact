@@ -9,12 +9,13 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import { useDriveConfig } from "../contexts/DriveConfigContext";
-import { Vehicle } from "../types";
+import { AppUser, Vehicle } from "../types";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
@@ -23,7 +24,7 @@ import Pagination from "../components/Pagination";
 import { Avatar, AvatarPicker } from "../components/Avatar";
 import { compressImageToBlob } from "../lib/imageCompress";
 import { uploadPhotoToDrive, deletePhotoFromDrive, preauthorizeDrive } from "../lib/googleDrive";
-import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Truck, List, LayoutGrid, Gauge, Palette, Fuel, MapPin, Mail, Phone, BadgeCheck, Calendar, UserCheck } from "lucide-react";
 import LocationFilter from "../components/LocationFilter";
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
@@ -61,6 +62,7 @@ export default function Vehicles() {
   const { showSuccess, showError } = useToast();
   const { config: driveConfig } = useDriveConfig();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<AppUser[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -109,6 +111,20 @@ export default function Vehicles() {
     return unsub;
   }, []);
 
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "driver"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setDrivers(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AppUser, "id">) })));
+    });
+    return unsub;
+  }, []);
+
+  const driverById = useMemo(() => {
+    const map = new Map<string, AppUser>();
+    drivers.forEach((driver) => map.set(driver.id, driver));
+    return map;
+  }, [drivers]);
+
   const filtered = useMemo(() => {
     // Scope to admin's location first (super admins see all or filter by selectedLocation)
     let list = adminLocation
@@ -120,13 +136,23 @@ export default function Vehicles() {
     const s = search.trim().toLowerCase();
     if (s) {
       list = list.filter((v) =>
-        [v.plateNumber, v.brand, v.model, v.chassisNumber, v.engineNumber, v.location].some((f) =>
+        [
+          v.plateNumber,
+          v.brand,
+          v.model,
+          v.chassisNumber,
+          v.engineNumber,
+          v.location,
+          v.assignedDriverName,
+          v.assignedDriverId ? driverById.get(v.assignedDriverId)?.email : "",
+          v.assignedDriverId ? driverById.get(v.assignedDriverId)?.phoneNumber : "",
+        ].some((f) =>
           (f || "").toLowerCase().includes(s)
         )
       );
     }
     return list;
-  }, [vehicles, search, adminLocation, selectedLocation]);
+  }, [vehicles, search, adminLocation, selectedLocation, driverById]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -385,47 +411,67 @@ export default function Vehicles() {
           <table className="auth-table">
             <thead>
               <tr>
-                {["", "Plate #", "Brand / Model", "Year", "Color", "Odometer", "Type", "Fuel", "Location", ""].map((h, i) => (
+                {["", "Plate #", "Brand / Model", "Assigned Driver", "Year", "Color", "Odometer", "Type", "Fuel", "Location", ""].map((h, i) => (
                   <th key={i}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {paginated.map((v) => (
-                <tr key={v.id} className="admin-row">
-                  <td style={{ width: 44, paddingRight: 0 }}>
-                    <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={30} />
-                  </td>
-                  <td style={{ fontWeight: 600 }}>{v.plateNumber}</td>
-                  <td style={{ color: "var(--text-muted)" }}>
-                    {v.brand} {v.model}
-                  </td>
-                  <td style={{ color: "var(--text-muted)" }}>{v.year}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{v.color}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
-                  <td style={{ color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
-                  <td style={{ color: "var(--text-muted)", fontSize: "12px" }}>{v.location || "—"}</td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button
-                      onClick={() => openEdit(v)}
-                      className="admin-icon-btn"
-                      style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    {isSuperAdmin && (
+              {paginated.map((v) => {
+                const assignedDriver = v.assignedDriverId ? driverById.get(v.assignedDriverId) || null : null;
+                return (
+                  <tr key={v.id} className="admin-row">
+                    <td style={{ width: 44, paddingRight: 0 }}>
+                      <Avatar photoURL={v.photoURL} fallback="icon" icon={Truck} size={30} />
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{v.plateNumber}</td>
+                    <td style={{ color: "var(--text-muted)" }}>
+                      {v.brand} {v.model}
+                    </td>
+                    <td>
+                      {assignedDriver || v.assignedDriverName ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <Avatar photoURL={assignedDriver?.photoURL} name={assignedDriver?.name || v.assignedDriverName || "Driver"} size={26} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "12.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {assignedDriver?.name || v.assignedDriverName}
+                            </div>
+                            <div style={{ color: "var(--text-muted)", fontSize: "11px", whiteSpace: "nowrap" }}>
+                              {assignedDriver?.phoneNumber || assignedDriver?.email || "Driver details unavailable"}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ color: "var(--text-muted)" }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ color: "var(--text-muted)" }}>{v.year}</td>
+                    <td style={{ color: "var(--text-muted)" }}>{v.color}</td>
+                    <td style={{ color: "var(--text-muted)" }}>{v.odometer.toLocaleString()} km</td>
+                    <td style={{ color: "var(--text-muted)" }}>{v.vehicleType || "—"}</td>
+                    <td style={{ color: "var(--text-muted)" }}>{v.fuelType || "—"}</td>
+                    <td style={{ color: "var(--text-muted)", fontSize: "12px" }}>{v.location || "—"}</td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       <button
-                        onClick={() => handleDelete(v)}
+                        onClick={() => openEdit(v)}
                         className="admin-icon-btn"
-                        style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
+                        style={{ background: "none", border: "none", color: "var(--info)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
                       >
-                        <Trash2 size={14} />
+                        <Pencil size={14} />
                       </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleDelete(v)}
+                          className="admin-icon-btn"
+                          style={{ background: "none", border: "none", color: "var(--danger)", padding: "5px", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -441,6 +487,7 @@ export default function Vehicles() {
             <VehicleCard
               key={v.id}
               vehicle={v}
+              driver={v.assignedDriverId ? driverById.get(v.assignedDriverId) || null : null}
               canDelete={isSuperAdmin}
               onEdit={() => openEdit(v)}
               onDelete={() => handleDelete(v)}
@@ -667,15 +714,37 @@ export default function Vehicles() {
 
 function VehicleCard({
   vehicle,
+  driver,
   canDelete,
   onEdit,
   onDelete,
 }: {
   vehicle: Vehicle;
+  driver: AppUser | null;
   canDelete: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const driverName = driver?.name || vehicle.assignedDriverName || "";
+  const licenseDate = driver?.licenseExpirationDate
+    ? new Date(driver.licenseExpirationDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+  const licenseStatus = (() => {
+    if (!driver?.licenseExpirationDate) return "none";
+    const expiry = new Date(driver.licenseExpirationDate);
+    const now = new Date();
+    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return "expired";
+    if (diffDays <= 60) return "expiring";
+    return "valid";
+  })();
+  const licenseColor =
+    licenseStatus === "expired" ? "#dc2626" : licenseStatus === "expiring" ? "#d97706" : "#166534";
+
   return (
     <div
       style={{
@@ -742,6 +811,78 @@ function VehicleCard({
           <Fuel size={12} style={{ flexShrink: 0 }} />
           {vehicle.vehicleType || "—"}{vehicle.fuelType ? ` · ${vehicle.fuelType}` : ""}
         </span>
+      </div>
+
+      <div style={{ padding: "0 12px 12px" }}>
+        <div
+          style={{
+            background: "#f8fafc",
+            borderRadius: 12,
+            border: "1px solid #f1f5f9",
+            padding: "10px 12px",
+          }}
+        >
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 7, display: "flex", alignItems: "center", gap: 4 }}>
+            <UserCheck size={11} />
+            ASSIGNED DRIVER
+          </div>
+          {driverName ? (
+            <>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <Avatar photoURL={driver?.photoURL} name={driverName} size={38} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 12.5, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {driverName}
+                  </div>
+                  {driver?.email && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569", overflow: "hidden", marginTop: 3 }}>
+                      <Mail size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{driver.email}</span>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569", marginTop: 3 }}>
+                    <Phone size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+                    <span>{driver?.phoneNumber || "—"}</span>
+                  </div>
+                  {(driver?.location || vehicle.location) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, marginTop: 3 }}>
+                      <MapPin size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+                      <span style={{ fontWeight: 600, color: "#166534", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {driver?.location || vehicle.location}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+                <div style={{ background: "#fff", border: "1px solid #f1f5f9", borderRadius: 10, padding: "7px 9px" }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3, display: "flex", alignItems: "center", gap: 3 }}>
+                    <BadgeCheck size={10} />
+                    LICENSE NO.
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>
+                    {driver?.licenseNo || "—"}
+                  </div>
+                </div>
+                <div style={{ background: "#fff", border: "1px solid #f1f5f9", borderRadius: 10, padding: "7px 9px" }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3, display: "flex", alignItems: "center", gap: 3 }}>
+                    <Calendar size={10} />
+                    VALID UNTIL
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: licenseColor }}>
+                    {licenseDate || "—"}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 11.5 }}>
+              <UserCheck size={14} />
+              <span>No driver assigned</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
